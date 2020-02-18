@@ -1,0 +1,477 @@
+var report_type = 0;//0 综合简报；1 分区简报
+var report_adcd = userPrivilege;
+var dataArr = new Array();
+$(function () {
+  //趋势简报
+  $("#trend-briefing").click(function () {
+    showReportPdfWin(1,"realy");
+  });
+  //实时简报
+  $("#real-time-briefing").click(function () {
+    showReportPdfWin(2);
+  });
+  searchUserArea();
+});
+var reportWin = new MyWindow();
+var showReportPdfWin = function (type,realy) {
+  ajaxCallJson({type: type, adcd: userPrivilege}, '/report/document', function (result) {
+    if (result && result.data) {
+      var data = result.data;
+      if (data.originfileid) {
+        data.update = result.showUpdate;
+        initReportWin(data,realy);
+      } else {
+        reportWin.hide();
+        layer.msg('暂无数据', {time: 1500})
+      }
+    } else {
+      reportWin.hide();
+      layer.msg('暂无数据', {time: 1500})
+    }
+
+  })
+}
+var initReportWin = function (data,realy) {
+  var type = data.reporttype;
+  report_type = parseInt(data.reporttype);
+  var fileId = data.originfileid;
+  var originfileid = data.originfileid;
+  if (data.updatepdf != undefined) {
+    fileId = data.updatepdf;
+  }
+  if (data.neworiginfileid != undefined) {
+    originfileid = data.neworiginfileid;
+  }
+  // var isShowGX=true;
+  var shouSendMessage = false;
+  var url = '/report/pdf?fileId=' + fileId + "&name=" + data.reportname + "&originfileid=" + originfileid + "&shouSendMessage=" + shouSendMessage;
+  var html = '<div style="width: 100%;height: 100%">';
+  var titleStr = "综合简报";
+  if (report_type >= 1) {
+    html += '<div class="area-back-div menu-hidden" style="right: 200px;position: absolute"><img src="/images/window/back-right.png" data="true" onclick="openReportAreaTree(this)"></div>';
+    html += '<div class="area-tree-div common-basic-menu" style="width: 180px;right: 10px;position: absolute;background-color:#4A4A4A;height: 92%">';
+    html += '<div class="area-tree-title">区域选择</div>';
+    html += '<div class="area-report-content"><ul id="area-report-tree" class="ztree"></ul></div>';
+    html += '</div>';
+    html += '<div style="position: absolute;left: 20px;top:80px;border: solid 1px #1fb5ee;background-color: rgba(25, 136, 211, 0.6);cursor: pointer " onclick="getReportHistoryList(' + type + ')">历史查询</div>';
+    if(report_type===1||report_type===2){
+      if(realy){
+        var oneTitle="'日常报讯'",twoTitle="'洪水快报'",oneType=11,twoType=12;
+        html += '<div style="position: absolute;left: 100px;top:80px;border: solid 1px #1fb5ee;background-color: rgba(25, 136, 211, 0.6);cursor: pointer " onclick="onLoadDailyNewsFile(' + oneType + ',' + oneTitle + ')">日常报讯</div>';
+        html += '<div style="position: absolute;left: 180px;top:80px;border: solid 1px #1fb5ee;background-color: rgba(25, 136, 211, 0.6);cursor: pointer " onclick="onLoadDailyNewsFile(' + twoType + ',' + twoTitle + ')">洪水快报</div>';
+      }
+    }
+    if (data.update) {
+      html += '<div style="position: absolute;left: 20px;bottom: 145px"> <form id="uploadForm"> <input type="file" id="report-file-choose" style="visibility: hidden" accept=".doc,.docx"><div  style="margin-left: 5px;cursor: pointer;width: 45px;color:rgb(0, 102, 204)"><span style="padding-left: 5px">更新</span><br/><img style="" title="更新简报" id="report-file-upload" src="/images/icon/upload.png" width="45" height="45"></div></form></div>';
+    }
+    html += '<iframe class="area-report common-basic-left" src="' + url + '" width="100%" height="99%" frameborder=0 scrolling="no" style="display: inline-block;width: 84.3%;float:left;"></iframe></div>';
+    titleStr = "分区简报"
+  } else {
+    html += '<div style="position: absolute;left: 20px;top:80px;border: solid 1px #1fb5ee;background-color: rgba(25, 136, 211, 0.6);cursor: pointer " onclick="getReportHistoryList(' + type + ')">历史查询</div>';
+    if (data.update) {
+      html += '<div style="position: absolute;left: 20px;bottom: 145px"> <form id="uploadForm"> <input type="file" id="report-file-choose" style="visibility: hidden" accept=".doc,.docx"><div  style="margin-left: 5px;cursor: pointer;width: 45px;color:rgb(0, 102, 204)"><span style="padding-left: 5px">更新</span><br/><img style="" title="更新简报" id="report-file-upload" src="/images/icon/upload.png" width="45" height="45"></div></form></div>';
+    }
+    html += '<iframe src="' + url + '" width="100%" height="99%" frameborder=0 scrolling="no" style="display: inline-block;"></iframe></div>';
+  }
+  if (parseInt(type) == 1 || report_type % 10 == 1) {
+    titleStr = "趋势简报"
+  } else if (parseInt(type) == 2 || report_type % 10 == 2) {
+    titleStr = "实时简报"
+  } else if (parseInt(type) == 6 || report_type % 10 == 6) {
+    titleStr = titleStr + "-降雨趋势"
+  } else if (parseInt(type) == 7 || report_type % 10 == 7) {
+    titleStr = titleStr + "-洪水趋势"
+  }
+  reportWin.setWindow(html, {title: titleStr, zIndex: 999999});
+  reportWin.show();
+  var isMax = false
+  reportWin.resizecbfn(function () {
+    if (isMax == false) {
+      $(".common-basic-left").css("width", "89%");
+      isMax = true;
+    } else {
+      $(".common-basic-left").css("width", "84%");
+      isMax = false;
+    }
+  });
+  $('#report-file-upload').click(function () {
+    $('#report-file-choose').click();
+  });
+  $('#report-file-choose').change(function () {
+    if ($('#report-file-choose').val() != "") {
+      var formData = new FormData();
+      formData.append("file", $('#report-file-choose')[0].files[0]);
+      var oldFileId = data.originfileid;
+      layer.msg("文件上传中.....", {icon: 16, time: 2500});
+      $.ajax({
+        url: '/report/upload',
+        type: 'POST',
+        data: formData,
+        async: false,
+        cache: false,
+        contentType: false,
+        processData: false,
+        success: function (result) {
+          if (result) {
+            var param = {
+              newFileId: result[0].id,
+              originFileId: oldFileId,
+              newPdfid: result[0].pdf
+            }
+            var newFileId = result[0].id;
+            var newPdfid = result[0].pdf;
+            layer.msg("文件上传中.....", {icon: 16, time: 2500});
+            ajaxCallJson(param, '/report/update', function (result) {
+              if (result) {
+                if (result.flag) {
+                  var time = moment(data.reportdate).format('YYYY[年]MM[月]DD[日]HH[时]mm[分]');
+                  layer.msg(time + "简报更新成功", {time: 2000});
+                  var param = {
+                    reporttype: type,
+                    fileid: newPdfid,
+                    reportname: data.reportname,
+                    originfileid: oldFileId,
+                    reportdate: data.reportdate,
+                    update: data.update,
+                    neworiginfileid: newFileId,
+                  }
+                  initReportWin(param)
+                } else {
+                  layer.msg("简报更新失败", {time: 1500});
+                }
+              } else {
+                layer.msg("服务器出错，请联系管理员", {icon: 16, time: 2000});
+              }
+            })
+          } else {
+            layer.msg("简报更新失败", {time: 1500});
+          }
+        },
+        error: function (err) {
+          console.log(err);
+        }
+      });
+    }
+  })
+
+  if (dataArr != null && dataArr.length > 0) {
+    var $menu = $('#area-back-div');
+    $menu.parent().css('right', '150px');
+    $menu.attr('data', 'true');
+    $menu.attr('src', '/images/window/back-right.png');
+    $('.area-tree-div').show();
+    $('.area-report').css('width', '84.3%');
+
+    var params = {
+      id: "area-report-tree",
+      data: dataArr,
+      onClick: clickAreaReportTable
+    };
+
+    dataTree.init(params);
+  }
+}
+var getReportHistoryList = function (type) {
+  var content;
+  var defaultTime = moment(SYSTEM.getSystemTime()).format("YYYY[-]MM[-]DD");
+  switch (type) {
+    case 1:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy-MM-dd\',onpicked:getReportListData(this)})"></div><div id="report-history-content" style="margin:5px 20px 0px"></div></div>';
+      break;
+    case 2:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy-MM-dd\',onpicked:getReportListData(this)})"></div><div id="report-history-content" style="margin:5px 20px 0px"></div></div>';
+      break;
+    case 3:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy-MM\',onpicked:getReportListData(this)})"></div><div id="report-history-content"style="margin:5px 20px 0px"></div></div>';
+      break;
+    case 4:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy\',onpicked:getReportListData(this)})"></div><div id="report-history-content" style="margin:5px 20px 0px"></div></div>';
+      break;
+    default:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy-MM-dd\',onpicked:getReportListData(this)})"></div><div id="report-history-content" style="margin:5px 20px 0px"></div></div>';
+  }
+  reportHistoryLayer = layer.open({
+    type: 1,
+    title: '历史查询',
+    area: ['600px', '400px'],
+    skin: 'win-class',
+    content: content
+  });
+  $('#report-time input').data('reportType', type);
+  getReportListData($('#report-time input')[0].outerHTML);
+
+}
+
+function getReportListData(dom, type) {
+  var date = $(dom).val() || '';
+  var type = $('#report-time input').data('reportType');
+  var adcd = report_adcd;
+  if (type == 4 || date != '' && date) {
+    ajaxCallJson({type: type, time: date, adcd: adcd}, '/report/history', function (result) {
+      if (result.flag) {
+        var history = result.data;
+        var htmlHead = '<div id="aa"><table class="table table-bordered table-responsive " style="margin-bottom: 0px"><thead class="server-report-thead" style="background-color: rgba(18, 41, 51, 0.7)"><tr><th width="61px">序号</th><th width="240px">时间</th><th width="125px">正式发布</th><th width="133px">系统生成</th></tr></thead></table></div>';
+        var html = '<div style="overflow:auto;height: 275px;" id="bb"><table class="table table-bordered table-responsive" ><tbody class="report-history-tbody" style="overflow: auto;height: 100%;background-color: rgba(9, 25, 57, 0.85)">'
+        for (var i = 0; i < history.length; i++) {
+          // html+="<li style='border-bottom: 1px solid;width: 420px;margin-left: 50px;margin-right: 50px'>"+moment(history[i].reportdate).format('YYYY[-]MM[-]DD HH:mm')+"<div style='display: inline-block; width:100px;margin-left: 50px'>";
+          // if(history[i].fileid!=""){
+          //     html+="<a href='#' date='"+history[i].reportdate+"' type='"+type+"' originFileId='"+history[i].originfileid+"'  fileId='"+history[i].fileid+"' name='"+history[i].reportname+"' href='#' onclick='openReportHistory(this)' >正式发布</a>"
+          // }
+          // html+="</div>";
+          // html+="<div style='display: inline-block;margin-left: 50px'><a  date='"+history[i].reportdate+"' type='"+type+"' originFileId='"+history[i].originfileid+"'  fileId='"+history[i].originfileid+"' name='"+history[i].reportname+"' href='#' onclick='openReportHistory(this)'>系统生成</a> </div>";
+          // html+="</li>"
+          if (!history[i].originid) {
+            history[i].originid = "";
+          }
+          html += '<tr>';
+          html += '<td width="61px">' + (i + 1) + '</td>';
+          html += '<td width="240px">' + (moment.unix((history[i].reportdate) / 1000)).format('YYYY[-]MM[-]DD HH:mm') + '</td>';
+          if (history[i].fileid != "" && history[i].fileid != null) {
+            html += '<td width="125px">' + "<a href='#' date='" + history[i].reportdate + "' style='color: #00A8FF' type='" + type + "' originFileId='" + history[i].fileid + "'  fileId='" + (history[i].fileid || "") + "' name='" + history[i].reportname + " href='#' onclick='openReportHistory(this)' >" + history[i].id + "</a>" + '</td>';
+          } else {
+            html += '<td>—</td>'
+          }
+          html += '<td width="133px">' + "<a  date='" + history[i].reportdate + "'style='color: #00A8FF' type='" + type + "' originFileId='" + history[i].originfileid + "'  fileId='" + history[i].originfileid + "' name='" + history[i].reportname + "' href='#' onclick='openReportHistory(this)'>" + history[i].originid + "</a>" + '</td>';
+          html += '</tr>';
+        }
+        html += "</tbody></table></div>";
+        $('#report-history-content').data('update', result.showUpdate);
+        $('#report-history-content').html(htmlHead + html)
+      }
+      $("#aa  table").children("thead").find("th").each(function () {
+        var idx = $(this).index();
+        var td = $('#bb table').children('tbody').children('tr:first').children('td').eq(idx);
+        //$(this).width() > td.width() ? td.width($(this).width()) : $(this).width(td.width());
+        if (idx == 0) {
+          $(this).width(td.width());
+        }
+        if (idx == 1) {
+          $(this).width(td.width());
+        }
+        if (idx == 2) {
+          $(this).width(td.width());
+        }
+        if ($('#bb table').children('tbody').height() > 275) {
+          if (idx == 3) {
+            $(this).width(td.width() + 8);
+          }
+        } else {
+          if (idx == 3) {
+            $(this).width(td.width());
+          }
+        }
+
+      });
+      //$("#aa  table").children("thead").each(function(){
+      //    $(this).width()+10
+      //    //$(this).width() > td.width() ? td.width($(this).width()) : $(this).width(td.width());
+      //});
+    })
+  }
+
+}
+
+var openReportAreaTree = function (menu) {
+  var $menu = $(menu);
+  var adcd = $('#my-report').attr('adcd');
+  if ($menu.attr('data') == 'true') {
+    $menu.parent().css('right', '15px');
+    $menu.attr('data', 'false');
+    $menu.attr('src', '/images/window/back.png');
+    $('.area-tree-div').hide();
+    $('.area-report').css('width', '98.9%');
+  } else {
+    $menu.parent().css('right', '155px');
+    $menu.attr('data', 'true');
+    $menu.attr('src', '/images/window/back-right.png');
+    $('.area-tree-div').show();
+    $('.area-report').css('width', '84.3%');
+  }
+}
+var searchUserArea = function () {
+  var data = {};
+  data.adcd = userPrivilege;
+  $.ajax({
+    type: 'post',
+    dataType: 'json',
+    url: '/report/loadAdministrativeRegion',
+    data: JSON.stringify(data),
+    contentType: "application/json; charset=utf-8",
+    success: function (res) {
+      dataArr = [];
+      if (res.flag) {
+        for (var i = 0; i < res.data.length; i++) {
+          if (res.data[i].adcd != "000000000000004" && res.data[i].adcd != "000000000000003" && res.data[i].adcd != "000000000000002" && res.data[i].adcd != "000000000000001") {
+            var item = {};
+            item = {
+              id: res.data[i].adcd,
+              name: res.data[i].adnm,
+              open: true,
+              pId: res.data[i].padcd == null ? "" : res.data[i].padcd,
+            };
+            dataArr.push(item);
+          }
+        }
+      }
+    },
+    error: function (err) {
+    }
+  });
+}
+var clickAreaReportTable = function (params) {
+  if (!params) {
+    return;
+  }
+  var index = layer.msg('正在加载数据,请稍等...', {time: 4000, icon: 16});
+  var adcd = userPrivilege;
+  if (params.id) {
+    adcd = params.id;
+  }
+  switch (report_type) {
+    case 1://趋势快报
+      showReportPdfWins(1, adcd);
+      break;
+    case 2://实时简报
+      showReportPdfWins(2, adcd);
+      break;
+    default:
+      break;
+  }
+}
+var showReportPdfWins = function (type, adcd) {
+  report_adcd = adcd;
+  ajaxCallJson({type: type, adcd: adcd}, '/report/document', function (result) {
+    if (result && result.data) {
+      var data = result.data;
+      if (data.originfileid) {
+        data.update = result.showUpdate;
+        initReportWin(data);
+      } else {
+        reportWin.hide();
+        layer.msg('暂无数据', {time: 1500})
+      }
+    } else {
+      reportWin.hide();
+      layer.msg('暂无数据', {time: 1500})
+    }
+
+  })
+}
+var openReportHistory = function (dom,realy) {
+  var node = $(dom);
+  if (node.attr('originFileId') == '' || !node.attr('originFileId')) {
+    return;
+  }
+  var param = {
+    reporttype: node.attr('type'),
+    fileid: node.attr('fileId'),
+    reportname: node.attr('name'),
+    originfileid: node.attr('originFileId'),
+    reportdate: node.attr('date'),
+    update: $('#report-history-content').data('update')
+  }
+  layer.close(reportHistoryLayer);
+  initReportWin(param,realy)
+}
+
+//日常报讯
+function onLoadDailyNewsFile(type,name) {
+  var content;
+  var defaultTime = moment(SYSTEM.getSystemTime()).format("YYYY[-]MM[-]DD");
+  switch (type) {
+    case 11:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" dataType="' + type + '" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy-MM-dd\',onpicked:getReportDailyNewsFile(this)})"></div><div id="report-history-content" style="margin:5px 20px 0px"></div></div>';
+      break;
+    case 12:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" dataType="' + type + '" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy-MM-dd\',onpicked:getReportDailyNewsFile(this)})"></div><div id="report-history-content" style="margin:5px 20px 0px"></div></div>';
+      break;
+    case 3:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy-MM\',onpicked:getReportDailyNewsFile(this)})"></div><div id="report-history-content"style="margin:5px 20px 0px"></div></div>';
+      break;
+    case 4:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy\',onpicked:getReportDailyNewsFile(this)})"></div><div id="report-history-content" style="margin:5px 20px 0px"></div></div>';
+      break;
+    default:
+      content = '<div style="color: #ffffff"><div id="report-time" style="width: 200px;margin-left: 200px;margin-right: 200px;margin-top: 5px">日期:<input value="' + defaultTime + '" style="width:100px;margin-left: 10px" type="text" value="" readonly onFocus="WdatePicker({el:this,dateFmt:\'yyyy-MM-dd\',onpicked:getReportDailyNewsFile(this)})"></div><div id="report-history-content" style="margin:5px 20px 0px"></div></div>';
+  }
+  reportHistoryLayer = layer.open({
+    type: 1,
+    title: name,
+    area: ['600px', '400px'],
+    skin: 'win-class',
+    content: content
+  });
+  $('#report-time input').data('reportType', type);
+  getReportDailyNewsFile($('#report-time input')[0].outerHTML,type);
+
+}
+function getReportDailyNewsFile(dom, type) {
+  var date = $(dom).val() || '';
+  let newType=type;
+  if(newType===undefined){
+    newType=$(dom).attr('dataType');
+  }
+  if(newType==="12"){
+    newType=2;
+  }
+  if(newType==="11"){
+    newType=1;
+  }
+  if(type===12){
+    newType=2;
+  }
+  if(type===11){
+    newType=1;
+  }
+  var adcd = report_adcd;
+  if (type == 4 || date != '' && date) {
+    ajaxCallJson({type: newType, time: date, adcd: adcd}, '/report/findReportDailyList', function (result) {
+      if (result.flag&&result.data.length>0) {
+        var history = result.data;
+        var htmlHead = '<div id="aa"><table class="table table-bordered table-responsive " style="margin-bottom: 0px"><thead class="server-report-thead" style="background-color: rgba(18, 41, 51, 0.7)"><tr><th width="61px">序号</th><th width="120px">时间</th><th width="240px">发布文件</th></tr></thead></table></div>';
+        var html = '<div style="overflow:auto;height: 275px;" id="bb"><table class="table table-bordered table-responsive" ><tbody class="report-history-tbody" style="overflow: auto;height: 100%;background-color: rgba(9, 25, 57, 0.85)">'
+        html += '<tr>';
+        html += '<td width="61px" style="display:table-cell; vertical-align:middle;text-align: center"  rowspan="'+history.length+'">' + 1 + '</td>';
+        html += '<td width="120px" style="display:table-cell; vertical-align:middle;text-align: center"  rowspan="'+history.length+'">' +history[0].reportdate + '</td>';
+        for (var i = 0; i < history.length; i++) {
+          if (!history[i].originid) {
+            history[i].originid = "";
+          }
+          if (history[i].originfileid != "" && history[i].originfileid != null) {
+            var realData='"real"';
+            html += '<td width="240px">' + "<a href='#' date='" + history[i].reportdate + "' style='color: #00A8FF' type='" + history[i].reporttype + "' originFileId='" + history[i].originfileid + "'  fileId='" + (history[i].originfileid || "") + "' name='" + history[i].reportname + "' href='#' onclick='openReportHistory(this,"+realData+")' >" + history[i].reportname + "</a>" + '</td>';
+          } else {
+            html += '<td>—</td>'
+          }
+         html += '</tr>';
+        }
+        html += "</tbody></table></div>";
+        $('#report-history-content').data('update', result.showUpdate);
+        $('#report-history-content').html(htmlHead + html)
+      }
+      $("#aa  table").children("thead").find("th").each(function () {
+        var idx = $(this).index();
+        var td = $('#bb table').children('tbody').children('tr:first').children('td').eq(idx);
+        //$(this).width() > td.width() ? td.width($(this).width()) : $(this).width(td.width());
+        if (idx == 0) {
+          $(this).width(td.width());
+        }
+        if (idx == 1) {
+          $(this).width(td.width());
+        }
+        if (idx == 2) {
+          $(this).width(td.width());
+        }
+        if ($('#bb table').children('tbody').height() > 275) {
+          if (idx == 3) {
+            $(this).width(td.width() + 8);
+          }
+        } else {
+          if (idx == 3) {
+            $(this).width(td.width());
+          }
+        }
+      });
+    })
+  }
+}

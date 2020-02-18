@@ -1,0 +1,26 @@
+
+function resetTabs(obj) {
+	$(obj).parent().parent().next("div").children("div").hide();
+	$(obj).parent().parent().find("a").removeClass("current");
+}
+function loadTab() {
+	$(".tabs-content > div").hide();
+	$(".tabs").each(function () {
+        $(this).find("li a").removeClass("current");
+		$(this).find("li:first a").addClass("current");
+	});
+	$(".tabs-content").each(function () {
+		$(this).find("div:first").fadeIn();
+	});
+	$(".tabs a").on("click", function (e) {
+		e.preventDefault();
+		if ($(this).attr("class") == "current") {
+			return;
+		} else {
+			resetTabs(this);
+			$(this).addClass("current");
+			$($(this).attr("name")).fadeIn();
+		}
+	});
+}
+

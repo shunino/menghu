@@ -1,0 +1,586 @@
+let geoDataList={},handleEvents;
+var userAdnm,userChinaADCD="000000000000000";
+var chartMapArray=[];
+$(function () {
+    // 加载导向图
+    loadMinMap();
+  initLoadSshrink();
+    if (userPrivilege == userChinaADCD) {
+        $("#min-map-shrink").css("bottom","192px");
+        $("#min-map-shrink").css("right","205px");
+    }
+});
+var loadMinMap = function () {
+    echarts.extendsMap = function(id, opt) {
+        // 实例
+        var chart = this.init(document.getElementById(id));
+        var curGeoJson = {};
+        var defaultOpt = {
+            mapName: 'china', // 地图展示
+            goDown: false, // 是否下钻
+            bgColor: '#404a59', // 画布背景色
+            activeArea: [], // 区域高亮,同echarts配置项
+            data: [],
+            // 下钻回调(点击的地图名、实例对象option、实例对象)
+            callback: function(name, option, instance) {}
+        };
+        if (opt) opt = this.util.extend(defaultOpt, opt);
+
+        // 层级索引
+        var name=["中国",opt.mapName];
+        // if(userPrivilege=="000000000000000"){
+        //     name = ["中国",opt.mapName];
+        // }else {
+        //     name = [opt.mapName];
+        // }
+        var idx = 0;
+        var pos = {
+            leftPlus: 40,
+            leftCur: 0,
+            left: 24,
+            top: 5
+        };
+
+        var line = [
+            // [0, 0],
+            // [4, 6],
+            // [0, 11]
+        ];
+        // style
+        var style = {
+            font: '14px "Microsoft YaHei", sans-serif',
+            textColor: '#eee',
+            lineColor: 'rgba(147, 235, 248, 0.8)'
+        };
+
+        handleEvents = {
+            /**
+             * i 实例对象
+             * o option
+             * n 地图名
+             **/
+            resetOption: function(i, o, n) {
+                if(n=="中国"&&userPrivilege==userChinaADCD){
+                    $("#echarts-canves").css("display","none");
+                    $("#min-map-shrink").css("bottom","190px");
+                    $("#min-map-shrink").css("right","205px");
+                    $("#arcgis-div").show();
+                    $("#south-china-sea").show();
+                    return
+                }
+                var breadcrumb = this.createBreadcrumb(n);
+                var j = name.indexOf(n);
+                var l = o.graphic.length;
+                if (j < 0) {
+                    o.graphic.push(breadcrumb);
+                    o.graphic[0].children[0].shape.x2 = 230;
+                    o.graphic[0].children[1].shape.x2 = 230;
+                    if (o.graphic.length > 2) {
+                        var cityData = [];
+                        var cityJson;
+                        for (var x = 0; x < opt.data.length; x++) {
+                            if(n === opt.data[x].city){
+                                $([opt.data[x]]).each(function(index,data){
+                                    cityJson = {city:data.city,name:data.name,value:data.value,crew:data.crew,company:data.company,position:data.position,region:data.region};
+                                    cityData.push(cityJson)
+                                })
+                            }
+                        }
+                    }
+                    name.push(n);
+                    idx++;
+                } else {
+                    o.graphic.splice(j + 2, l);
+                    if (o.graphic.length <= 2) {
+                        o.graphic[0].children[0].shape.x2 = 60;
+                        o.graphic[0].children[1].shape.x2 = 60;
+                    }else{
+                        o.graphic[0].children[0].shape.x2 = 90;
+                        o.graphic[0].children[1].shape.x2 = 90;
+                    }
+                    name.splice(j + 1, l);
+                    idx = j;
+                    pos.leftCur -= pos.leftPlus * (l - j - 1);
+                };
+
+                o.geo.map = n;
+                o.geo.zoom = 1;
+                i.clear();
+                i.setOption(o);
+                this.zoomAnimation();
+                opt.callback(n, o, i);
+            },
+
+            /**
+             * name 地图名
+             **/
+            createBreadcrumb: function(name) {
+                var cityToPinyin = {};
+                var breadcrumb = {
+                    type: 'group',
+                    id: name,
+                    left: pos.leftCur + pos.leftPlus+70,
+                    top: pos.top,
+                    children: [{
+                        type: 'polyline',
+                        left: -80,
+                        top: -8,
+                        shape: {
+                            points: line
+                        },
+                        style: {
+                            stroke: '#fff',
+                            key: name
+                            // lineWidth: 2,
+                        },
+                        onclick: function() {
+                            var name = this.style.key;
+                            handleEvents.resetOption(chart, option, name);
+                        }
+                    }, {
+                        type: 'text',
+                        left: -88,
+                        top: 'middle',
+                        style: {
+                            text: name,
+                            textAlign: 'center',
+                            fill: style.textColor,
+                            font: style.font
+                        },
+                        onclick: function() {
+                            var name = this.style.text;
+                            handleEvents.resetOption(chart, option, name);
+                        }
+                    }, {
+                        type: 'text',
+                        left: -88,
+                        top: 10,
+                        style: {
+
+                            name: name,
+                            text: cityToPinyin[name] ? cityToPinyin[name].toUpperCase() : '',
+                            textAlign: 'center',
+                            fill: style.textColor,
+                            font: '12px "Microsoft YaHei", sans-serif',
+                        },
+                        onclick: function() {
+                            // console.log(this.style);
+                            var name = this.style.name;
+                            handleEvents.resetOption(chart, option, name);
+                        }
+                    }]
+                }
+
+                pos.leftCur += pos.leftPlus;
+
+                return breadcrumb;
+            },
+            zoomAnimation: function() {
+                var count = null;
+                var zoom = function(per) {
+                    if (!count) count = per;
+                    count = count + per;
+                    // console.log(per,count);
+                    chart.setOption({
+                        geo: {
+                            zoom: count
+                        }
+                    });
+                    if (count < 1) window.requestAnimationFrame(function() {
+                        zoom(0.2);
+                    });
+                };
+                window.requestAnimationFrame(function() {
+                    zoom(0.2);
+                });
+            }
+        };
+
+        var option = {
+            backgroundColor: "rgba(016,024,063,0.8)",
+            tooltip: {
+                show: true,
+                trigger:'item',
+                alwaysShowContent:false,
+                backgroundColor:'rgba(50,50,50,0.7)',
+                hideDelay:100,
+                triggerOn:'mousemove',
+                enterable:true,
+                position:['60%','70%'],
+                formatter:function(params, ticket, callback){
+                    return params.name
+                }
+            },
+            graphic: [
+                {
+                    type: 'group',
+                    left: pos.left,
+                    top: pos.top - 4,
+                    children: [// 左上角定位坐标样式
+                        {
+                            type: 'line',
+                            left: 0,
+                            top: 0,
+                            shape: {
+                                x1: 0,
+                                y1: 0,
+                                x2: 40,
+                                y2: 0
+                            },
+                            style: {
+                                stroke: style.lineColor,
+                            }
+                        }, {
+                            type: 'line',
+                            left: 0,
+                            top: 20,
+                            shape: {
+                                x1: 0,
+                                y1: 0,
+                                x2: 40,
+                                y2: 0
+                            },
+                            style: {
+                                stroke: style.lineColor,
+                            }
+                        }
+                    ]
+                },
+                {
+                    id: "中国",
+                    type: 'group',
+                    left: pos.left + 2,
+                    top: 6,
+                    children: [
+                        {
+                            type: 'polyline',
+                            left: 90,
+                            top: 12,
+                            shape: {
+                                points: line
+                            },
+                            style: {
+                                stroke: 'transparent',
+                                key: name[0]
+                            },
+                            onclick: function() {
+                                var name = this.style.key;
+                                handleEvents.resetOption(chart, option, name);
+                            }
+                        },
+                        {
+                            type: 'text',
+                            left: 0,
+                            top: 'middle',
+                            style: {
+                                text: '中国',
+                                textAlign: 'center',
+                                fill: style.textColor,
+                                font: style.font
+                            },
+                            onclick: function() {
+                                if(userPrivilege==userChinaADCD){
+                                    handleEvents.resetOption(chart, option, '中国');
+                                    view.goTo({
+                                        target: ([106.63, 26.65]),
+                                        zoom: 5
+                                    });
+                                    toRemoveMapPoint("minMapGraphics");
+                                    toRemoveMapPoint("minMapChartGraphics");
+                                }else{
+                                    layui.use('layer', function () {
+                                        var layer = layui.layer;
+                                        index= layer.msg("当前账号没有中国区权限！");
+                                    });
+                                }
+                            }
+                        },
+                    ]
+                }
+            ],
+            geo: {
+                map: opt.mapName,
+                roam: true,
+                top:30,
+                zoom: 1,
+                label: {
+                    text:"111",
+                    normal: {
+                        show: false,
+                        textStyle: {
+                            color: '#fff'
+                        }
+                    },
+                    emphasis: {
+                        textStyle: {
+                            color: '#fff'
+                        }
+                    }
+                },
+                itemStyle: {
+                    normal: {
+                        borderColor: 'rgba(147, 235, 248, 0.8)',
+                        borderWidth: 1,
+                        areaColor: {
+                            type: 'radial',
+                            x: 0.5,
+                            y: 0.5,
+                            r: 0.8,
+                            colorStops: [{
+                                offset: 0,
+                                color: 'rgba(147, 235, 248, 0)' // 0% 处的颜色
+                            }, {
+                                offset: 1,
+                                color: 'rgba(147, 235, 248, 0.2)' // 100% 处的颜色
+                            }],
+                            globalCoord: false // 缺省为 false
+                        },
+                        shadowColor: 'rgba(128, 217, 248, 1)',
+                        shadowOffsetX: -2,
+                        shadowOffsetY: 2,
+                        shadowBlur: 10
+                    },
+                    emphasis: {
+                        areaColor: '#389BB7',
+                        borderWidth: 1
+                    }
+                },
+                regions: opt.activeArea.map(function(item) {
+                    if (typeof item !== 'string') {
+                        return {
+                            name: item.name,
+                            itemStyle: {
+                                normal: {
+                                    areaColor: item.areaColor || '#389BB7'
+                                }
+                            },
+                            label: {
+                                normal: {
+                                    show: item.showLabel,
+                                    textStyle: {
+                                        color: '#fff'
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        return {
+                            name: item,
+                            itemStyle: {
+                                normal: {
+                                    borderColor: '#91e6ff',
+                                    areaColor: '#389BB7'
+                                }
+                            }
+                        }
+                    }
+                })
+            },
+            series: []
+        };
+        var breadcrumb = {
+            type: 'group',
+            id: opt.adcd,
+            left: pos.leftCur + pos.leftPlus,
+            top: pos.top,
+            children: [{
+                type: 'polyline',
+                left: -90,
+                top: -8,
+                shape: {
+                    points: line
+                },
+                style: {
+                    stroke: '#fff',
+                    key: opt.mapName
+                    // lineWidth: 2,
+                },
+                onclick: function() {
+                    var name = this.style.key;
+                    handleEvents.resetOption(chart, option, name);
+                }
+            }, {
+                type: 'text',
+                left: -68,
+                top: 'middle',
+                style: {
+                    text: opt.mapName,
+                    textAlign: 'center',
+                    fill: style.textColor,
+                    font: style.font
+                },
+                onclick: function() {
+                    var name = this.style.text;
+                    handleEvents.resetOption(chart, option, name);
+                    mapLoadMinMapPoline(geoDataList);
+                }
+            }]
+        };
+        option.graphic.push(breadcrumb);
+        option.graphic[0].children[0].shape.x2 = 90;
+        option.graphic[0].children[1].shape.x2 = 90;
+        chart.setOption(option);
+        if($.inArray(chart,chartMapArray)==-1){
+            chartMapArray.push(chart);
+        }
+        // 添加事件
+        chart.on('click', function(params) {
+            var _self = this;
+            var type=1;
+            if (opt.goDown) {
+                for(var j=0;j<geoDataList.data.length;j++){
+                  for(var i=0;i<geoDataList.data[j].subdata.length;i++){
+                    if(geoDataList.data[j].subdata[i].adnm==params.name){
+                      var adnm = geoDataList.data[j].subdata[i].adnm;
+                      var adcd = geoDataList.data[j].subdata[i].adcd;
+                      // onLoadAdcd(adnm,adcd,type,_self,option);
+                      let param={
+                        adcd:adcd,
+                      }
+                      ajaxCallJson(param,"/getPoint/findMiniMapByParent",function (_data) {
+                        if(_data.flag){
+                          var geoData=JSON.parse(_data.data);
+                          mapLoadMinMapPoline(geoData);
+                          if(geoData.data.length>0){
+                            if(type==1){
+                              var geoDataJson={
+                                  features:[]
+                                },
+                                geoDataJsonList=[];
+                              for (var j=0;j<geoData.data.length;j++){
+                                for(var i=0;i<geoData.data[j].subdata.length;i++){
+                                  geoDataJsonList=[]
+                                  geoDataJsonList={
+                                    type:"Feature",
+                                    geometry:geoData.data[j].subdata[i].geometry,
+                                    properties:{
+                                      name:geoData.data[j].subdata[i].adnm,
+                                      adcd:geoData.data[j].subdata[i].adcd
+                                    }
+                                  };
+                                  geoDataJson.type="FeatureCollection";
+                                  geoDataJson.features.push(geoDataJsonList)
+                                }
+                              }
+
+                              echarts.registerMap(adnm, geoDataJson);
+                              handleEvents.resetOption(_self, option, adnm);
+                            }else{
+                              initMiniMap(adnm,adcd,geoData);
+                            }
+                          }
+                        }
+                      });
+                    }
+                  }
+                }
+            }
+        });
+        return chart;
+    };
+}
+function mapLoadMinMapPoline(geoData) {
+  var temp = [];
+  var regionArea = ""; //区域范围
+  for (var j = 0; j < geoData.data.length; j++) {
+    for (var i = 0; i < geoData.data[j].geometry.coordinates.length; i++) {
+      temp.push(geoData.data[j].geometry.coordinates[i][0]);
+    }
+  }
+    var minMapPolygonGraphic;
+    toRemoveMapPoint("minMapGraphics");
+    toRemoveMapPoint("minMapChartGraphics");
+    require([
+        "esri/layers/GraphicsLayer",
+        "esri/Graphic"
+    ], function (GraphicsLayer,Graphic) {
+        var polygon = {
+            type: "polygon", // autocasts as new Polygon()
+            rings: temp
+        };
+        var fillSymbol = {
+            type: "simple-line", // autocasts as new SimpleFillSymbol()
+            color: areaColor,
+            width: "3px"
+        };
+        minMapPolygonGraphic = new Graphic({
+            geometry: polygon,
+            symbol: fillSymbol
+        });
+        var  minMapGraphicsLayer = new GraphicsLayer({
+            id: "minMapChartGraphics",
+            graphics: [minMapPolygonGraphic]
+        });
+        map.add(minMapGraphicsLayer);
+        miniMapToMap(minMapPolygonGraphic);
+    })
+}
+function initMiniMap(adnm,adcd,geoJson,isfirst) {
+    var geoDataJson={
+            features:[]
+        },
+        geoDataJsonList=[];
+    for (var j=0;j<geoJson.data.length;j++){
+      for(var i=0;i<geoJson.data[j].subdata.length;i++){
+        geoDataJsonList=[]
+        geoDataJsonList={
+          type:"Feature",
+          geometry:geoJson.data[j].subdata[i].geometry,
+          properties:{
+            name:geoJson.data[j].subdata[i].adnm,
+            adcd:geoJson.data[j].subdata[i].adcd
+          }
+        };
+        geoDataJson.type="FeatureCollection";
+        geoDataJson.features.push(geoDataJsonList)
+      }
+      if(isfirst){
+        $("#echarts-canves").css("display","none");
+      }else{
+        $("#echarts-canves").css("display","block");
+      }
+      $("#echarts-canves").width("215px");
+      $("#echarts-canves").height("200px");
+      $("#min-map-shrink").css("bottom","192px");
+      $("#min-map-shrink").css("right","197px");
+      $("#arcgis-div").css("display","none");
+      $("#south-china-sea").css("display","none");
+      echarts.registerMap(adnm, geoDataJson);
+      eChartsMap = echarts.extendsMap('echarts-canves', {
+        bgColor: 'rgba(016,024,063,0.8)', // 画布背景色
+        mapName: adnm, // 地图名
+        adcd:adcd,
+        goDown: true, // 是否下钻
+        data: []
+      });
+    }
+}
+
+function initLoadSshrink() {
+    if($('#min-map-shrink').attr('flag')=="true"){
+        $('#min-map-shrink').attr('flag','false');
+        $("#min-map-shrink").css("right","10px");
+        $("#min-map-shrink").css("bottom","35px");
+        $("#arcgis-div").hide(300);
+        $("#echarts-canves").hide(300);
+        $("#south-china-sea").hide(300);
+        $("#min-map-shrink").css("display","none");
+        $("#min-map-shrink-bottom").show(400);
+    }else {
+        $('#min-map-shrink').attr('flag','true');
+        $("#min-map-shrink").css("right","197px");
+        $("#arcgis-div").show(300);
+        $("#south-china-sea").show(300);
+        if (userPrivilege != userChinaADCD) {
+            $("#echarts-canves").show(300);
+            $("#min-map-shrink").css("bottom","192px");
+            $("#min-map-shrink").css("display","block");
+            $("#min-map-shrink-bottom").css("display","none");
+        }else {
+            $("#min-map-shrink").css("bottom","192px");
+            $("#min-map-shrink").css("right","205px");
+            $("#min-map-shrink").show(600);
+            $("#min-map-shrink-bottom").css("display","none");
+        }
+    }
+}

@@ -1,0 +1,11 @@
+// arcgis自定义模块引用路径配置
+var dojoConfig = {
+  parseOnLoad: true,
+  packages: [{
+    name: "myMap",
+    location: "/js/map"
+  }, {
+    name: 'water',
+    location: '/js/map/water'
+  }]
+};

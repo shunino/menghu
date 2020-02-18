@@ -1,0 +1,876 @@
+/**
+ * Created by Administrator on 2016/11/9.
+ */
+var getFirstDataByTreeData=function (data,first) {
+    var rt;
+    for(var i=0;i<data.length;i++){
+        if(data[i].pId!=0&&data[i].pId==first.id){
+            rt=data[i];
+            break;
+        }
+    }
+    return rt;
+}
+//显示站点基本资料
+function showPointBaseData(result,type,first) {
+    var j=0,rt=new  Array();
+    for(var i=0;i<result.length;i++){
+        if(result[i].id){
+            rt[j]=result[i];
+            j++;
+        }
+    }
+    var data =rt;
+    if(type==1){
+        var p={
+            id:'base-data-tree',
+            data:data,
+            DblClick:getBaseDataFile
+        };
+        // dataTree.init(p);
+        var zTree = $.fn.zTree.getZTreeObj("base-data-tree");
+        var fd=getFirstDataByTreeData(data,first);
+        if(fd){
+            zTree.selectNode(zTree.getNodeByParam("id",fd.id));
+            getBaseDataFile(fd);
+        }else{
+            $("#reservoir-basic-document-left").html("");
+        }
+    }
+    else if(type==2){
+        var p={
+            id:'reservoir-basic-document-tree',
+            data:data,
+            DblClick:getreServoirBaseDataFile
+        };
+        dataTree.init(p);
+        var zTree = $.fn.zTree.getZTreeObj("reservoir-basic-document-tree");
+        var fd=getFirstDataByTreeData(data,first);
+        if(fd){
+            zTree.selectNode(zTree.getNodeByParam("id",fd.id));
+            getreServoirBaseDataFile(fd);
+        }else{
+            $("#reservoir-basic-document-left").html("");
+        }
+    }
+    else if(type==3){//河道
+        var p={
+            id:'river-basic-document-tree',
+            data:data,
+            DblClick:getreRiverBaseDataFile
+        };
+        // dataTree.init(p);
+        var zTree = $.fn.zTree.getZTreeObj("river-basic-document-tree");
+        var fd=getFirstDataByTreeData(data,first);
+        if(fd){
+            zTree.selectNode(zTree.getNodeByParam("id",fd.id));
+            getreRiverBaseDataFile(fd);
+        }else{
+            $("#reservoir-basic-document-left").html("");
+        }
+    }
+    else if(type==4){//易涝点
+        var p={
+            id:'waterlogged-basic-data-bottom-tree',
+            data:data,
+            DblClick:getreWaterloggedBaseDataFile
+        };
+        // dataTree.init(p);
+        var zTree = $.fn.zTree.getZTreeObj("waterlogged-basic-data-bottom-tree");
+        var fd=getFirstDataByTreeData(data,first);
+        if(fd){
+            var firstData=true;
+            zTree.selectNode(zTree.getNodeByParam("id",fd.id));
+            getreWaterloggedBaseDataFile(fd,firstData);
+        }else{
+            $("#reservoir-basic-document-left").html("");
+        }
+    }
+    else if(type==5){//城镇基本信息资料文档
+        var p={
+            id:'monitor-city-data-tree',
+            data:data,
+            DblClick:getreMonitorBaseDataFile
+        };
+        // dataTree.init(p);
+        var zTree = $.fn.zTree.getZTreeObj("monitor-city-data-tree");
+        var fd=getFirstDataByTreeData(data,first);
+        if(fd){
+            zTree.selectNode(zTree.getNodeByParam("id",fd.id));
+            getreMonitorBaseDataFile(fd);
+        }else{
+            $("#reservoir-basic-document-left").html("");
+        }
+    }
+    else if(type==6){//城镇预案
+        var p={
+            id:'monitor-city-plan-tree',
+            data:data,
+            DblClick:getreMonitorPlanBaseDataFile
+        };
+        // dataTree.init(p);
+        var zTree = $.fn.zTree.getZTreeObj("monitor-city-plan-tree");
+        var fd=getFirstDataByTreeData(data,first);
+        if(fd){
+            zTree.selectNode(zTree.getNodeByParam("id",fd.id));
+            getreMonitorPlanBaseDataFile(fd);
+        }else{
+            $("#reservoir-basic-document-left").html("");
+        }
+    }
+    else if(type==7){//城镇风险图
+        var p={
+            id:'monitor-city-risk-tree',
+            data:data,
+            DblClick:getreMonitorRiskBaseDataFile
+        };
+        // dataTree.init(p);
+        var zTree = $.fn.zTree.getZTreeObj("monitor-city-risk-tree");
+        var fd=getFirstDataByTreeData(data,first);
+        if(fd){
+            zTree.selectNode(zTree.getNodeByParam("id",fd.id));
+            getreMonitorRiskBaseDataFile(fd);
+        }else{
+            $("#reservoir-basic-document-left").html("");
+        }
+    }
+    else if(type==8){//山洪小流域调查图片
+        var p={
+            id:'watershed-image-tree',
+            data:data,
+            DblClick:getreWatershedImage
+        };
+        // dataTree.init(p);
+        var zTree = $.fn.zTree.getZTreeObj("watershed-image-tree");
+        var fd=getFirstDataByTreeData(data,first);
+        if(fd){
+            zTree.selectNode(zTree.getNodeByParam("id",fd.id));
+            getreWatershedImage(fd);
+        }else{
+            $("#reservoir-basic-document-left").html("");
+        }
+    }
+    else if(type==9){//城市易涝点调查图片
+        var p={
+            id:'waterlogged-image-tree',
+            data:data,
+            DblClick:getreWaterloggedImage
+        };
+        // dataTree.init(p);
+        var zTree = $.fn.zTree.getZTreeObj("waterlogged-image-tree");
+        var fd=getFirstDataByTreeData(data,first);
+        if(fd){
+            zTree.selectNode(zTree.getNodeByParam("id",fd.id));
+            getreWaterloggedImage(fd);
+        }else{
+            $("#reservoir-basic-document-left").html("");
+        }
+    }
+}
+
+//山洪小流域双击查看
+function getBaseDataFile(file) {
+    if(file==null){
+        file={};
+    }
+    var fileid = file.id;
+    if(!file.suffix){
+        return;
+    }
+    $("#watershed-basic-left").empty();
+    $("#watershed-basic-left").css('background','');
+    switch (file.suffix){
+        case ".swf":
+            var h= $("#watershed-basic-left").height();
+            //$("#enlarge-reservoir-infor-chart").append('<embed width="100%" height="100%" name="plugin" id="plugin" src="'+downLoadUrl+"?id="+fileid+'" type="application/x-shockwave-flash" title="">');
+            $("#watershed-basic-left").append('<form name="form1" method="post" action="PageReader.aspx?id=740_1002" id="form1">' +
+                '<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE4NzI1Nzk0NTMPZBYCAgMPZBYCAgEPFgIeCWlubmVyaHRtbAWuAw0KPEVNQkVEIGhlaWdodD01MDAgbmFtZT1jbXNGbGFzaCB0eXBlPWFwcGxpY2F0aW9uL3gtc2hvY2t3YXZlLWZsYXNoIGFsaWduPW1pZGRsZSBwbHVnaW5zcGFnZT1odHRwOi8vd3d3Lm1hY3JvbWVkaWEuY29tL2dvL2dldGZsYXNocGxheWVyIHdpZHRoPTc1MCBzcmM9L0ltYWdlc1ZpZXdlci9TaWxkZXJWaWV3ZXIuc3dmIGxvb3A9ImZhbHNlIiBiZ2NvbG9yPSIjODY5Y2E3IiBwbGF5PSJ0cnVlIiBhbGxvd1NjcmlwdEFjY2Vzcz0ic2FtZURvbWFpbiIgcXVhbGl0eT0iaGlnaCIgZmxhc2hWYXJzPSJkYXRhPSUyZmRvd25sb2FkJTJlYXNweCUzZnR5cGUlM2Q0JTI2bmFtZSUzZDc0MDkyMiUyZUdJRiUyNnBhcmFzJTNkJTdiJTIyREl0ZW1JRCUyMiUzYSUyMjc0MCUyMiUyYyUyMkltYWdlSUQlMjIlM2ElMjI5MjIlMjIlN2QlMjZkb3duJTNkMCI+PC9FTUJFRD5kZP8OHwGN1DPHckeIU6eYx4CvtSQl" /> ' +
+                '<script type="text/javascript">var AjaxPage=null;AjaxPage={};</script>' +
+                '<div><div id="Panel1"><EMBED height="'+h+'px" name="cmsFlash" type="application/x-shockwave-flash"' +
+                'align="middle" pluginspage="http://www.macromedia.com/go/getflashplayer" width="100%" src="swf/SilderViewer.swf" loop="false" bgcolor="#869ca7"' +
+                'play="true" allowScriptAccess="sameDomain" quality="high" flashVars="data='+downLoadUrl+"?id="+fileid+'"></EMBED></div></div></form>');
+            //$("#enlarge-reservoir-infor-chart").append('<a class="media" href="'+downLoadUrl+"?id="+fileid+"&fmt=pdf"+'" ></a>');
+            //$('a.media').media({width:500, height:400});
+            break;
+        case ".pdf":
+            $("#watershed-basic-left").html('<IFRAME marginWidth=0 marginHeight=0 src="/report/pdf?showDownloadWord=false&showDownloadPdf=false&fileId='+fileid+"&name="+name+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>');
+            break;
+        case ".html":
+            $("#watershed-basic-left").css('background','rgba(255,255,255,0.7)');
+            $("#watershed-basic-left").append('<IFRAME marginWidth=0 marginHeight=0 src="'+downLoadUrl+"?id="+fileid+'" frameBorder=0 width="100%"  height="99%" id="iframe-data"></IFRAME>');
+            $('#Panel1').mCustomScrollbar({
+                theme:"minimal-dark"
+            });
+            break;
+        case '.jpg':
+            var url=downLoadUrl+"?id="+fileid;
+            var img=new Image();
+            img.src=url;
+            img.onload=function () {
+                var width=img.width;
+                var height=img.height;
+                var h= $("#watershed-basic-left").height();
+                var w= $("#watershed-basic-left").width();
+                if(width>w){
+                    width=w;
+                }
+                if(height>h){
+                    height=h;
+                }
+                $("#watershed-basic-left").append('<img width="'+width+'" height="'+height+'" src="'+downLoadUrl+"?id="+fileid+'"/>')
+            }
+
+            break;
+        default:
+
+            break;
+    }
+}
+//水库水电站双击查看
+function getreServoirBaseDataFile(file) {
+    if(file==null){
+        file={};
+    }
+    var earlyWarningType=JSON.parse(privilegeBaseData);
+    var earlyWarningTypeData=false;
+    console.info(earlyWarningType);
+    earlyWarningType.privilege.forEach(function (value) {
+        if(value&&value.ptype==102){
+            earlyWarningTypeData=true;
+        }
+    });
+    var htmlAddPdf=""
+    var fileid = file.id;
+    if(file.suffix==undefined){
+        $("#uploadForm").remove();
+    }
+    if(!file.suffix&&earlyWarningTypeData==true){
+        htmlAddPdf += '<div style="position: absolute;left: 20px;bottom: 175px"> <form id="uploadForm"> <input type="file" id="reservoir-file-add-choose" style="visibility: hidden" accept=".doc,.docx"><div  style="margin-left: 5px;cursor: pointer;width: 45px;color:rgb(0, 102, 204)"><span style="padding-left: 5px">添加</span><br/><img style="" title="添加简报" id="reservoir-file-add-upload" src="/images/icon/upload.png" width="45" height="45"></div></form></div>';
+    }else{
+        htmlAddPdf +='';
+    }
+
+    switch (file.suffix){
+        case ".swf":
+            var h= $("#reservoir-basic-document-left").height();
+            //$("#enlarge-reservoir-infor-chart").append('<embed width="100%" height="100%" name="plugin" id="plugin" src="'+downLoadUrl+"?id="+fileid+'" type="application/x-shockwave-flash" title="">');
+            $("#reservoir-basic-document-left").append('<form name="form1" method="post" action="PageReader.aspx?id=740_1002" id="form1">' +
+                '<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE4NzI1Nzk0NTMPZBYCAgMPZBYCAgEPFgIeCWlubmVyaHRtbAWuAw0KPEVNQkVEIGhlaWdodD01MDAgbmFtZT1jbXNGbGFzaCB0eXBlPWFwcGxpY2F0aW9uL3gtc2hvY2t3YXZlLWZsYXNoIGFsaWduPW1pZGRsZSBwbHVnaW5zcGFnZT1odHRwOi8vd3d3Lm1hY3JvbWVkaWEuY29tL2dvL2dldGZsYXNocGxheWVyIHdpZHRoPTc1MCBzcmM9L0ltYWdlc1ZpZXdlci9TaWxkZXJWaWV3ZXIuc3dmIGxvb3A9ImZhbHNlIiBiZ2NvbG9yPSIjODY5Y2E3IiBwbGF5PSJ0cnVlIiBhbGxvd1NjcmlwdEFjY2Vzcz0ic2FtZURvbWFpbiIgcXVhbGl0eT0iaGlnaCIgZmxhc2hWYXJzPSJkYXRhPSUyZmRvd25sb2FkJTJlYXNweCUzZnR5cGUlM2Q0JTI2bmFtZSUzZDc0MDkyMiUyZUdJRiUyNnBhcmFzJTNkJTdiJTIyREl0ZW1JRCUyMiUzYSUyMjc0MCUyMiUyYyUyMkltYWdlSUQlMjIlM2ElMjI5MjIlMjIlN2QlMjZkb3duJTNkMCI+PC9FTUJFRD5kZP8OHwGN1DPHckeIU6eYx4CvtSQl" /> ' +
+                '<script type="text/javascript">var AjaxPage=null;AjaxPage={};</script>' +
+                '<div><div id="Panel1"><EMBED height="'+h+'px" name="cmsFlash" type="application/x-shockwave-flash"' +
+                'align="middle" pluginspage="http://www.macromedia.com/go/getflashplayer" width="100%" src="swf/SilderViewer.swf" loop="false" bgcolor="#869ca7"' +
+                'play="true" allowScriptAccess="sameDomain" quality="high" flashVars="data='+downLoadUrl+"?id="+fileid+'"></EMBED></div></div></form>');
+            //$("#enlarge-reservoir-infor-chart").append('<a class="media" href="'+downLoadUrl+"?id="+fileid+"&fmt=pdf"+'" ></a>');
+            //$('a.media').media({width:500, height:400});
+            break;
+        case ".pdf":
+            var html=""
+            if(earlyWarningTypeData){
+                html += '<div style="position: absolute;left: 25px;bottom: 195px;" id="reservoir-file-dele-choose"><span style="margin-left: 5px;padding-left: 5px;color: rgb(0, 102, 204)">删除</span><br/><img style="cursor: pointer" title="删除资料文档"  src="/images/icon/delete-word.png" width="45" height="45" ></div>';
+                html += '<div style="position: absolute;left: 20px;bottom: 115px" id="reservoir-file-eduit-choose"> <form id="uploadForm"> <input type="file" id="reservoir-file-choose" style="visibility: hidden" accept=".doc,.docx"><div  style="margin-left: 5px;cursor: pointer;width: 45px;color:rgb(0, 102, 204)"><span style="padding-left: 5px">更新</span><br/><img style="" title="更新简报" id="reservoir-file-upload" src="/images/icon/upload.png" width="45" height="45"></div></form></div>';
+            }
+            html +='<IFRAME marginWidth=0 marginHeight=0 src="/report/pdf?showDownloadWord=false&showDownloadPdf=true&fileId='+fileid+"&name="+file.name+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>'
+            $("#reservoir-basic-document-left").html(html);
+            break;
+        case ".html":
+            $("#reservoir-basic-document-left").css('background','rgba(255,255,255,0.7)');
+            $("#reservoir-basic-document-left").append('<IFRAME marginWidth=0 marginHeight=0 src="'+downLoadUrl+"?id="+fileid+'" frameBorder=0 width="100%"  height="99%" id="iframe-data"></IFRAME>');
+            $('#Panel1').mCustomScrollbar({
+                theme:"minimal-dark"
+            });
+            break;
+        case '.jpg':
+            $("#reservoir-basic-document-left").html("");
+            var url=downLoadUrl+"?id="+fileid;
+            var img=new Image();
+            img.src=url;
+            img.onload=function () {
+                var width=img.width;
+                var height=img.height;
+                var h= $("#reservoir-basic-document-left").height();
+                var w= $("#reservoir-basic-document-left").width();
+                if(width>w){
+                    width=w;
+                }
+                if(height>h){
+                    height=h;
+                }
+                $("#reservoir-basic-document-left").append('<img width="'+width+'" height="'+height+'" src="'+downLoadUrl+"?id="+fileid+'"/>')
+            }
+            var html="";
+            if(earlyWarningTypeData){
+                html += '<div style="position: absolute;left: 25px;bottom: 195px;" id="reservoir-file-dele-choose"><span style="margin-left: 5px;padding-left: 5px;color: rgb(0, 102, 204)">删除</span><br/><img style="cursor: pointer" title="删除资料文档"  src="/images/icon/delete-word.png" width="45" height="45" ></div>';
+                html += '<div style="position: absolute;left: 20px;bottom: 115px" id="reservoir-file-eduit-choose"> <form id="uploadForm"> <input type="file" id="reservoir-file-choose" style="visibility: hidden" accept=".doc,.docx"><div  style="margin-left: 5px;cursor: pointer;width: 45px;color:rgb(0, 102, 204)"><span style="padding-left: 5px">更新</span><br/><img style="" title="更新简报" id="reservoir-file-upload" src="/images/icon/upload.png" width="45" height="45"></div></form></div>';
+            }
+            $("#reservoir-basic-document-left").html(html);
+            break;
+        case ".doc":
+            var html=""
+            if(earlyWarningTypeData){
+                html += '<div style="position: absolute;left: 25px;bottom: 195px;" id="reservoir-file-dele-choose"><span style="margin-left: 5px;padding-left: 5px;color: rgb(0, 102, 204)">删除</span><br/><img style="cursor: pointer" title="删除资料文档"  src="/images/icon/delete-word.png" width="45" height="45" ></div>';
+                html += '<div style="position: absolute;left: 20px;bottom: 115px" id="reservoir-file-eduit-choose"> <form id="uploadForm"> <input type="file" id="reservoir-file-choose" style="visibility: hidden" accept=".doc,.docx"><div  style="margin-left: 5px;cursor: pointer;width: 45px;color:rgb(0, 102, 204)"><span style="padding-left: 5px">更新</span><br/><img style="" title="更新简报" id="reservoir-file-upload" src="/images/icon/upload.png" width="45" height="45"></div></form></div>';
+            }
+            html +='<IFRAME marginWidth=0 marginHeight=0 src="/report/pdf?showDownloadWord=false&showDownloadPdf=true&fileId='+fileid+"&name="+file.name+'&originfileid='+fileid+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>'
+            $("#reservoir-basic-document-left").html(html);
+            break;
+        case ".docx":
+            var html=""
+            if(earlyWarningTypeData){
+                html += '<div style="position: absolute;left: 25px;bottom: 195px;" id="reservoir-file-dele-choose"><span style="margin-left: 5px;padding-left: 5px;color: rgb(0, 102, 204)">删除</span><br/><img style="cursor: pointer" title="删除资料文档"  src="/images/icon/delete-word.png" width="45" height="45" ></div>';
+                html += '<div style="position: absolute;left: 20px;bottom: 115px" id="reservoir-file-eduit-choose"> <form id="uploadForm"> <input type="file" id="reservoir-file-choose" style="visibility: hidden" accept=".doc,.docx"><div  style="margin-left: 5px;cursor: pointer;width: 45px;color:rgb(0, 102, 204)"><span style="padding-left: 5px">更新</span><br/><img style="" title="更新简报" id="reservoir-file-upload" src="/images/icon/upload.png" width="45" height="45"></div></form></div>';
+            }
+            html +='<IFRAME marginWidth=0 marginHeight=0 src="/report/pdf?showDownloadWord=false&showDownloadPdf=true&fileId='+fileid+"&name="+file.name+'&originfileid='+fileid+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>'
+            $("#reservoir-basic-document-left").html(html);
+            break;
+        default:
+
+            break;
+    }
+    if(!file.suffix){
+        $("#reservoir-file-dele-choose").css("display","none");
+        $("#reservoir-file-eduit-choose").css("display","none");
+    }else{
+
+        $("#reservoir-file-dele-choose").css("display","block");
+        $("#reservoir-file-eduit-choose").css("display","block");
+    }
+    $("#reservoir-basic-document-left").append(htmlAddPdf);
+    //更新资料文档
+    $('#reservoir-file-upload').click(function () {
+        $('#reservoir-file-choose').click();
+    });
+    $('#reservoir-file-choose').change(function () {
+        if($('#reservoir-file-choose').val()!=""){
+            var formData = new FormData();
+            formData.append("file",$('#reservoir-file-choose')[0].files[0]);
+            var fileName=$('#reservoir-file-choose')[0].files[0].name
+            var oldFileId=file.id;
+            $.ajax({
+                url: '/report/upload' ,
+                type: 'POST',
+                data: formData,
+                async: false,
+                cache: false,
+                contentType: false,
+                processData: false,
+                success: function (result) {
+                    if(result){
+                        var param={
+                            mocd:currentMocd,
+                            relcd:file.pId,
+                            name:fileName,
+                            newFileId:result[0].id,
+                            originFileId:oldFileId
+                        }
+                        layer.msg("文件上传中.....", {icon:16,time: 2000});
+                        ajaxCallJson(param,'/report/modifyDocumentFile',function (result) {
+                            if(result){
+                                if(result.flag){
+                                    layer.msg("资料文档更新成功",{time:2000});
+                                    // ajaxCallJson({mocd:currentMocd,reqtype:'0',relcd:""},'/floodSituation/data/document',function (result) {
+                                    //     if(!result){
+                                    //         return;
+                                    //     }
+                                    //     if(!result.xData||result.xData==""){
+                                    //         $(".reservoir-basic-document").hide();
+                                    //         $("#reservoir-basic-document").hide();
+                                    //         return;
+                                    //     }
+                                    //     var obj=getZtreeDataFirstData(result.xData);
+                                    //     showPointBaseData(obj.data,2,obj.first);
+                                    // })
+                                }else{
+                                    layer.msg("简报更新失败",{time:1500});
+                                }
+                            }else{
+                                layer.msg("服务器出错，请联系管理员", {icon:16,time: 2000});
+                            }
+                        })
+                    }else{
+                        layer.msg("简报更新失败",{time:1500});
+                    }
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+        }
+    })
+    //增加资料文档
+    $('#reservoir-file-add-upload').click(function () {
+        $('#reservoir-file-add-choose').click();
+    });
+    $('#reservoir-file-add-choose').change(function () {
+        if($('#reservoir-file-add-choose').val()!=""){
+            var formData = new FormData();
+            formData.append("file",$('#reservoir-file-add-choose')[0].files[0]);
+            var fileName=$('#reservoir-file-add-choose')[0].files[0].name
+            var oldFileId=file.id;
+            $.ajax({
+                url: '/report/upload' ,
+                type: 'POST',
+                data: formData,
+                async: false,
+                cache: false,
+                contentType: false,
+                processData: false,
+                success: function (result) {
+                    if(result){
+                        var param={
+                            mocd:currentMocd,
+                            relcd:file.id,
+                            name:fileName,
+                            newFileId:result[0].id,
+                        }
+                        layer.msg("文件上传中.....", {icon:16,time: 2000});
+                        ajaxCallJson(param,'/report/uploadDocumentFile',function (result) {
+                            if(result){
+                                if(result.flag){
+                                    layer.msg("资料文档上传成功",{time:2000});
+                                    // ajaxCallJson({mocd:currentMocd,reqtype:'0',relcd:""},'/floodSituation/data/document',function (result) {
+                                    //     if(!result){
+                                    //         return;
+                                    //     }
+                                    //     if(!result.xData||result.xData==""){
+                                    //         $(".reservoir-basic-document").hide();
+                                    //         $("#reservoir-basic-document").hide();
+                                    //         return;
+                                    //     }
+                                    //     var obj=getZtreeDataFirstData(result.xData);
+                                    //     showPointBaseData(obj.data,2,obj.first);
+                                    // })
+                                }else{
+                                    layer.msg("简报更新失败",{time:1500});
+                                }
+                            }else{
+                                layer.msg("服务器出错，请联系管理员", {icon:16,time: 2000});
+                            }
+                        })
+                    }else{
+                        layer.msg("简报更新失败",{time:1500});
+                    }
+                },
+                error: function (err) {
+                    console.log(err);
+                }
+            });
+        }
+    })
+//    删除
+    $("#reservoir-file-dele-choose").click(function(){
+        layer.confirm("确定删除吗?", {btn: ["删除", "取消"]}, function () {
+            var param={
+                mocd:currentMocd,
+                relcd:file.pId,
+                name:file.id,
+            }
+            ajaxCallJson(param,'/report/delDocumentFile',function (result) {
+                if(!result){
+                    return;
+                }
+                if(result.flag&&result.data){
+                    layer.msg("资料文档删除成功",{time:2000});
+                    $("#reservoir-basic-document-left").html("");
+                    // ajaxCallJson({mocd:currentMocd,reqtype:'0',relcd:""},'/floodSituation/data/document',function (result) {
+                    //     if(!result){
+                    //         return;
+                    //     }
+                    //     if(!result.xData||result.xData==""){
+                    //         $(".reservoir-basic-document").hide();
+                    //         $("#reservoir-basic-document").hide();
+                    //         return;
+                    //     }
+                    //     var obj=getZtreeDataFirstData(result.xData);
+                    //     showPointBaseData(obj.data,2,obj.first);
+                    // })
+                }
+            })
+        })
+    })
+}
+//重点河道双击查看
+function getreRiverBaseDataFile(file) {
+    if(file==null){
+        file={};
+    }
+    if(!file.suffix){
+        return;
+    }
+    var fileid = file.id;
+    $("#river-basic-document-left").empty();
+    $("#river-basic-document-left").css('background','');
+    switch (file.suffix){
+        case ".swf":
+            var h= $("#river-basic-document-left").height();
+            //$("#enlarge-reservoir-infor-chart").append('<embed width="100%" height="100%" name="plugin" id="plugin" src="'+downLoadUrl+"?id="+fileid+'" type="application/x-shockwave-flash" title="">');
+            $("#river-basic-document-left").append('<form name="form1" method="post" action="PageReader.aspx?id=740_1002" id="form1">' +
+                '<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE4NzI1Nzk0NTMPZBYCAgMPZBYCAgEPFgIeCWlubmVyaHRtbAWuAw0KPEVNQkVEIGhlaWdodD01MDAgbmFtZT1jbXNGbGFzaCB0eXBlPWFwcGxpY2F0aW9uL3gtc2hvY2t3YXZlLWZsYXNoIGFsaWduPW1pZGRsZSBwbHVnaW5zcGFnZT1odHRwOi8vd3d3Lm1hY3JvbWVkaWEuY29tL2dvL2dldGZsYXNocGxheWVyIHdpZHRoPTc1MCBzcmM9L0ltYWdlc1ZpZXdlci9TaWxkZXJWaWV3ZXIuc3dmIGxvb3A9ImZhbHNlIiBiZ2NvbG9yPSIjODY5Y2E3IiBwbGF5PSJ0cnVlIiBhbGxvd1NjcmlwdEFjY2Vzcz0ic2FtZURvbWFpbiIgcXVhbGl0eT0iaGlnaCIgZmxhc2hWYXJzPSJkYXRhPSUyZmRvd25sb2FkJTJlYXNweCUzZnR5cGUlM2Q0JTI2bmFtZSUzZDc0MDkyMiUyZUdJRiUyNnBhcmFzJTNkJTdiJTIyREl0ZW1JRCUyMiUzYSUyMjc0MCUyMiUyYyUyMkltYWdlSUQlMjIlM2ElMjI5MjIlMjIlN2QlMjZkb3duJTNkMCI+PC9FTUJFRD5kZP8OHwGN1DPHckeIU6eYx4CvtSQl" /> ' +
+                '<script type="text/javascript">var AjaxPage=null;AjaxPage={};</script>' +
+                '<div><div id="Panel1"><EMBED height="'+h+'px" name="cmsFlash" type="application/x-shockwave-flash"' +
+                'align="middle" pluginspage="http://www.macromedia.com/go/getflashplayer" width="100%" src="swf/SilderViewer.swf" loop="false" bgcolor="#869ca7"' +
+                'play="true" allowScriptAccess="sameDomain" quality="high" flashVars="data='+downLoadUrl+"?id="+fileid+'"></EMBED></div></div></form>');
+            //$("#enlarge-reservoir-infor-chart").append('<a class="media" href="'+downLoadUrl+"?id="+fileid+"&fmt=pdf"+'" ></a>');
+            //$('a.media').media({width:500, height:400});
+            break;
+        case ".pdf":
+            $("#river-basic-document-left").html('<IFRAME marginWidth=0 marginHeight=0 src="/report/pdf?showDownloadWord=false&showDownloadPdf=false&fileId='+fileid+"&name="+name+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>');
+            break;
+        case ".html":
+            $("#river-basic-document-left").css('background','rgba(255,255,255,0.7)');
+            $("#river-basic-document-left").append('<IFRAME marginWidth=0 marginHeight=0 src="'+downLoadUrl+"?id="+fileid+'" frameBorder=0 width="100%"  height="99%" id="iframe-data"></IFRAME>');
+            $('#Panel1').mCustomScrollbar({
+                theme:"minimal-dark"
+            });
+            break;
+        case '.jpg':
+            var url=downLoadUrl+"?id="+fileid;
+            var img=new Image();
+            img.src=url;
+            img.onload=function () {
+                var width=img.width;
+                var height=img.height;
+                var h= $("#river-basic-document-left").height();
+                var w= $("#river-basic-document-left").width();
+                if(width>w){
+                    width=w;
+                }
+                if(height>h){
+                    height=h;
+                }
+                $("#river-basic-document-left").append('<img width="'+width+'" height="'+height+'" src="'+downLoadUrl+"?id="+fileid+'"/>')
+            }
+
+            break;
+        default:
+
+            break;
+    }
+}
+//城市易涝点双击查看
+function getreWaterloggedBaseDataFile(file,firstData){
+    if(file==null){
+        file={};
+    }
+    var fileid = file.id;
+    if(!file.suffix){
+        return;
+    }
+    $("#waterlogged-basic-data-bottom-left").empty();
+    $("#waterlogged-basic-data-bottom-left").css('background','');
+    switch (file.suffix){
+        case ".swf":
+            var h= $("#waterlogged-basic-data-bottom-left").height();
+            $("#waterlogged-basic-data-bottom-left").append('<form name="form1" method="post" action="PageReader.aspx?id=740_1002" id="form1">' +
+                '<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE4NzI1Nzk0NTMPZBYCAgMPZBYCAgEPFgIeCWlubmVyaHRtbAWuAw0KPEVNQkVEIGhlaWdodD01MDAgbmFtZT1jbXNGbGFzaCB0eXBlPWFwcGxpY2F0aW9uL3gtc2hvY2t3YXZlLWZsYXNoIGFsaWduPW1pZGRsZSBwbHVnaW5zcGFnZT1odHRwOi8vd3d3Lm1hY3JvbWVkaWEuY29tL2dvL2dldGZsYXNocGxheWVyIHdpZHRoPTc1MCBzcmM9L0ltYWdlc1ZpZXdlci9TaWxkZXJWaWV3ZXIuc3dmIGxvb3A9ImZhbHNlIiBiZ2NvbG9yPSIjODY5Y2E3IiBwbGF5PSJ0cnVlIiBhbGxvd1NjcmlwdEFjY2Vzcz0ic2FtZURvbWFpbiIgcXVhbGl0eT0iaGlnaCIgZmxhc2hWYXJzPSJkYXRhPSUyZmRvd25sb2FkJTJlYXNweCUzZnR5cGUlM2Q0JTI2bmFtZSUzZDc0MDkyMiUyZUdJRiUyNnBhcmFzJTNkJTdiJTIyREl0ZW1JRCUyMiUzYSUyMjc0MCUyMiUyYyUyMkltYWdlSUQlMjIlM2ElMjI5MjIlMjIlN2QlMjZkb3duJTNkMCI+PC9FTUJFRD5kZP8OHwGN1DPHckeIU6eYx4CvtSQl" /> ' +
+                '<script type="text/javascript">var AjaxPage=null;AjaxPage={};</script>' +
+                '<div><div id="Panel1"><EMBED height="'+h+'px" name="cmsFlash" type="application/x-shockwave-flash"' +
+                'align="middle" pluginspage="http://www.macromedia.com/go/getflashplayer" width="100%" src="swf/SilderViewer.swf" loop="false" bgcolor="#869ca7"' +
+                'play="true" allowScriptAccess="sameDomain" quality="high" flashVars="data='+downLoadUrl+"?id="+fileid+'"></EMBED></div></div></form>');
+            break;
+        case ".pdf":
+            $("#waterlogged-basic-data-bottom-left").html('<IFRAME marginWidth=0 marginHeight=0 src="/report/pdf?showDownloadWord=false&showDownloadPdf=false&fileId='+fileid+"&name="+name+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>');
+            break;
+        case ".html":
+            $("#waterlogged-basic-data-bottom-left").css('background','rgba(255,255,255,0.7)');
+            $("#waterlogged-basic-data-bottom-left").append('<IFRAME marginWidth=0 marginHeight=0 src="'+downLoadUrl+"?id="+fileid+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>');
+            $('#Panel1').mCustomScrollbar({
+                theme:"minimal-dark"
+            });
+            break;
+        case '.jpg':
+            var url=downLoadUrl+"?id="+fileid;
+            var img=new Image();
+            img.src=url;
+            img.onload=function () {
+                var width=img.width;
+                var height=img.height;
+                var h,w
+                if(firstData){
+                    h= $(".waterlogged-basic-infor").height()*0.98;
+                    w= $(".waterlogged-basic-infor").width()*0.84
+                }else{
+                    h= $("#waterlogged-basic-data-bottom-left").height();
+                    w= $("#waterlogged-basic-data-bottom-left").width()
+                }
+                if(height>h){
+                    height=h;
+                }
+                $("#waterlogged-basic-data-bottom-left").append('<img  height="'+height+'" src="'+downLoadUrl+"?id="+fileid+'"/>')
+            }
+
+            break;
+        default:
+
+            break;
+    }
+}
+//防洪城镇双击查看
+function getreMonitorBaseDataFile(file){
+    if(file==null){
+        file={};
+    }
+    var fileid = file.id;
+    if(!file.suffix){
+        return;
+    }
+    var name=file.name;
+    $("#monitor-city-data-left").empty();
+    $("#monitor-city-data-left").css('background','');
+    switch (file.suffix){
+        case ".swf":
+            var h= $("#monitor-city-data-left").height();
+            $("#monitor-city-data-left").html('<form name="form1" method="post" action="PageReader.aspx?id=740_1002" id="form1">' +
+                '<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE4NzI1Nzk0NTMPZBYCAgMPZBYCAgEPFgIeCWlubmVyaHRtbAWuAw0KPEVNQkVEIGhlaWdodD01MDAgbmFtZT1jbXNGbGFzaCB0eXBlPWFwcGxpY2F0aW9uL3gtc2hvY2t3YXZlLWZsYXNoIGFsaWduPW1pZGRsZSBwbHVnaW5zcGFnZT1odHRwOi8vd3d3Lm1hY3JvbWVkaWEuY29tL2dvL2dldGZsYXNocGxheWVyIHdpZHRoPTc1MCBzcmM9L0ltYWdlc1ZpZXdlci9TaWxkZXJWaWV3ZXIuc3dmIGxvb3A9ImZhbHNlIiBiZ2NvbG9yPSIjODY5Y2E3IiBwbGF5PSJ0cnVlIiBhbGxvd1NjcmlwdEFjY2Vzcz0ic2FtZURvbWFpbiIgcXVhbGl0eT0iaGlnaCIgZmxhc2hWYXJzPSJkYXRhPSUyZmRvd25sb2FkJTJlYXNweCUzZnR5cGUlM2Q0JTI2bmFtZSUzZDc0MDkyMiUyZUdJRiUyNnBhcmFzJTNkJTdiJTIyREl0ZW1JRCUyMiUzYSUyMjc0MCUyMiUyYyUyMkltYWdlSUQlMjIlM2ElMjI5MjIlMjIlN2QlMjZkb3duJTNkMCI+PC9FTUJFRD5kZP8OHwGN1DPHckeIU6eYx4CvtSQl" /> ' +
+                '<script type="text/javascript">var AjaxPage=null;AjaxPage={};</script>' +
+                '<div><div id="Panel1"><EMBED height="'+h+'px" name="cmsFlash" type="application/x-shockwave-flash"' +
+                'align="middle" pluginspage="http://www.macromedia.com/go/getflashplayer" width="100%" src="swf/SilderViewer.swf" loop="false" bgcolor="#869ca7"' +
+                'play="true" allowScriptAccess="sameDomain" quality="high" flashVars="data='+downLoadUrl+"?id="+fileid+'"></EMBED></div></div></form>');
+            break;
+        case ".pdf":
+            $("#monitor-city-data-left").html('<IFRAME marginWidth=0 marginHeight=0 src="/report/pdf?showDownloadWord=false&showDownloadPdf=false&fileId='+fileid+"&name="+name+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>');
+            break;
+        case ".html":
+            $("#monitor-city-data-left").css('background','rgba(255,255,255,0.7)');
+            $("#monitor-city-data-left").html('<IFRAME marginWidth=0 marginHeight=0 src="'+downLoadUrl+"?id="+fileid+'" frameBorder=0 width="100%"  height="99%" id="iframe-data"></IFRAME>');
+            $('#Panel1').mCustomScrollbar({
+                theme:"minimal-dark"
+            });
+            break;
+        case '.jpg':
+            var url=downLoadUrl+"?id="+fileid;
+            var img=new Image();
+            img.src=url;
+            img.onload=function () {
+                var width=img.width;
+                var height=img.height;
+                var h= $("#monitor-city-data-left").height();
+                var w= $("#monitor-city-data-left").width();
+                if(width>w){
+                    width=w;
+                }
+                if(height>h){
+                    height=h;
+                }
+                $("#monitor-city-data-left").html('<img width="'+width+'" height="'+height+'" src="'+downLoadUrl+"?id="+fileid+'"/>')
+            }
+            break;
+        default:
+
+            break;
+    }
+}
+//城镇预案
+function getreMonitorPlanBaseDataFile(file){
+    if(file==null){
+        file={};
+    }
+    var fileid = file.id;
+    if(!file.suffix){
+        return;
+    }
+    var name=file.name;
+    $("#monitor-city-plan-left").empty();
+    $("#monitor-city-plan-left").css('background','');
+    switch (file.suffix){
+        case ".swf":
+            var h= $("#monitor-city-plan-left").height();
+            $("#monitor-city-plan-left").html('<form name="form1" method="post" action="PageReader.aspx?id=740_1002" id="form1">' +
+                '<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE4NzI1Nzk0NTMPZBYCAgMPZBYCAgEPFgIeCWlubmVyaHRtbAWuAw0KPEVNQkVEIGhlaWdodD01MDAgbmFtZT1jbXNGbGFzaCB0eXBlPWFwcGxpY2F0aW9uL3gtc2hvY2t3YXZlLWZsYXNoIGFsaWduPW1pZGRsZSBwbHVnaW5zcGFnZT1odHRwOi8vd3d3Lm1hY3JvbWVkaWEuY29tL2dvL2dldGZsYXNocGxheWVyIHdpZHRoPTc1MCBzcmM9L0ltYWdlc1ZpZXdlci9TaWxkZXJWaWV3ZXIuc3dmIGxvb3A9ImZhbHNlIiBiZ2NvbG9yPSIjODY5Y2E3IiBwbGF5PSJ0cnVlIiBhbGxvd1NjcmlwdEFjY2Vzcz0ic2FtZURvbWFpbiIgcXVhbGl0eT0iaGlnaCIgZmxhc2hWYXJzPSJkYXRhPSUyZmRvd25sb2FkJTJlYXNweCUzZnR5cGUlM2Q0JTI2bmFtZSUzZDc0MDkyMiUyZUdJRiUyNnBhcmFzJTNkJTdiJTIyREl0ZW1JRCUyMiUzYSUyMjc0MCUyMiUyYyUyMkltYWdlSUQlMjIlM2ElMjI5MjIlMjIlN2QlMjZkb3duJTNkMCI+PC9FTUJFRD5kZP8OHwGN1DPHckeIU6eYx4CvtSQl" /> ' +
+                '<script type="text/javascript">var AjaxPage=null;AjaxPage={};</script>' +
+                '<div><div id="Panel1"><EMBED height="'+h+'px" name="cmsFlash" type="application/x-shockwave-flash"' +
+                'align="middle" pluginspage="http://www.macromedia.com/go/getflashplayer" width="100%" src="swf/SilderViewer.swf" loop="false" bgcolor="#869ca7"' +
+                'play="true" allowScriptAccess="sameDomain" quality="high" flashVars="data='+downLoadUrl+"?id="+fileid+'"></EMBED></div></div></form>');
+            break;
+        case ".pdf":
+            $("#monitor-city-plan-left").html('<IFRAME marginWidth=0 marginHeight=0 src="/report/pdf?showDownloadWord=false&showDownloadPdf=false&fileId='+fileid+"&name="+name+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>');
+            break;
+        case ".html":
+            $("#monitor-city-plan-left").css('background','rgba(255,255,255,0.7)');
+            $("#monitor-city-plan-left").html('<IFRAME marginWidth=0 marginHeight=0 src="'+downLoadUrl+"?id="+fileid+'" frameBorder=0 width="100%"  height="99%" id="iframe-data"></IFRAME>');
+            $('#Panel1').mCustomScrollbar({
+                theme:"minimal-dark"
+            });
+            break;
+        case '.jpg':
+            var url=downLoadUrl+"?id="+fileid;
+            var img=new Image();
+            img.src=url;
+            img.onload=function () {
+                var width=img.width;
+                var height=img.height;
+                var h= $("#monitor-city-plan-left").height();
+                var w= $("#monitor-city-plan-left").width();
+                if(width>w){
+                    width=w;
+                }
+                if(height>h){
+                    height=h;
+                }
+                $("#monitor-city-plan-left").html('<img width="'+width+'" height="'+height+'" src="'+downLoadUrl+"?id="+fileid+'"/>')
+            }
+
+            break;
+        default:
+
+            break;
+    }
+}
+//城镇风险图
+function getreMonitorRiskBaseDataFile(file){
+    if(file==null){
+        return;
+    }
+    if(!file.suffix){
+        return;
+    }
+    var fileid = file.id;
+    $("#monitor-city-risk-left").empty();
+    $("#monitor-city-risk-left").css('background','');
+    switch (file.suffix){
+        case ".swf":
+            var h= $("#monitor-city-risk").height();
+            $("#monitor-city-risk-left").html('<form name="form1" method="post" action="PageReader.aspx?id=740_1002" id="form1">' +
+                '<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE4NzI1Nzk0NTMPZBYCAgMPZBYCAgEPFgIeCWlubmVyaHRtbAWuAw0KPEVNQkVEIGhlaWdodD01MDAgbmFtZT1jbXNGbGFzaCB0eXBlPWFwcGxpY2F0aW9uL3gtc2hvY2t3YXZlLWZsYXNoIGFsaWduPW1pZGRsZSBwbHVnaW5zcGFnZT1odHRwOi8vd3d3Lm1hY3JvbWVkaWEuY29tL2dvL2dldGZsYXNocGxheWVyIHdpZHRoPTc1MCBzcmM9L0ltYWdlc1ZpZXdlci9TaWxkZXJWaWV3ZXIuc3dmIGxvb3A9ImZhbHNlIiBiZ2NvbG9yPSIjODY5Y2E3IiBwbGF5PSJ0cnVlIiBhbGxvd1NjcmlwdEFjY2Vzcz0ic2FtZURvbWFpbiIgcXVhbGl0eT0iaGlnaCIgZmxhc2hWYXJzPSJkYXRhPSUyZmRvd25sb2FkJTJlYXNweCUzZnR5cGUlM2Q0JTI2bmFtZSUzZDc0MDkyMiUyZUdJRiUyNnBhcmFzJTNkJTdiJTIyREl0ZW1JRCUyMiUzYSUyMjc0MCUyMiUyYyUyMkltYWdlSUQlMjIlM2ElMjI5MjIlMjIlN2QlMjZkb3duJTNkMCI+PC9FTUJFRD5kZP8OHwGN1DPHckeIU6eYx4CvtSQl" /> ' +
+                '<script type="text/javascript">var AjaxPage=null;AjaxPage={};</script>' +
+                '<div><div id="Panel1"><EMBED height="'+(h-10)+'px" name="cmsFlash" type="application/x-shockwave-flash"' +
+                'align="middle" pluginspage="http://www.macromedia.com/go/getflashplayer" width="100%" src="swf/SilderViewer.swf" loop="false" bgcolor="#869ca7"' +
+                'play="true" allowScriptAccess="sameDomain" quality="high" flashVars="data='+downLoadUrl+"?id="+fileid+'"></EMBED></div></div></form>');
+            break;
+        case ".html":
+            $("#monitor-city-risk-left").css('background','rgba(255,255,255,0.7)');
+            $("#monitor-city-risk-left").html('<IFRAME marginWidth=0 marginHeight=0 src="'+downLoadUrl+"?id="+fileid+'" frameBorder=0 width="100%"  height="99%" id="iframe-data"></IFRAME>');
+            $('#Panel1').mCustomScrollbar({
+                theme:"minimal-dark"
+            });
+            break;
+        case ".pdf":
+            $("#monitor-city-risk-left").html('<IFRAME marginWidth=0 marginHeight=0 src="/report/pdf?showDownloadWord=false&showDownloadPdf=false&fileId='+fileid+"&name="+name+'" frameBorder=0 width="100%"  height="100%" id="iframe-data"></IFRAME>');
+            break;
+        case '.jpg':
+            var url=downLoadUrl+"?id="+fileid;
+            var img=new Image();
+            img.src=url;
+            img.onload=function () {
+                var width=img.width;
+                var height=img.height;
+                var h= $("#monitor-city-risk-left").height();
+                var w= $("#monitor-city-risk-left").width();
+                if(width>w){
+                    width=w;
+                }
+                if(height>h){
+                    height=h;
+                }
+                $("#monitor-city-plan-left").html('<img width="'+width+'" height="'+height+'" src="'+downLoadUrl+"?id="+fileid+'"/>')
+            }
+
+            break;
+        default:
+
+            break;
+    }
+}
+//山洪小流域调查图片
+function getreWatershedImage(file){
+    if(file==null){
+        file={};
+    }
+    var fileid = file.id;
+    if(!file.suffix){
+        return;
+    }
+    $("#watershed-image-left").empty();
+    $("#watershed-image-left").css('background','');
+    switch (file.suffix){
+        case ".swf":
+            var h= $("#watershed-image-left").height();
+            $("#watershed-image-left").html('<form name="form1" method="post" action="PageReader.aspx?id=740_1002" id="form1">' +
+                '<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE4NzI1Nzk0NTMPZBYCAgMPZBYCAgEPFgIeCWlubmVyaHRtbAWuAw0KPEVNQkVEIGhlaWdodD01MDAgbmFtZT1jbXNGbGFzaCB0eXBlPWFwcGxpY2F0aW9uL3gtc2hvY2t3YXZlLWZsYXNoIGFsaWduPW1pZGRsZSBwbHVnaW5zcGFnZT1odHRwOi8vd3d3Lm1hY3JvbWVkaWEuY29tL2dvL2dldGZsYXNocGxheWVyIHdpZHRoPTc1MCBzcmM9L0ltYWdlc1ZpZXdlci9TaWxkZXJWaWV3ZXIuc3dmIGxvb3A9ImZhbHNlIiBiZ2NvbG9yPSIjODY5Y2E3IiBwbGF5PSJ0cnVlIiBhbGxvd1NjcmlwdEFjY2Vzcz0ic2FtZURvbWFpbiIgcXVhbGl0eT0iaGlnaCIgZmxhc2hWYXJzPSJkYXRhPSUyZmRvd25sb2FkJTJlYXNweCUzZnR5cGUlM2Q0JTI2bmFtZSUzZDc0MDkyMiUyZUdJRiUyNnBhcmFzJTNkJTdiJTIyREl0ZW1JRCUyMiUzYSUyMjc0MCUyMiUyYyUyMkltYWdlSUQlMjIlM2ElMjI5MjIlMjIlN2QlMjZkb3duJTNkMCI+PC9FTUJFRD5kZP8OHwGN1DPHckeIU6eYx4CvtSQl" /> ' +
+                '<script type="text/javascript">var AjaxPage=null;AjaxPage={};</script>' +
+                '<div><div id="Panel1"><EMBED height="'+h+'px" name="cmsFlash" type="application/x-shockwave-flash"' +
+                'align="middle" pluginspage="http://www.macromedia.com/go/getflashplayer" width="100%" src="swf/SilderViewer.swf" loop="false" bgcolor="#869ca7"' +
+                'play="true" allowScriptAccess="sameDomain" quality="high" flashVars="data='+downLoadUrl+"?id="+fileid+'"></EMBED></div></div></form>');
+            break;
+        case ".html":
+            $("#watershed-image-left").css('background','rgba(255,255,255,0.7)');
+            $("#watershed-image-left").html('<IFRAME marginWidth=0 marginHeight=0 src="'+downLoadUrl+"?id="+fileid+'" frameBorder=0 width="100%"  height="99%" id="iframe-data"></IFRAME>');
+            $('#Panel1').mCustomScrollbar({
+                theme:"minimal-dark"
+            });
+            break;
+        case '.jpg':
+            var url=downLoadUrl+"?id="+fileid;
+            var img=new Image();
+            img.src=url;
+            img.onload=function () {
+                var width=img.width;
+                var height=img.height;
+                var h= $("#watershed-image-left").height();
+                var w= $("#watershed-image-left").width();
+                if(width>w){
+                    width=w;
+                }
+                if(height>h){
+                    height=h;
+                }
+                $("#watershed-image-left").html('<img width="'+width+'" height="'+height+'" src="'+downLoadUrl+"?id="+fileid+'"/>')
+            }
+
+            break;
+        default:
+
+            break;
+    }
+}
+//城市易涝点调查图片
+function getreWaterloggedImage(file){
+    if(file==null){
+        file={};
+    }
+    var fileid = file.id;
+    if(!file.suffix){
+        return;
+    }
+    $("#waterlogged-image-left").empty();
+    $("#waterlogged-image-left").css('background','');
+    switch (file.suffix){
+        case ".swf":
+            var h= $("#waterlogged-image-left").height();
+            $("#waterlogged-image-left").html('<form name="form1" method="post" action="PageReader.aspx?id=740_1002" id="form1">' +
+                '<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="/wEPDwULLTE4NzI1Nzk0NTMPZBYCAgMPZBYCAgEPFgIeCWlubmVyaHRtbAWuAw0KPEVNQkVEIGhlaWdodD01MDAgbmFtZT1jbXNGbGFzaCB0eXBlPWFwcGxpY2F0aW9uL3gtc2hvY2t3YXZlLWZsYXNoIGFsaWduPW1pZGRsZSBwbHVnaW5zcGFnZT1odHRwOi8vd3d3Lm1hY3JvbWVkaWEuY29tL2dvL2dldGZsYXNocGxheWVyIHdpZHRoPTc1MCBzcmM9L0ltYWdlc1ZpZXdlci9TaWxkZXJWaWV3ZXIuc3dmIGxvb3A9ImZhbHNlIiBiZ2NvbG9yPSIjODY5Y2E3IiBwbGF5PSJ0cnVlIiBhbGxvd1NjcmlwdEFjY2Vzcz0ic2FtZURvbWFpbiIgcXVhbGl0eT0iaGlnaCIgZmxhc2hWYXJzPSJkYXRhPSUyZmRvd25sb2FkJTJlYXNweCUzZnR5cGUlM2Q0JTI2bmFtZSUzZDc0MDkyMiUyZUdJRiUyNnBhcmFzJTNkJTdiJTIyREl0ZW1JRCUyMiUzYSUyMjc0MCUyMiUyYyUyMkltYWdlSUQlMjIlM2ElMjI5MjIlMjIlN2QlMjZkb3duJTNkMCI+PC9FTUJFRD5kZP8OHwGN1DPHckeIU6eYx4CvtSQl" /> ' +
+                '<script type="text/javascript">var AjaxPage=null;AjaxPage={};</script>' +
+                '<div><div id="Panel1"><EMBED height="'+h+'px" name="cmsFlash" type="application/x-shockwave-flash"' +
+                'align="middle" pluginspage="http://www.macromedia.com/go/getflashplayer" width="100%" src="swf/SilderViewer.swf" loop="false" bgcolor="#869ca7"' +
+                'play="true" allowScriptAccess="sameDomain" quality="high" flashVars="data='+downLoadUrl+"?id="+fileid+'"></EMBED></div></div></form>');
+            break;
+        case ".html":
+            $("#waterlogged-image-left").css('background','rgba(255,255,255,0.7)');
+            $("#waterlogged-image-left").html('<IFRAME marginWidth=0 marginHeight=0 src="'+downLoadUrl+"?id="+fileid+'" frameBorder=0 width="100%"  height="99%" id="iframe-data"></IFRAME>');
+            $('#Panel1').mCustomScrollbar({
+                theme:"minimal-dark"
+            });
+            break;
+        case '.jpg':
+            var url=downLoadUrl+"?id="+fileid;
+            var img=new Image();
+            img.src=url;
+            img.onload=function () {
+                var width=img.width;
+                var height=img.height;
+                var h= $("#waterlogged-image-left").height();
+                var w= $("#waterlogged-image-left").width();
+                if(width>w){
+                    width=w;
+                }
+                if(height>h){
+                    height=h;
+                }
+                $("#waterlogged-image-left").html('<img width="'+width+'" height="'+height+'" src="'+downLoadUrl+"?id="+fileid+'"/>')
+            }
+
+            break;
+        default:
+
+            break;
+    }
+}

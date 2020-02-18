@@ -1,0 +1,1007 @@
+var realTimeWindow;
+var doubleClickRainLayer;
+var realTimeCheckType;
+$(function () {
+
+});
+
+//水库实时数据
+function realTimeReservoir(mocd, name) {
+
+  var starttime = moment(getSystemTime()).subtract(6, "month").format("YYYY-MM-DD HH:mm:ss");
+  var endtime = moment(getSystemTime()).add(1, 'hours').format("YYYY-MM-DD HH:00:00");
+  ajaxCallJson({
+    mocd: mocd,
+    starttime: starttime,
+    endtime: endtime
+  }, '/realTime/getReservoirRealTime', function (result) { //获取水库实时数据
+    if (!result) {
+      return;
+    }
+    var data = result.data;
+    if (!data) {
+      return;
+    }
+    if (data.tm == null) {
+      return;
+    }
+    if (data.tm && data.tm.length == 0) {
+      return;
+    }
+    var title = name + "-实时数据";
+    $("#detail-real-time").find(".title").html("实时数据");
+    data.rainId = 'river-course-content-max-one-chart';
+    data.otherId = 'river-course-content-two-chart';
+    data.type = obj_type_reservoir;
+    var myWindow = new MyWindow($("#real-time-process-window"), {
+      title: title
+    });
+    $('#river-course-content-max-one-chart').css("width", "100%").css("height", "45%");
+    $('#river-course-content-two-chart').css("width", "100%").css("height", "50%");
+    myWindow.dom.css("z-index", "-999");
+    $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+    myWindow.body.find('.river-export-excel').hide();
+    // $('#river-course-content-view').css("margin-top", "-15px");
+    $('#river-course-content-two-chart').show();
+    $('#river-course-content-table').hide();
+    if ($('#river-course-content-view').attr('flag') == "table") {
+      $('#river-course-content-view').css("margin-top", "5px");
+      $('#river-course-content-view').attr('flag', "chart");
+      $('#river-course-content-max-one-chart').show();
+      $('#river-course-content-two-chart').show();
+    }
+    myWindow.show();
+    var columns = [{
+      field: 'id',
+      title: '序号',
+      align: 'center'
+    }, {
+      field: 'tm',
+      title: '时间',
+      sortable: true,
+      align: 'center'
+    },
+      {
+        field: 'p',
+        title: '降水(mm)',
+        align: 'center'
+      }
+    ];
+    if (data.rz && data.rz.length != 0) {
+      columns.push({
+        field: 'rz',
+        title: '水位(m)',
+        align: 'center'
+      })
+    }
+    if (data.inq && data.inq.length != 0) {
+      columns.push({
+        field: 'inq',
+        title: '入库流量(m³/s)',
+        align: 'center'
+      })
+    }
+    ;
+    if (data.otq && data.otq.length != 0) {
+      columns.push({
+        field: 'otq',
+        title: '出库流量(m³/s)',
+        align: 'center'
+      })
+    }
+
+    var tableData = [];
+    for (var i = 0; i < data.tm.length; i++) {
+      var temp = {};
+      temp.id = i + 1;
+      temp.p = data.p ? data.p[i] : null;
+      temp.tm = data.tm[i];
+      if (data.inq[i] != undefined && data.inq[i] != "-") {
+        temp.inq = data.inq[i];
+      }
+      if (data.otq[i] != undefined && data.otq[i] != "-") {
+        temp.otq = data.otq[i];
+      }
+      if (data.rz[i] != undefined && data.rz[i] != "-") {
+        temp.rz = data.rz[i];
+      }
+      tableData.push(temp);
+    }
+    $('#river-course-content-table').html('<table id="river-course-content-table-content"></table>');
+    $('#river-course-content-table').hide();
+    data.table = {
+      columns: columns,
+      data: tableData,
+      id: 'river-course-content-table-content'
+    };
+    data.tableHeight = getMoniterClickTableHeight(myWindow);
+    var charts = initRealTimeChart(data, myWindow);
+    myWindow.resizecbfn(function () {
+      resizeChartTableHeight(result.tableId, myWindow);
+      resizeTablePaddingBottom(myWindow);
+      resizeChartContainerSize(myWindow)
+      resizeChart();
+    });
+    setTimeout(callback, 1000);
+
+    function callback() {
+      initDetailWinImg(mocd, 11);
+      loadHtml2canvas(myWindow, 'real-time-process-window', 'detail-real-time', {
+        mocd: mocd,
+        num: 11
+      });
+    };
+    $(".river-course-content").show();
+    $("#reservoir-real-time-content-view").hide();
+    $('#river-course-content-view').unbind('click').bind('click', function () {
+      if ($('#river-course-content-view').attr('flag') == "chart") {
+        $('#river-course-content-view').attr('flag', "table");
+        $('#river-course-content-max-one-chart').hide();
+        $('#river-course-content-two-chart').hide();
+        myWindow.body.find('.river-export-excel').show();
+        $('#river-course-content-table').show();
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc') == false && $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('desc') == false) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc')) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        myWindow.body.find('.river-export-excel').css("margin-top", "-35px");
+        $('#river-course-content-view').css("margin-top", "-35px");
+        $('#river-course-content-view').html('<img src="/images/data-chart.png"  class="data-table"  title="图表" >');
+      } else {
+        $('#river-course-content-view').attr('flag', "chart");
+        $('#river-course-content-max-one-chart').show();
+        $('#river-course-content-two-chart').show();
+        $('#river-course-content-table').hide();
+        myWindow.body.find('.river-export-excel').hide();
+        $('#river-course-content-view').css("margin-top", "-15px");
+        $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+        resizeChart();
+      }
+    });
+
+  });
+}
+
+//河道水文站实时数据
+function realTimeRiver(mocd, name,rightData,clickType) {
+  if(clickType==="maxRightClick"){
+    rightMaxChartArray.forEach(function (chart) {
+      chart.dispose();
+    });
+    rightMaxChartArray.clear();
+  }
+  var starttime = moment(getSystemTime()).subtract(1, "month").format("YYYY-MM-DD HH:mm:ss");
+  var endtime = moment(getSystemTime()).add(1, 'hours').format("YYYY-MM-DD HH:00:00");
+  ajaxCallJson({
+    mocd: mocd,
+    starttime: starttime,
+    endtime: endtime
+  }, '/realTime/getRiverCourseRealTime', function (result) { //获取水库实时数据
+    if (!result) {
+      return;
+    }
+    var data = result.data;
+    if (!data) {
+      return;
+    }
+    if (data.tm && data.tm.length == 0 && data.tm != null) {
+      return;
+    }
+    var title = name + "-实时数据";
+    $("#detail-real-time").find(".title").html("实时数据");
+    data.rainId = 'river-course-content-max-one-chart';
+    data.otherId = 'river-course-content-max-two-chart';
+    data.type = obj_type_river;
+    for (var i=0;i<rightData.length;i++){
+      if(rightData.indexOf("fore")!==-1){
+        data.rainId = 'river-course-content-one-chart';
+        data.otherId = 'river-course-content-two-chart';
+      }
+    }
+    if(clickType==="maxRightClick"){//右侧放大窗口点击
+      data.rainId = 'river-course-content-max-one-chart';
+      data.otherId = 'river-course-content-max-two-chart';
+    }
+    var myWindow = new MyWindow($("#real-time-process-window"), {
+      title: title
+    });
+    $('#river-course-content-max-one-chart').css("width", "100%").css("height", "45%");
+    $('#river-course-content-max-two-chart').css("width", "100%").css("height", "50%");
+    $('#river-course-content-one-chart').css("width", "100%").css("height", "45%");
+    $('#river-course-content-two-chart').css("width", "100%").css("height", "55%");
+    myWindow.dom.css("z-index", "-999");
+    if(clickType==="maxRightClick"){
+      myWindow.dom.css("z-index", "999");
+    }
+    $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+    myWindow.body.find('.river-export-excel').hide();
+    // $('#river-course-content-view').css("margin-top", "-15px");
+    $('#river-course-content-two-chart').show();
+    $('#river-course-content-table').hide();
+    if ($('#river-course-content-view').attr('flag') == "table") {
+      $('#river-course-content-view').css("margin-top", "5px");
+      $('#river-course-content-view').attr('flag', "chart");
+      $('#river-course-content-max-one-chart').show();
+      $('#river-course-content-two-chart').show();
+    }
+    myWindow.show();
+    var columns = [{
+      field: 'id',
+      title: '序号',
+      align: 'center'
+    }, {
+      field: 'tm',
+      title: '时间',
+      sortable: true,
+      align: 'center'
+    },
+      {
+        field: 'drp',
+        title: '降水(mm)',
+        align: 'center'
+      }
+    ];
+    if (data.z && data.z.length != 0) {
+      columns.push({
+        field: 'z',
+        title: '水位(m)',
+        align: 'center'
+      })
+    }
+    if (data.q && data.q.length != 0) {
+      columns.push({
+        field: 'q',
+        title: '流量(m³/s)',
+        align: 'center'
+      })
+    }
+    var tableData = [];
+    if (!data.tm || data.tm.length == 0) {
+      return;
+    }
+    for (var i = 0; i < data.tm.length; i++) {
+      var temp = {};
+      temp.id = i + 1;
+      temp.tm = data.tm[i];
+      temp.drp = data.drp[i];
+      if (data.q[i] != undefined && data.q[i] != "-") {
+        temp.q = data.q[i];
+      }
+      if (data.z[i] != undefined && data.z[i] != "-") {
+        temp.z = data.z[i];
+      }
+      tableData.push(temp);
+    }
+    $('#river-course-content-table').html('<table id="river-course-content-table-content"></table>');
+    $('#river-course-content-table').hide();
+    data.table = {
+      columns: columns,
+      data: tableData,
+      id: 'river-course-content-table-content'
+    };
+    data.tableHeight = getMoniterClickTableHeight(myWindow);
+    var charts = initRealTimeChart(data, myWindow,clickType);
+    $('#river-course-content-view').unbind('click').bind('click', function () {
+      if ($('#river-course-content-view').attr('flag') == "chart") {
+        $('#river-course-content-view').attr('flag', "table");
+        $('#river-course-content-max-one-chart').hide();
+        $('#river-course-content-max-two-chart').hide();
+        myWindow.body.find('.river-export-excel').show();
+        $('#river-course-content-table').show();
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc') == false && $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('desc') == false) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc')) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        myWindow.body.find('.river-export-excel').css("margin-top", "-35px");
+        $('#river-course-content-view').css("margin-top", "-35px");
+        $('#river-course-content-view').html('<img src="/images/data-chart.png"  class="data-table"  title="图表" >');
+      } else {
+        $('#river-course-content-view').attr('flag', "chart");
+        $('#river-course-content-max-one-chart').show();
+        $('#river-course-content-max-two-chart').show();
+        $('#river-course-content-table').hide();
+        myWindow.body.find('.river-export-excel').hide();
+        $('#river-course-content-view').css("margin-top", "-15px");
+        $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+        resizeChart();
+      }
+    });
+    for (var i=0;i<rightData.length;i++){
+      if(rightData.indexOf("real")!==-1){
+        $("#detail-real-time").css("display","none");
+        // $("#monitor-detail").css("display","none");
+        return
+      }
+    }
+    myWindow.resizecbfn(function () {
+      resizeChartTableHeight(result.tableId, myWindow);
+      resizeTablePaddingBottom(myWindow);
+      resizeChartContainerSize(myWindow)
+      resizeChart();
+    });
+    setTimeout(callback, 2000);
+
+    function callback() {
+      initDetailWinImg(mocd, 11);
+      loadHtml2canvas(myWindow, 'real-time-process-window', 'detail-real-time', {
+        mocd: mocd,
+        num: 11
+      });
+    };
+    $(".river-course-content").show();
+    $("#reservoir-real-time-content-view").hide();
+
+  });
+}
+
+//雨量站实时数据
+function realTimeRain(mocd, name, id, clickType) {
+  if (id) {
+
+  } else {
+    chartArray.forEach(function (chart) {
+      chart.dispose();
+    });
+    chartArray.clear();
+    showRightWindow = [];
+    showRightWindow.push("real");
+    noReservoirStageHtml(showRightWindow, "other");//判断右侧显示哪两个
+  }
+  layui.use('layer', function () {
+    index = layui.layer;
+    var msg = "数据加载中，请稍等...";
+    doubleClickRainLayer = layer.msg(msg, {
+      time: 200,
+      icon: 16,
+      skin: 'layer-ext-simulation',
+      shade: [0.2, '#000']
+    });
+  });
+  if (clickType === "maxRightClick") {
+    rightMaxChartArray.forEach(function (chart) {
+      chart.dispose();
+    });
+    rightMaxChartArray.clear();
+  }
+
+  $('.monitor-detail-title').html(name);
+  var starttime = moment(getSystemTime()).subtract(6, "month").format("YYYY-MM-DD HH:mm:ss");
+  var endtime = moment(getSystemTime()).add(1, 'hours').format("YYYY-MM-DD HH:00:00");
+  ajaxCallJson({
+    mocd: mocd,
+    starttime: starttime,
+    endtime: endtime
+  }, '/realTime/getRealRainStationProData', function (result) { //获取水库实时数据
+    if (!result) {
+      layer.close(doubleClickRainLayer);
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    var data = result.data;
+    if (!data) {
+      layer.close(doubleClickRainLayer);
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    if (data.tm && data.tm.length == 0 && data.tm != null) {
+      layer.close(doubleClickRainLayer);
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    var title = name + "-实时数据";
+    // $("#detail-real-time").find(".title").html("实时数据");
+    realTimeCheckType=obj_type_rain_station;
+    data.type = obj_type_rain_station;
+    // initDetailWinImg(mocd, 11);
+    var myWindow = new MyWindow($("#real-time-process-window"), {
+      title: title
+    });
+    $('#river-course-content-one-chart').css("width", "100%").css("height", "95%");
+    $('#river-course-content-max-one-chart').css("width", "100%").css("height", "95%");
+    $('#river-course-content-two-chart').css("display", "none");
+    if (id) {
+      data.rainId = 'river-course-content-max-one-chart';
+      myWindow.dom.css("z-index", "999");
+    } else {
+      data.rainId = 'river-course-content-one-chart';
+      myWindow.dom.css("z-index", "-999");
+    }
+    $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+    myWindow.body.find('.river-export-excel').hide();
+    $('#river-course-content-table').hide();
+    if ($('#river-course-content-view').attr('flag') == "table") {
+      $('#river-course-content-view').css("margin-top", "5px");
+      $('#river-course-content-view').attr('flag', "chart");
+      $('#river-course-content-one-chart').show();
+    }
+    myWindow.show();
+    var columns = [{
+      field: 'id',
+      title: '序号',
+      align: 'center'
+    }, {
+      field: 'tm',
+      title: '时间',
+      sortable: true,
+      align: 'center'
+    },];
+    if (data.drp != null || data.drp.length != 0) {
+      columns.push({
+        field: 'drp',
+        title: '雨量(mm)',
+        align: 'center'
+      })
+    }
+    var tableData = [];
+    if (!data.tm || data.tm.length == 0) {
+      return;
+    }
+    for (var i = 0; i < data.tm.length; i++) {
+      var temp = {};
+      temp.id = i + 1;
+      temp.tm = data.tm[i];
+      temp.drp = data.drp[i];
+      tableData.push(temp);
+    }
+    $('#river-course-content-table').html('<table id="river-course-content-table-content"></table>');
+    data.table = {
+      columns: columns,
+      data: tableData,
+      id: 'river-course-content-table-content'
+    };
+    data.tableHeight = getMoniterClickTableHeight(myWindow);
+    var charts = initRealTimeChart(data, myWindow, clickType);
+    myWindow.resizecbfn(function () {
+      resizeChartTableHeight(result.tableId, myWindow);
+      resizeTablePaddingBottom(myWindow);
+      resizeChartContainerSize(myWindow)
+      resizeChart();
+    });
+    $(".river-course-content").show();
+    $("#reservoir-real-time-content-view").hide();
+
+    $('#river-course-content-view').unbind('click').bind('click', function () {
+      if ($('#river-course-content-view').attr('flag') == "chart") {
+        $('#river-course-content-view').attr('flag', "table");
+        $('#river-course-content-max-one-chart').hide();
+        $('#river-course-content-two-chart').hide();
+        myWindow.body.find('.river-export-excel').show();
+        $('#river-course-content-table').show();
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc') == false && $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('desc') == false) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc')) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        myWindow.body.find('.river-export-excel').css("margin-top", "-35px");
+        $('#river-course-content-view').css("margin-top", "-35px");
+        $('#river-course-content-view').html('<img src="/images/data-chart.png"  class="data-table"  title="图表" >');
+      } else {
+        $('#river-course-content-view').attr('flag', "chart");
+        $('#river-course-content-max-one-chart').show();
+        $('#river-course-content-two-chart').show();
+        $('#river-course-content-table').hide();
+        myWindow.body.find('.river-export-excel').hide();
+        $('#river-course-content-view').css("margin-top", "-15px");
+        $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+        resizeChart();
+      }
+    });
+
+  });
+}
+
+//气象站实时数据
+function realTimeMeteorological(mocd, name, id, clickType) {
+  if (id) {
+
+  } else {
+    chartArray.forEach(function (chart) {
+      chart.dispose();
+    });
+    chartArray.clear();
+    showRightWindow = [];
+    showRightWindow.push("real");
+    noReservoirStageHtml(showRightWindow, "other");//判断右侧显示哪两个
+  }
+  layui.use('layer', function () {
+    index = layui.layer;
+    var msg = "数据加载中，请稍等...";
+    doubleClickRainLayer = layer.msg(msg, {
+      time: 200,
+      icon: 16,
+      skin: 'layer-ext-simulation',
+      shade: [0.2, '#000']
+    });
+  });
+  if (clickType === "maxRightClick") {
+    rightMaxChartArray.forEach(function (chart) {
+      chart.dispose();
+    });
+    rightMaxChartArray.clear();
+  }
+  $('.monitor-detail-title').html(name);
+  var starttime = moment(getSystemTime()).subtract(6, "month").format("YYYY-MM-DD HH:mm:ss");
+  var endtime = moment(getSystemTime()).add(1, 'hours').format("YYYY-MM-DD HH:00:00");
+  ajaxCallJson({
+    mocd: mocd,
+    starttime: starttime,
+    endtime: endtime
+  }, '/realTime/getRealRainStationProData', function (result) { //获取水库实时数据
+    if (!result) {
+      layer.close(doubleClickRainLayer);
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    var data = result.data;
+    if (!data) {
+      layer.close(doubleClickRainLayer);
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    if (data.tm == null) {
+      layer.close(doubleClickRainLayer);
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    if (data.tm.length == 0) {
+      layer.close(doubleClickRainLayer);
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    var title = name + "-实时数据";
+    realTimeCheckType=obj_type_weather_station;
+    data.type = obj_type_weather_station;
+    var myWindow = new MyWindow($("#real-time-process-window"), {
+      title: title
+    });
+    $('#river-course-content-one-chart').css("width", "100%").css("height", "95%");
+    $('#river-course-content-max-one-chart').css("width", "100%").css("height", "95%");
+    $('#river-course-content-two-chart').css("display", "none");
+    if (id) {
+      data.rainId = 'river-course-content-max-one-chart';
+      myWindow.dom.css("z-index", "999");
+    } else {
+      data.rainId = 'river-course-content-one-chart';
+      myWindow.dom.css("z-index", "-999");
+    }
+    $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+    myWindow.body.find('.river-export-excel').hide();
+    $('#river-course-content-view').css("margin-top", "-15px");
+    $('#river-course-content-table').hide();
+    if ($('#river-course-content-view').attr('flag') == "table") {
+      $('#river-course-content-view').css("margin-top", "5px");
+      $('#river-course-content-view').attr('flag', "chart");
+      $('#river-course-content-max-one-chart').show();
+    }
+    myWindow.show();
+    var columns = [{
+      field: 'id',
+      title: '序号',
+      align: 'center'
+    }, {
+      field: 'tm',
+      title: '时间',
+      sortable: true,
+      align: 'center'
+    },];
+    if (data.drp != null || data.drp.length != 0) {
+      columns.push({
+        field: 'drp',
+        title: '雨量(mm)',
+        align: 'center'
+      })
+    }
+    var tableData = [];
+    if (!data.tm || data.tm.length == 0) {
+      return;
+    }
+    for (var i = 0; i < data.tm.length; i++) {
+      var temp = {};
+      temp.id = i + 1;
+      temp.tm = data.tm[i];
+      temp.drp = data.drp[i];
+      tableData.push(temp);
+    }
+    $('#river-course-content-table').html('<table id="river-course-content-table-content"></table>');
+    $('#river-course-content-table').hide();
+    data.table = {
+      columns: columns,
+      data: tableData,
+      id: 'river-course-content-table-content'
+    };
+    data.tableHeight = getMoniterClickTableHeight(myWindow);
+    var charts = initRealTimeChart(data, myWindow,clickType);
+    myWindow.resizecbfn(function () {
+      resizeChartTableHeight(result.tableId, myWindow);
+      resizeTablePaddingBottom(myWindow);
+      resizeChartContainerSize(myWindow)
+      resizeChart();
+    });
+    $(".river-course-content").show();
+    $("#reservoir-real-time-content-view").hide();
+    $('#river-course-content-view').unbind('click').bind('click', function () {
+      if ($('#river-course-content-view').attr('flag') == "chart") {
+        $('#river-course-content-view').attr('flag', "table");
+        $('#river-course-content-max-one-chart').hide();
+        $('#river-course-content-two-chart').hide();
+        myWindow.body.find('.river-export-excel').show();
+        $('#river-course-content-table').show();
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc') == false && $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('desc') == false) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc')) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        myWindow.body.find('.river-export-excel').css("margin-top", "-35px");
+        $('#river-course-content-view').css("margin-top", "-35px");
+        $('#river-course-content-view').html('<img src="/images/data-chart.png"  class="data-table"  title="图表" >');
+      } else {
+        $('#river-course-content-view').attr('flag', "chart");
+        $('#river-course-content-max-one-chart').show();
+        $('#river-course-content-two-chart').show();
+        $('#river-course-content-table').hide();
+        myWindow.body.find('.river-export-excel').hide();
+        $('#river-course-content-view').css("margin-top", "-15px");
+        $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+        resizeChart();
+      }
+    });
+
+  });
+}
+
+//雨量站双击
+function doubleClickRain(obj) {
+  var mocd = obj.mocd;
+  var name = obj.monm;
+  currentMocd = obj.mocd;
+  currentName = obj.monm;
+  currentStcd = obj.stcd;
+  $('.monitor-detail-title').html(name);
+  $("#detail-video").hide();
+  // $("#monitor-detail-right-content-video").hide();
+  closeMonitorWindow();
+  $('#monitor-detail-content li').hide();
+  $("#monitor-detail-right-warning").hide();
+  $('#peripheral-information-max').hide();
+  $("#monitor-detail").hide();
+  realTimeRain(mocd, name);
+  // initLoadPeripheral(mocd);
+
+}
+
+//气象站双击
+function doubleClickMeteorological(obj) {
+  var mocd = obj.mocd;
+  var name = obj.monm;
+  currentMocd = obj.mocd;
+  currentName = obj.monm;
+  currentStcd = obj.stcd;
+  $('.monitor-detail-title').html(name);
+  $("#detail-video").hide();
+  // $("#monitor-detail-right-content-video").hide();
+  $("#monitor-detail-right").hide();
+  $("#monitor-detail-right-warning").hide();
+  closeMonitorWindow();
+  $('#monitor-detail-content li').hide();
+  $('#peripheral-information-max').hide();
+  $("#monitor-detail").hide();
+  realTimeMeteorological(mocd, name);
+  // initLoadPeripheral(mocd);
+
+}
+
+//土壤墒情站双击
+function doubleClickSoilMoisture(obj) {
+  var stcd = obj.stcd;
+  var mocd = obj.mocd;
+  var name = obj.monm;
+  currentMocd = obj.mocd;
+  currentName = obj.monm;
+  currentStcd = obj.stcd;
+  $('.monitor-detail-title').html(name);
+  $("#detail-video").hide();
+  // $("#monitor-detail-right-content-video").hide();
+  closeMonitorWindow();
+  $('#monitor-detail-content li').hide();
+  $("#monitor-detail-right-warning").hide();
+  $('#peripheral-information-max').hide();
+  $("#monitor-detail").hide();
+  realTimeSoilMoisture(stcd, name, mocd);
+  // initLoadPeripheral(mocd);
+}
+
+//土壤墒情站实时数据
+function realTimeSoilMoisture(stcd, name, mocd, id, clickType) {
+  if (id) {
+
+  } else {
+    chartArray.forEach(function (chart) {
+      chart.dispose();
+    });
+    chartArray.clear();
+    showRightWindow = [];
+    showRightWindow.push("real");
+    noReservoirStageHtml(showRightWindow, "other");//判断右侧显示哪两个
+  }
+  layui.use('layer', function () {
+    index = layui.layer;
+    var msg = "数据加载中，请稍等...";
+    doubleClickRainLayer = layer.msg(msg, {
+      time: 200,
+      icon: 16,
+      skin: 'layer-ext-simulation',
+      shade: [0.2, '#000']
+    });
+  });
+  if (clickType === "maxRightClick") {
+    rightMaxChartArray.forEach(function (chart) {
+      chart.dispose();
+    });
+    rightMaxChartArray.clear();
+  }
+  $('.monitor-detail-title').html(name);
+  var starttime = moment(getSystemTime()).subtract(6, "month").format("YYYY-MM-DD HH:mm:ss");
+  var endtime = moment(getSystemTime()).add(1, 'hours').format("YYYY-MM-DD HH:00:00");
+  ajaxCallJson({
+    stcd: stcd,
+    starttime: starttime,
+    endtime: endtime
+  }, '/realTime/getStSoilRLine', function (result) { //获取水库实时数据
+    if (!result) {
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    var obj = JSON.parse(result.data);
+    var data = obj.data;
+    if (!data) {
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    if (data.length == 0) {
+      $("#monitor-detail-right").hide();
+      return;
+    }
+    var title = name + "-实时数据";
+    // data.otherId = 'river-course-content-one-chart';
+    data.type = obj_type_soilr;
+    realTimeCheckType=obj_type_soilr;
+    var myWindow = new MyWindow($("#real-time-process-window"), {
+      title: title
+    });
+    $('#river-course-content-one-chart').css("width", "100%").css("height", "95%");
+    $('#river-course-content-max-one-chart').css("width", "100%").css("height", "95%");
+    $('#river-course-content-two-chart').css("display", "none");
+    if (id) {
+      data.otherId = 'river-course-content-max-one-chart';
+      myWindow.dom.css("z-index", "999");
+    } else {
+      data.otherId = 'river-course-content-one-chart';
+      myWindow.dom.css("z-index", "-999");
+    }
+    $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+    myWindow.body.find('.river-export-excel').hide();
+    $('#river-course-content-view').css("margin-top", "-15px");
+    $('#river-course-content-table').hide();
+    myWindow.show();
+    var columns = [{
+      field: 'id',
+      title: '序号',
+      align: 'center'
+    }, {
+      field: 'tm',
+      title: '时间',
+      sortable: true,
+      align: 'center'
+    },];
+    if (data.length != 0) {
+      columns.push({
+        field: 'exkey',
+        title: '垂线平均含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'vtavslm',
+        title: '表层含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'srlslm',
+        title: '深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm10',
+        title: '10cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm20',
+        title: '20cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm30',
+        title: '30cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm40',
+        title: '40cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm50',
+        title: '50cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm60',
+        title: '60cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm70',
+        title: '70cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm80',
+        title: '80cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm90',
+        title: '90cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm100',
+        title: '100cm深度含水量(mm)',
+        align: 'center'
+      })
+      columns.push({
+        field: 'slm110',
+        title: '110cm深度含水量(mm)',
+        align: 'center'
+      })
+    }
+    var tableData = [];
+    var tm = [], exkey = [], vtavslm = [], srlslm = [], slm10 = [], slm20 = [], slm30 = [], slm40 = [], slm50 = [],
+      slm60 = [], slm70 = [], slm80 = [], slm90 = [], slm100 = [], slm110 = [];
+    for (var i = 0; i < data.length; i++) {
+      var temp = {};
+      temp.id = i + 1;
+      temp.tm = moment(data[i].tm).format("YYYY-MM-DD HH:mm:ss");
+      temp.exkey = data[i].exkey;
+      temp.vtavslm = data[i].vtavslm;
+      temp.srlslm = data[i].srlslm;
+      temp.slm10 = data[i].slm10;
+      temp.slm20 = data[i].slm20;
+      temp.slm30 = data[i].slm30;
+      temp.slm40 = data[i].slm40;
+      temp.slm50 = data[i].slm50;
+      temp.slm60 = data[i].slm60;
+      temp.slm70 = data[i].slm70;
+      temp.slm80 = data[i].slm80;
+      temp.slm90 = data[i].slm90;
+      temp.slm100 = data[i].slm100;
+      temp.slm110 = data[i].slm110;
+      if (data[i].tm != null) {
+        tm.push(moment(data[i].tm).format("YYYY-MM-DD HH:mm:ss"));
+      }
+      if (data[i].exkey != null) {
+        exkey.push(data[i].exkey);
+      }
+      if (data[i].vtavslm != null) {
+        vtavslm.push(data[i].vtavslm);
+      }
+      if (data[i].srlslm != null) {
+        srlslm.push(data[i].srlslm);
+      }
+      if (data[i].slm10 != null) {
+        slm10.push(data[i].slm10);
+      }
+      if (data[i].slm20 != null) {
+        slm20.push(data[i].slm20);
+      }
+      if (data[i].slm30 != null) {
+        slm30.push(data[i].slm30);
+      }
+      if (data[i].slm40 != null) {
+        slm40.push(data[i].slm40);
+      }
+      if (data[i].slm50 != null) {
+        slm50.push(data[i].slm50);
+      }
+      if (data[i].slm60 != null) {
+        slm60.push(data[i].slm60);
+      }
+      if (data[i].slm70 != null) {
+        slm70.push(data[i].slm70);
+      }
+      if (data[i].slm80 != null) {
+        slm80.push(data[i].slm80);
+      }
+      if (data[i].slm90 != null) {
+        slm90.push(data[i].slm90);
+      }
+      if (data[i].slm100 != null) {
+        slm100.push(data[i].slm100);
+      }
+      if (data[i].slm110 != null) {
+        slm110.push(data[i].slm110);
+      }
+      tableData.push(temp);
+    }
+    data.tm = tm;
+    data.exkey = exkey;
+    data.vtavslm = vtavslm;
+    data.srlslm = srlslm;
+    data.slm10 = slm10;
+    data.slm20 = slm20;
+    data.slm30 = slm30;
+    data.slm40 = slm40;
+    data.slm50 = slm50;
+    data.slm60 = slm60;
+    data.slm70 = slm70;
+    data.slm80 = slm80;
+    data.slm90 = slm90;
+    data.slm100 = slm100;
+    data.slm110 = slm110;
+    $('#river-course-content-table').html('<table id="river-course-content-table-content"></table>');
+    $('#river-course-content-table').hide();
+    data.table = {
+      columns: columns,
+      data: tableData,
+      id: 'river-course-content-table-content'
+    };
+    data.tableHeight = getMoniterClickTableHeight(myWindow);
+    var charts = initRealTimeSoilMoisture(data, myWindow,clickType);
+    myWindow.resizecbfn(function () {
+      resizeChartTableHeight(result.tableId, myWindow);
+      resizeTablePaddingBottom(myWindow);
+      resizeChartContainerSize(myWindow)
+      resizeChart();
+    });
+    $(".river-course-content").show();
+    $("#reservoir-real-time-content-view").hide();
+    $('#river-course-content-view').unbind('click').bind('click', function () {
+      if ($('#river-course-content-view').attr('flag') == "chart") {
+        $('#river-course-content-view').attr('flag', "table");
+        $('#river-course-content-max-one-chart').hide();
+        myWindow.body.find('.river-export-excel').show();
+        $('#river-course-content-table').show();
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc') == false && $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('desc') == false) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        if ($("#river-course-content-table-content thead tr th:nth-child(2)").children("div").hasClass('asc')) {
+          $("#river-course-content-table-content thead tr th:nth-child(2)").children("div").click();
+        }
+        myWindow.body.find('.river-export-excel').css("margin-top", "-35px");
+        $('#river-course-content-view').css("margin-top", "-35px");
+        $('#river-course-content-view').html('<img src="/images/data-chart.png"  class="data-table"  title="图表" >');
+      } else {
+        $('#river-course-content-view').attr('flag', "chart");
+        $('#river-course-content-max-one-chart').show();
+        $('#river-course-content-table').hide();
+        myWindow.body.find('.river-export-excel').hide();
+        $('#river-course-content-view').css("margin-top", "-15px");
+        $('#river-course-content-view').html('<img src="/images/data-table.png"  class="data-table" title="数据" >');
+        resizeChart();
+      }
+    });
+
+  });
+}
+
+$('#p_hidden').click(function () {
+  $('#monitor-detail').css('display', 'none');
+  $('#monitor-detail-right').css('display', 'none');
+  clearRiskMapPoint("searchDbClickPoint");
+});

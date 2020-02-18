@@ -1,0 +1,2015 @@
+var mychart = null,
+  mychart2 = null,
+  mychart3 = null,
+  mychart4 = null,
+  mychart5 = null,
+  mychart6 = null,
+  mychartMini = null,
+  mychart2Mini = null,
+  mychart3Mini = null,
+  mychart4Mini = null,
+  mychart5Mini = null,
+  mychart6Mini = null;
+var option = null,
+  option2 = null,
+  option3 = null,
+  option4 = null,
+  option5 = null,
+  option6 = null;
+
+var rainValue = null; //降水
+var humisValue = null; //突然含水量
+
+var rankValue = null; //72小时重现期
+var rankNew2Value = null; //实时洪水重现期
+var rankNew3Value = null; //短临重现期
+
+var flowValue = null; //72小时预报流量
+var flow2Value = null; //实时预报流量
+var flow3Value = null; //短临预报流量
+
+var stageValue = null; //72小时预报水位
+var stage2Value = null; //实时预报水位
+var stage3Value = null; //短临预报水位
+
+var rateValue = null; //72小时倍比
+var rate2Value = null; //实时倍比
+var rate3Value = null; //短临倍比
+
+var dataZoomStartPercent = 50; //默认dataZoom开始百分百比
+var dataZoomEndPercent = 100; //默认dataZoom结束百分百比
+var globleForeTime = null; //全局时间
+var valueIndexStart = 8648;
+var valueIndexEnd = null;
+var gloableLegendLeft = '82%'; //legend图例距离左侧的百分比距离，默认值
+var gloableChartForeData = null; //全局数据
+var gloableChartTimeArr = null;
+var isForeChartsOpen = false; //预报图表是否开启，默认关闭
+var isForeStageShow = true; //来水预报的水位是否显示，默认有水位
+var isDisplay = false;
+var gloableConcern = undefined; //全局是否点击关注点变量
+var gloablePointInterval = 'r'; //全局预警时段
+// rgba(121,166,191,0.3)
+// rgba(17,85,127,0.3)
+var backgroundColor = 'rgba(9, 25, 57, 0)'; //图表外部背景色
+var earlyColor = 'rgba(17,85,127,0.3)'; //图表中颜色
+var axisLineColor = 'rgba(9, 25, 57, 0)'; //轴线颜色
+var zoomStart = 50;
+var zoomEnd = 100;
+var option1OpenGrid = {
+  left: '5%',
+  right: '5%',
+  bottom: '10%',
+  top: '25%'
+}
+var option2OpenGrid = {
+  left: '5%',
+  right: '5%',
+  bottom: '10%',
+  top: '20%'
+}
+var option3OpenGrid = {
+  left: '5%',
+  right: '5%',
+  bottom: '43%',
+  top: '20%'
+}
+
+
+var option1Grid = {
+  left: '6%',
+  right: '6%',
+  bottom: '5%',
+  top: '28%'
+}
+var option2Grid = {
+  left: '6%',
+  right: '6%',
+  bottom: '15%',
+  top: '25%'
+}
+var option3Grid = {
+  left: '6%',
+  right: '6%',
+  bottom: '55%',
+  top: '9%'
+}
+
+var currentChartParam;
+// 山洪小流域过程线
+// 山洪小流域双击事件
+var getEarlyWarningDbClickData = function (obj, clickType) {
+  $('#monitor-detail-content li').hide();
+  $("#monitor-detail-right").hide();
+  $('#monitor-detail').css("display", "none");
+  var myWindow1 = new MyWindow($('#monitor-early-warning'), {
+    title: '洪水风险'
+  });
+  var myWindow2 = new MyWindow($('#monitor-early-warning-prediction'), {
+    title: '来水预报'
+  });
+  $(".early-warning-box-title").css({
+    "height": "30px",
+    "display": "flex",
+    "justify-content": "center",
+    "align-items": "center"
+  })
+  $('.early-warning-chart').css({
+    "width": "100%",
+    "height": "33.3%"
+  });
+  $(".early-warning-box-title").css({
+    "height": "30px",
+    "display": "flex",
+    "justify-content": "center",
+    "align-items": "center"
+  })
+
+  myWindow1.dom.css("z-index", "-999");
+  myWindow2.dom.css("z-index", "-999");
+  myWindow1.show();
+  myWindow2.show();
+  myWindow1.resizecbfn(function () {
+    resizeWarningChart();
+  });
+  myWindow2.resizecbfn(function () {
+    resizeWarningChart();
+  });
+  var params = {
+    eacId: obj.topoid,
+    recent: "720", //一个月的数据
+    type: "1",
+    time: obj.warntime ? moment(obj.warntime).valueOf() / 1000 : 0
+  }
+  if (moment(moment(today).format('YYYY-MM-DD')).isBefore(obj.warntime)) {
+    gloablePointInterval = 'r24';
+  }else{
+    gloablePointInterval = 'r';
+  }
+  currentChartParam = params;
+  //请求过程线数据
+  ajaxCallJson(params, '/tempRouter', function (result) { //获取来水预报
+    if (result.flag) {
+      $("#monitor-detail-right-warning").show();
+      $(".early-warning-box-title-name").empty();
+      $(".early-warning-box-title-name").append(obj.mname);
+      var objGridArr = [option1Grid, option2Grid, option3Grid];
+      if (result.info.stage2.length == 0) {
+        noStageHtml();
+      } else {
+        haveStageHtml();
+      }
+      newChart(result.info, objGridArr, clickType);
+    } else {
+      layer.msg('暂无数据', { time: 1000 });
+    }
+  })
+  //监听预警弹窗
+  $('#early-warning-max').unbind('click').bind('click', function () {
+    ajaxCallJson(currentChartParam, '/tempRouter', function (result) { //获取来水预报
+      if (result.flag) {
+        $("#monitor-detail-right-warning").show();
+        $(".early-warning-box-title-name").empty();
+        $(".early-warning-box-title-name").append(obj.mname);
+        var objGridArr = [option1OpenGrid, option2OpenGrid, option3OpenGrid];
+        newChart(result.info, objGridArr, "notMapPoint");
+        myWindow1.dom.css("z-index", "1000");
+        myWindow1.dom.css("display", "block");
+        resizeWarningChart()
+      } else {
+        layer.msg('暂无数据', { time: 1000 });
+      }
+    })
+  });
+  //监听预报弹窗
+  $('#early-prediction-max').unbind('click').bind('click', function () {
+    ajaxCallJson(currentChartParam, '/tempRouter', function (result) { //获取来水预报
+      if (result.flag) {
+        $("#monitor-detail-right-warning").show();
+        $(".early-warning-box-title-name").empty();
+        $(".early-warning-box-title-name").append(obj.mname);
+        var objGridArr = [option1OpenGrid, option2OpenGrid, option3OpenGrid];
+        if (result.info.stage2.length == 0) {
+          var html = '<div id="early-warning-chart4" class="early-warning-chart-temp" style="height:50%;width:100%"></div>' +
+            '<div id="early-warning-chart5" class="early-warning-chart-temp" style="height:50%;width:100%"></div>';
+          $("#early-warning-box-main-chart-prediction").empty();
+          $("#early-warning-box-main-chart-prediction").append(html);
+        } else {
+          var html = '<div id="early-warning-chart4" class="early-warning-chart" style="height:33.3%;width:100%"></div>' +
+            '<div id="early-warning-chart5" class="early-warning-chart" style="height:33.3%;width:100%"></div>' +
+            '<div id="early-warning-chart6" class="early-warning-chart" style="height:33.3%;width:100%"></div>'
+          $("#early-warning-box-main-chart-prediction").empty();
+          $("#early-warning-box-main-chart-prediction").append(html);
+        }
+        newChart(result.info, objGridArr, "notMapPoint");
+        myWindow2.dom.css("z-index", "1000");
+        myWindow2.dom.css("display", "block");
+        resizeWarningChart()
+      } else {
+        layer.msg('暂无数据', { time: 1000 });
+      }
+    })
+  });
+  //监听关闭按钮
+  $("#early-warning-close").unbind('click').bind('click', function () {
+    $("#monitor-detail-right-warning").hide();
+  })
+}
+
+
+
+function noStageHtml() {
+  var html = '<div id="early-warning-chart4" class="early-warning-chart-temp" style="height:50%;width:100%"></div>' +
+    '<div id="early-warning-chart5" class="early-warning-chart-temp" style="height:50%;width:100%"></div>';
+  $("#early-warning-box-main-chart-prediction").empty();
+  $("#early-warning-box-main-chart-prediction").append(html);
+  var htmlMini = '<div id="early-warning-mini-chart4" class="early-warning-chart-temp" style="height:50%;width:100%"></div>' +
+    '<div id="early-warning-mini-chart5" class="early-warning-chart-temp" style="height:50%;width:100%"></div>';
+  $("#detail-right-prediction").empty();
+  $("#detail-right-prediction").append(htmlMini);
+}
+
+function haveStageHtml() {
+  var html = '<div id="early-warning-chart4" class="early-warning-chart" style="height:33.3%;width:100%"></div>' +
+    '<div id="early-warning-chart5" class="early-warning-chart" style="height:33.3%;width:100%"></div>' +
+    '<div id="early-warning-chart6" class="early-warning-chart" style="height:33.3%;width:100%"></div>'
+  $("#early-warning-box-main-chart-prediction").empty();
+  $("#early-warning-box-main-chart-prediction").append(html);
+  var htmlMini = '<div id="early-warning-mini-chart4" class="early-warning-chart" style="height:33.3%;width:100%"></div>' +
+    '<div id="early-warning-mini-chart5" class="early-warning-chart" style="height:33.3%;width:100%"></div>' +
+    '<div id="early-warning-mini-chart6" class="early-warning-chart" style="height:33.3%;width:100%"></div>'
+  $("#detail-right-prediction").empty();
+  $("#detail-right-prediction").append(htmlMini);
+}
+
+
+function newChart(res, objGridArr, type) {
+  try {
+    var foredata = res;
+    gloableChartForeData = res
+    var timeArr = undefined;
+    var addDataType = undefined;
+    // judgeLengend();//判断下legend位置
+    isForeStageShow = true; //水位显示标识,每次进来赋值为有水位
+    var time = foredata.time; //预报时间
+    globleForeTime = null;
+    globleForeTime = time; //将时间赋值给全局时间
+    var ftime = foredata.ftime; //预报时间
+
+    gloableCurrentForeTime = ftime; //当前预报时间
+    gloableForeTime = ftime;
+    valueIndexEnd = time.length;
+
+    rainValue = foredata.rain; //降水
+
+    rankValue = foredata.rank; //72小时重现期
+    rankNew2Value = foredata.rankNew2; //实时洪水重现期
+    rankNew3Value = foredata.rankNew3; //短临重现期
+
+    flow2Value = foredata.flow2; //实时预报流量;
+    flowValue = foredata.flow; //72小时预报流量
+    flow3Value = foredata.flow3; //短临预报流量
+
+    stage2Value = foredata.stage2; //实时预报水位
+    stageValue = foredata.stage; //72小时预报水位
+    stage3Value = foredata.stage3; //短临预报水位
+
+    rate2Value = foredata.rate2; //实时倍比;
+    rateValue = foredata.rate; //72小时倍比
+    rate3Value = foredata.rate3; //短临倍比
+
+    humisValue = foredata.humis; //土壤含水量
+    var caltime = foredata.caltime; //计算时间
+    var rainmax = Math.max.apply(Math, rainValue); //降水最大值
+    var humismax = Math.max.apply(Math, humisValue); //土壤含水量最大值
+
+    var maxRank = 1,
+      maxflow = 1,
+      maxRate = 1,
+      maxStage = 1;
+    if (zhengGuiShuJu(rankValue, true)) {
+      maxRank = getMaxValue([rankValue, rankNew2Value, rankNew3Value])
+    }
+    if (zhengGuiShuJu(flow2Value, true)) {
+      maxflow = getMaxValue([flowValue, flow2Value, flow3Value])
+    }
+    if (zhengGuiShuJu(rate2Value, true)) {
+      maxRate = getMaxValue([rateValue, rate2Value, rate3Value])
+    }
+    if (zhengGuiShuJu(rate2Value, true)) {
+      maxStage = getMaxValue([stageValue, stage2Value, stage3Value])
+    }
+    var solidLineSvg = 'path://M33,6H1V2H33Z'; //实线
+    var dashedLineSvg = 'path://M0,0H4.82V3.68H0ZM6.8,3.68h4.81V0H6.8Zm6.79,0h4.82V0H13.59Zm6.8,0H25.2V0H20.39ZM27.18,0V3.68H32V0Z'; //虚线
+    option = {
+      title: echart4Title({
+        x: 'center',
+        textcolor: '#fff'
+      }),
+      animation: false,
+      tooltip: echart4TooltipRain(),
+      color: ['#33CCFF', '#00FF33', '#FF0066', '#FFFF00', '#33CCFF', '#FFFFCC', '#FF6633', '#3399FF'],
+      legend: echart4Legend({
+        name: ['降水(mm)', '土壤含水量(%)', '实时洪水重现期(年)', '短临重现期(年)', '72小时重现期(年)', '实时倍比', '短临倍比', '72小时倍比']
+      }, true),
+      grid: echart4Grid(objGridArr[0]),
+      // backgroundColor: '#1b304d',
+      backgroundColor: backgroundColor,
+      xAxis: echart4xAxis({
+        time: time,
+        position: 'bottom',
+        isAxisLabelShow: false,
+        isAxisTickShow: false
+      }),
+      yAxis: echart4yAxisRain({
+        max: rainmax * 1.5 == 0 ? 0 : -Math.ceil(rainmax * 1.5),
+        min: rainmax * 1.5 == 0 ? 1 : 0,
+        ynameOne: '降水(mm)',
+        ynameTwo: '土壤含水量(%)'
+      }),
+      dataZoom: echart4DataZoom({
+        isTrue: false,
+        start: zoomStart,
+        end: zoomEnd
+      }, timeArr),
+      series: createSeriesRain([{
+        name: "降水(mm)",
+        type: "bar",
+        data: rainValue,
+        labelPosition: "bottom",
+        z: 3,
+        yAxisIndex: 0,
+        color: '#33CCFF'
+      },
+      {
+        name: "土壤含水量(%)",
+        type: "line",
+        data: humisValue,
+        labelPosition: "bottom",
+        z: 3,
+        yAxisIndex: 1,
+        color: '#00FF33'
+      },
+      {
+        name: "实时洪水重现期(年)",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#FF0066'
+      },
+      {
+        name: "短临重现期(年)",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#FFFF00'
+      },
+      {
+        name: "72小时重现期(年)",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#33CCFF'
+      },
+      {
+        name: "实时倍比",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#FFFFCC'
+      },
+      {
+        name: "短临倍比",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#FF6633'
+      },
+      {
+        name: "72小时倍比",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#3399FF'
+      },
+      ]),
+    };
+
+    option2 = {
+      tooltip: echart4Tooltip(),
+      animation: false,
+      color: ['#FF0066', '#FFFF00', '#33CCFF'],
+      legend: echart4Legend({
+        name: ['实时洪水重现期(年)', '短临重现期(年)', '72小时重现期(年)']
+      }, false),
+      grid: echart4Grid(objGridArr[1]),
+      // backgroundColor: '#1b304d',
+      backgroundColor: backgroundColor,
+      xAxis: echart4xAxis({
+        time: time,
+        position: 'bottom',
+        isAxisLabelShow: false,
+        isAxisTickShow: false
+      }),
+      yAxis: echart4yAxis({
+        max: maxRank,
+        yname: '洪水重现期(年)'
+      }),
+      dataZoom: echart4DataZoomOptionTwo({
+        isTrue: false
+      }, timeArr),
+      series: createSeries([{
+        name: '实时洪水重现期(年)',
+        data: rankNew2Value,
+        labelPosition: 'insideBottom',
+        yAxisIndex: 0,
+        z: 1,
+        color: '#FF0066'
+      },
+      {
+        name: '短临重现期(年)',
+        data: rankNew3Value,
+        labelPosition: 'insideLeft',
+        yAxisIndex: 0,
+        z: 2,
+        color: '#FFFF00'
+      },
+      {
+        name: '72小时重现期(年)',
+        data: rankValue,
+        labelPosition: 'insideRight',
+        yAxisIndex: 0,
+        z: 3,
+        color: '#33CCFF'
+      },
+      ])
+    };
+
+
+    option3 = {
+      tooltip: echart4Tooltip(),
+      animation: false,
+      color: ['#FFFFCC', '#FF6633', '#3399FF'],
+      legend: echart4Legend({
+        name: ['实时倍比', '短临倍比', '72小时倍比']
+      }, false),
+      grid: echart4Grid(objGridArr[2]),
+      // backgroundColor: '#1b304d',
+      backgroundColor: backgroundColor,
+      xAxis: echart4xAxis({
+        time: time,
+        position: 'bottom',
+        isAxisLabelShow: true,
+        isAxisTickShow: true
+      }),
+      yAxis: echart4yAxis({
+        max: maxRate,
+        yname: '倍比'
+      }),
+      dataZoom: echart4DataZoomOptionTwo({
+        isTrue: true
+      }, timeArr),
+      series: createSeries([{
+        name: '实时倍比',
+        data: rate2Value,
+        labelPosition: 'insideBottom',
+        yAxisIndex: 0,
+        z: 1,
+        color: '#FFFFCC'
+      },
+      {
+        name: '短临倍比',
+        data: rate3Value,
+        labelPosition: 'insideLeft',
+        yAxisIndex: 0,
+        z: 2,
+        color: '#FF6633'
+      },
+      {
+        name: '72小时倍比',
+        data: rateValue,
+        labelPosition: 'insideRight',
+        yAxisIndex: 0,
+        z: 3,
+        color: '#3399FF'
+      }
+      ])
+    };
+
+
+    //权限控制是否显示来水预报的option3
+    option4 = {
+      title: echart4Title({
+        x: 'center',
+        textcolor: '#fff'
+      }),
+      animation: false,
+      tooltip: echart4TooltipRain(),
+      color: ['#33CCFF', '#00FF33', '#FF0066', '#FFFF00', '#33CCFF', '#FF66FF', '#00FF33', '#FF6633'],
+      legend: echart4Legend({
+        name: ['降水(mm)', '土壤含水量(%)', '实时预报流量(m³/s)', '短临预报流量(m³/s)', '72小时预报流量(m³/s)', , '实时预报水位(m)', '短临预报水位(m)', '72小时预报水位(m)']
+      }, true),
+      grid: echart4Grid(objGridArr[0]),
+      // backgroundColor: '#1b304d',
+      backgroundColor: backgroundColor,
+      xAxis: echart4xAxis({
+        time: time,
+        position: 'bottom',
+        isAxisLabelShow: false,
+        isAxisTickShow: false
+      }),
+      yAxis: echart4yAxisRain({
+        max: rainmax * 1.5 == 0 ? 0 : -Math.ceil(rainmax * 1.5),
+        min: rainmax * 1.5 == 0 ? 1 : 0,
+        ynameOne: '降水(mm)',
+        ynameTwo: '土壤含水量(%)'
+      }),
+      dataZoom: echart4DataZoom({
+        isTrue: false,
+        start: zoomStart,
+        end: zoomEnd
+      }, timeArr),
+      series: createSeriesRain([{
+        name: "降水(mm)",
+        type: "bar",
+        data: rainValue,
+        labelPosition: "bottom",
+        z: 3,
+        yAxisIndex: 0,
+        color: '#33CCFF'
+      },
+      {
+        name: "土壤含水量(%)",
+        type: "line",
+        data: humisValue,
+        labelPosition: "bottom",
+        z: 3,
+        yAxisIndex: 1,
+        color: '#00FF33'
+      },
+      {
+        name: "实时预报流量(m³/s)",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#FF0066'
+      },
+      {
+        name: "短临预报流量(m³/s)",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#FFFF00'
+      },
+      {
+        name: "72小时预报流量(m³/s)",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#33CCFF'
+      },
+      {
+        name: "实时预报水位(m)",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#FF66FF'
+      },
+      {
+        name: "短临预报水位(m)",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#00FF33'
+      },
+      {
+        name: "72小时预报水位(m)",
+        type: "line",
+        data: [],
+        z: 0,
+        yAxisIndex: 0,
+        color: '#FF6633'
+      },
+      ]),
+    };
+
+    option5 = {
+      tooltip: echart4Tooltip(),
+      animation: false,
+      grid: echart4Grid(objGridArr[1]),
+      // backgroundColor: '#1b304d',
+      backgroundColor: backgroundColor,
+      color: ['#FF0066', '#FFFF00', '#33CCFF'],
+      legend: echart4Legend({
+        name: ['实时预报流量(m³/s)', '短临预报流量(m³/s)', '72小时预报流量(m³/s)']
+      }, false),
+      xAxis: echart4xAxis({
+        time: time,
+        position: 'bottom',
+        isAxisLabelShow: false,
+        isAxisTickShow: false
+      }),
+      yAxis: echart4yAxis({
+        max: maxflow,
+        yname: '流量(m³/s)',
+        ynameTwo: ''
+      }),
+      dataZoom: echart4DataZoomOptionThree({
+        isTrue: false,
+        start: zoomStart,
+        end: zoomEnd
+      }, timeArr),
+      series: createSeries([{
+        name: '实时预报流量(m³/s)',
+        data: flow2Value,
+        labelPosition: 'insideBottom',
+        yAxisIndex: 0,
+        z: 1,
+        color: '#FF0066'
+      },
+      {
+        name: '短临预报流量(m³/s)',
+        data: flow3Value,
+        labelPosition: 'insideLeft',
+        yAxisIndex: 0,
+        z: 2,
+        color: '#FFFF00'
+      },
+      {
+        name: '72小时预报流量(m³/s)',
+        data: flowValue,
+        labelPosition: 'insideRight',
+        yAxisIndex: 0,
+        z: 3,
+        color: '#33CCFF'
+      }
+      ])
+    };
+
+    //判断有水位数据没，有的话执行水位option6
+    if (stage2Value != null && stage2Value.length > 1) {
+      option6 = {
+        tooltip: echart4Tooltip(),
+        animation: false,
+        grid: echart4Grid(objGridArr[2]),
+        // backgroundColor: '#1b304d',
+        backgroundColor: backgroundColor,
+        color: ['#FF66FF', '#00FF33', '#FF6633'],
+        legend: echart4Legend({
+          name: ['实时预报水位(m)', '短临预报水位(m)', '72小时预报水位(m)']
+        }, false),
+        xAxis: echart4xAxis({
+          time: time,
+          position: 'bottom',
+          isAxisLabelShow: true,
+          isAxisTickShow: true
+        }),
+        yAxis: echart4yAxis({
+          max: maxStage,
+          yname: '水位(m)'
+        }),
+        dataZoom: echart4DataZoomOptionThree({
+          isTrue: true,
+          start: zoomStart,
+          end: zoomEnd
+        }, timeArr),
+        series: createSeries([{
+          name: '实时预报水位(m)',
+          data: stage2Value,
+          labelPosition: 'insideRight',
+          yAxisIndex: 0,
+          z: 1,
+          color: '#FF66FF'
+        },
+        {
+          name: '短临预报水位(m)',
+          data: stage3Value,
+          labelPosition: 'insideRight',
+          yAxisIndex: 0,
+          z: 2,
+          color: '#00FF33'
+        },
+        {
+          name: '72小时预报水位(m)',
+          data: stageValue,
+          labelPosition: 'insideRight',
+          yAxisIndex: 0,
+          z: 3,
+          color: '#FF6633'
+        }
+        ])
+      };
+      if (gloablePointInterval != 'r24') {
+        option6.series[0].markLine = getMarkLine(ftime, maxStage, caltime)
+        option6.series[1].markLine = getMarkLine(ftime, maxStage, caltime)
+        option6.series[2].markLine = getMarkLine(ftime, maxStage, caltime)
+      }
+      option6.legend.selected = {
+        '短临预报水位(m)': false,
+        '72小时预报水位(m)': false
+      };
+    } else {
+      if (type == "mapPoint") {
+        // var html = '<div id="early-warning-mini-chart4" class="early-warning-chart-temp" style="height:50%;width:100%"></div>' +
+        //   '<div id="early-warning-mini-chart5" class="early-warning-chart-temp" style="height:50%;width:100%"></div>';
+        // $("#detail-right-prediction").empty();
+        // $("#detail-right-prediction").append(html);
+        isForeStageShow = false; //水位显示标识,没水位
+        option5.dataZoom[0].show = true; //把option5的datazoom显示出来
+        option5.xAxis[0].axisLabel.show = true;
+        option5.xAxis[0].axisTick.show = true;
+        option5.grid = {
+          left: '6%',
+          right: '6%',
+          bottom: '38%',
+          top: '17%'
+        };
+        option4.grid = {
+          left: '6%',
+          right: '6%',
+          bottom: '15%',
+          top: '25%'
+        };
+        option5.legend.bottom = '26%';
+        option4.legend.data = option4.legend.data.splice(0, 5);
+        option6 = null;
+      } else {
+        isForeStageShow = false; //水位显示标识,没水位
+        option5.dataZoom[0].show = true; //把option5的datazoom显示出来
+        option5.xAxis[0].axisLabel.show = true;
+        option5.xAxis[0].axisTick.show = true;
+        option5.grid = {
+          left: '5%',
+          right: '5%',
+          bottom: '15%',
+          top: '8%'
+        };
+        option4.grid = {
+          left: '5%',
+          right: '5%',
+          bottom: '5%',
+          top: '12%'
+        };
+        option5.legend.bottom = '26%';
+        option4.legend.data = option4.legend.data.splice(0, 5);
+        option6 = null;
+      }
+
+    }
+
+    //不是历史预警的话加上markline
+    if (gloablePointInterval != 'r24') {
+      option.series[0].markLine = getMarkLine(ftime, rainmax, '')
+      option.series[1].markLine = getMarkLine(ftime, rainmax, '')
+      option2.series[0].markLine = getMarkLine(ftime, maxRank, caltime)
+      option2.series[1].markLine = getMarkLine(ftime, maxRank, caltime)
+      option2.series[2].markLine = getMarkLine(ftime, maxRank, caltime)
+      option3.series[0].markLine = getMarkLine(ftime, maxRate, caltime)
+      option3.series[1].markLine = getMarkLine(ftime, maxRate, caltime)
+      option3.series[2].markLine = getMarkLine(ftime, maxRate, caltime)
+      if (option4 != null) {
+        option4.series[0].markLine = getMarkLine(ftime, rainmax, '')
+        option4.series[1].markLine = getMarkLine(ftime, rainmax, '')
+      }
+      if (option5 != null) {
+        option5.series[0].markLine = getMarkLine(ftime, maxflow, caltime)
+        option5.series[1].markLine = getMarkLine(ftime, maxflow, caltime)
+        option5.series[2].markLine = getMarkLine(ftime, maxflow, caltime)
+      }
+      if (option6 != null) {
+        option6.series[0].markLine = getMarkLine(ftime, maxflow, caltime)
+        option6.series[1].markLine = getMarkLine(ftime, maxflow, caltime)
+        option6.series[2].markLine = getMarkLine(ftime, maxflow, caltime)
+      }
+    } else {
+      var startIndexTime = time[valueIndexStart];
+      var endIndexTime = time[valueIndexEnd];
+      setDataZoomOption(startIndexTime, endIndexTime);
+    }
+
+    //默认关闭的图例
+    option4.legend.selected = {
+      '短临预报流量(m³/s)': false,
+      '72小时预报流量(m³/s)': false,
+      '短临预报水位(m)': false,
+      '72小时预报水位(m)': false
+    };
+    option5.legend.selected = {
+      '短临预报流量(m³/s)': false,
+      '72小时预报流量(m³/s)': false
+    };
+
+
+    //当点击上年上月下年下月时候执行删除markLine
+    if (addDataType == "changeYearOrMouth") {
+      var optionArr = [option, option2, option3, option4, option5, option6];
+      for (var i = 0; i < optionArr.length; i++) {
+        var index = optionArr[i];
+        if (index != null) {
+          index.series.forEach(function (ele) {
+            delete ele.markLine;
+          })
+        }
+      }
+    }
+
+    if (type == "mapPoint") {
+      disposeMiniCharts()
+      mychart4Mini = echarts.init(document.getElementById('early-warning-mini-chart4'));
+      mychart5Mini = echarts.init(document.getElementById('early-warning-mini-chart5'));
+      if (option6 != null) {
+        mychart6Mini = echarts.init(document.getElementById('early-warning-mini-chart6'));
+      }
+      mychart4Mini.setOption(option4);
+      mychart5Mini.setOption(option5);
+      if (option6 != null) {
+        mychart6Mini.setOption(option6);
+      }
+      if (option6 != null) {
+        echarts.connect([mychart4Mini, mychart5Mini, mychart6Mini]);
+      } else {
+        echarts.connect([mychart4Mini, mychart5Mini]);
+      }
+    } else {
+      disposeCharts();
+      mychart4 = echarts.init(document.getElementById('early-warning-chart4'));
+      mychart5 = echarts.init(document.getElementById('early-warning-chart5'));
+      if (option6 != null) {
+        mychart6 = echarts.init(document.getElementById('early-warning-chart6'));
+      }
+      mychart4.setOption(option4);
+      mychart5.setOption(option5);
+      if (option6 != null) {
+        mychart6.setOption(option6);
+      }
+      if (option6 != null) {
+        echarts.connect([mychart4, mychart5, mychart6]);
+      } else {
+        echarts.connect([mychart4, mychart5]);
+      }
+    }
+
+
+    //--权限以外的部分
+    //不是历史预警的话加上markline
+    if (gloablePointInterval != 'r24' && addDataType != "changeYearOrMouth") {
+      option.series[0].markLine = getMarkLine(ftime, rainmax, '')
+      option.series[1].markLine = getMarkLine(ftime, rainmax, '')
+      option2.series[0].markLine = getMarkLine(ftime, maxRank, caltime)
+      option2.series[1].markLine = getMarkLine(ftime, maxRank, caltime)
+      option2.series[2].markLine = getMarkLine(ftime, maxRank, caltime)
+      option3.series[0].markLine = getMarkLine(ftime, maxRate, caltime)
+      option3.series[1].markLine = getMarkLine(ftime, maxRate, caltime)
+      option3.series[2].markLine = getMarkLine(ftime, maxRate, caltime)
+      if (option4 != null) {
+        option4.series[0].markLine = getMarkLine(ftime, rainmax, '')
+        option4.series[1].markLine = getMarkLine(ftime, rainmax, '')
+      }
+      if (option5 != null) {
+        option5.series[0].markLine = getMarkLine(ftime, maxflow, caltime)
+        option5.series[1].markLine = getMarkLine(ftime, maxflow, caltime)
+        option5.series[2].markLine = getMarkLine(ftime, maxflow, caltime)
+      }
+    }
+    option.legend.selected = {
+      '短临重现期(年)': false,
+      '72小时重现期(年)': false,
+      '短临倍比': false,
+      '72小时倍比': false,
+    };
+    option2.legend.selected = {
+      '短临重现期(年)': false,
+      '72小时重现期(年)': false,
+    };
+    option3.legend.selected = {
+      '短临倍比': false,
+      '72小时倍比': false
+    };
+
+    if (type == "mapPoint") {
+      mychartMini = echarts.init(document.getElementById('early-warning-mini-chart1'));
+      mychart2Mini = echarts.init(document.getElementById('early-warning-mini-chart2'));
+      mychart3Mini = echarts.init(document.getElementById('early-warning-mini-chart3'));
+      mychartMini.setOption(option);
+      mychart2Mini.setOption(option2);
+      mychart3Mini.setOption(option3);
+      echarts.connect([mychartMini, mychart2Mini, mychart3Mini]);
+    }else if(type == "notReservoirMapPoint"){
+      disposeMiniCharts()
+      mychartMini = echarts.init(document.getElementById('reservoir-early-warning-chart1'));
+      mychart2Mini = echarts.init(document.getElementById('reservoir-early-warning-chart2'));
+      mychart3Mini = echarts.init(document.getElementById('reservoir-early-warning-chart3'));
+      mychartMini.setOption(option);
+      mychart2Mini.setOption(option2);
+      mychart3Mini.setOption(option3);
+      echarts.connect([mychartMini, mychart2Mini, mychart3Mini]);
+    }
+    else {
+      mychart = echarts.init(document.getElementById('early-warning-chart1'));
+      mychart2 = echarts.init(document.getElementById('early-warning-chart2'));
+      mychart3 = echarts.init(document.getElementById('early-warning-chart3'));
+      mychart.setOption(option);
+      mychart2.setOption(option2);
+      mychart3.setOption(option3);
+      echarts.connect([mychart, mychart2, mychart3]);
+    }
+
+    listenDataZoom3()
+    listenDataZoom5()
+    listenDataZoom6()
+
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+
+function zhengGuiShuJu(params, changdu) {
+  if (changdu) { //是否判断 是
+    if (typeof (params) != "undefined" && params != null && params.length > 0) {
+      return true;
+    } else {
+      return false;
+    }
+  } else {
+    if (typeof (params) != "undefined" && params != null) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+//获取最大值 info 为数组
+function getMaxValue(info) {
+  try {
+    if (info == null || info == '') return;
+    var temp = [];
+    for (var i = 0; i < info.length; i++) {
+      var max = Math.max.apply(Math, info[i]);
+      temp.push(max);
+    }
+    var maxValue = Math.max.apply(Math, temp);
+    return maxValue;
+  } catch (e) {
+    console.log(e)
+  }
+}
+
+function echart4Title(titleObj) {
+  return {
+    text: "",
+    x: titleObj.x,
+    textStyle: {
+      color: titleObj.textcolor
+    }
+  }
+}
+
+function echart4TooltipRain() {
+  return {
+    trigger: 'axis',
+    position: function (point, params, dom, rect, size) {
+      //在最左边时候
+      if (point[0] < size.contentSize[0]) {
+        return [point[0] + 20, '25%'];
+      } else {
+        return [point[0] - size.contentSize[0] - 20, '25%'];
+      }
+    },
+    formatter: function (params) {
+      var tip = '';
+      var time = '';
+      for (var i = 0; i < 2; i++) {
+        var index = params[i];
+        time = index.name;
+        if (index.seriesName == '土壤含水量(%)') {
+          tip += '<br/>' + '<span style="background-color:' + index.color + ';height:5px;width:5px;"></span>' + index.seriesName + "：" + index.data;
+        } else {
+          tip += '<br/>' + index.seriesName + "：" + -index.data;
+        }
+      }
+      return time + tip;
+    },
+    axisPointer: {
+      lineStyle: {
+        color: '#f40c0c',
+        opacity: 1
+      }
+    }
+  }
+}
+
+
+function echart4Legend(lengedObj, islengeshow) {
+  return {
+    show: islengeshow,
+    type: 'scroll',
+    // padding: [20, 0, 5, 0],
+    padding: [0, 0, 5, 0],
+    textStyle: {
+      color: '#fff',
+      fontSize: 10
+    },
+    // itemWidth:15,
+    itemHeight: 8,
+    pageTextStyle: {
+      color: '#ccc'
+    },
+    pageIconInactiveColor: '#2f4554',
+    pageIconColor: '#fff',
+    data: lengedObj.name //legend数组 例如['实时洪水重现期(年)', '短临重现期(年)', '72小时重现期(年)']
+  }
+}
+
+function echart4Grid(gridObj) {
+  var data = gridObj;
+  return {
+    left: data.left,
+    right: data.right,
+    bottom: data.bottom,
+    top: data.top
+  }
+}
+
+
+function echart4xAxis(xAxisObj) {
+  return [{
+    type: 'category',
+    silent: true,
+    boundaryGap: true,
+    data: xAxisObj.time,
+    axisTick: { //横轴时间
+      show: xAxisObj.isAxisTickShow,
+      interval: 'auto',
+      lineStyle: {
+        color: '#fff'
+      }
+    },
+    axisLine: {
+      onZero: true,
+      lineStyle: {
+        color: axisLineColor
+      }
+    },
+    // position: xAxisObj.position,
+    splitLine: {
+      show: false,
+      lineStyle: {
+        color: '#fff'
+      }
+    },
+    splitArea: {
+      show: false
+    },
+    axisLabel: { //横轴刻度显示
+      show: xAxisObj.isAxisLabelShow,
+      textStyle: {
+        color: '#fff',
+        align: 'center'
+      }
+    }
+  }]
+}
+
+function echart4yAxisRain(yAxisObj) {
+  return [{
+    type: 'value',
+    silent: true,
+    splitNumber: 5,
+    // name: yAxisObj.yname,
+    name: yAxisObj.ynameOne,
+    nameLocation: 'middle',
+    nameGap: '45',
+    position: 'left',
+    nameTextStyle: {
+      color: '#fff'
+    },
+    splitNumber: 1,
+    type: 'value',
+    axisLabel: {
+      formatter: function (v) {
+        if (yAxisObj.max == 0) {
+          return v;
+        } else {
+          return -v;
+        }
+      },
+      textStyle: {
+        color: '#fff'
+      }
+    },
+    boundaryGap: ['35%', '35%'], //Y轴数据显示区域上下留出20%空白
+    min: yAxisObj.max,
+    // max: 0,
+    max: yAxisObj.min,
+    scale: false,
+    splitLine: {
+      show: false,
+      lineStyle: {
+        color: earlyColor
+      }
+    },
+    splitArea: {
+      show: true,
+      areaStyle: {
+        // color: ['rgba(17,85,127,0.3)', 'rgba(121,166,191,0.3)']
+        color: [earlyColor]
+      }
+    },
+    axisLine: {
+      onZero: true,
+      lineStyle: {
+        color: axisLineColor
+      }
+    },
+    axisTick: {
+      lineStyle: {
+        color: '#fff'
+      }
+    }
+  },
+  {
+    type: 'value',
+    silent: true,
+    splitNumber: 5,
+    name: yAxisObj.ynameTwo,
+    nameLocation: 'middle',
+    nameGap: '45',
+    position: 'right',
+    nameTextStyle: {
+      color: '#fff'
+    },
+    splitNumber: 1,
+    type: 'value',
+    axisLabel: {
+      textStyle: {
+        color: '#fff'
+      }
+    },
+    boundaryGap: ['35%', '35%'], //Y轴数据显示区域上下留出20%空白
+    min: 0,
+    // max: yAxisObj.max,
+    scale: true,
+    splitLine: {
+      show: false,
+      lineStyle: {
+        color: earlyColor
+      }
+    },
+    // splitArea: {
+    //     show: true,
+    //     areaStyle: {
+    //         // color: ['rgba(17,85,127,0.3)', 'rgba(121,166,191,0.3)']
+    //         color: ['rgba(17,85,127,0.3)']
+    //     }
+    // },
+    axisLine: {
+      onZero: true,
+      lineStyle: {
+        color: axisLineColor
+      }
+    },
+    axisTick: {
+      lineStyle: {
+        color: '#fff'
+      }
+    }
+  }
+  ]
+}
+
+
+function echart4DataZoom(infoObj, timeArr) {
+  if (typeof timeArr !== 'undefined') {
+    var startTime = timeArr[0]; //发生预警之前的时间节点
+    var endTime = timeArr[1]; //发生预警后的时间节点
+
+    return [{
+      show: infoObj.isTrue,
+      realtime: true,
+      startValue: startTime,
+      endValue: endTime,
+      height: 10,
+      bottom: 7,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      fillerColor: 'rgba(70,130,180,0.5)',
+      backgroundColor: ['rgba(47,69,84,1)'],
+      realtime: false,
+      labelFormatter: function (value) {
+        if (globleForeTime != null) {
+          return globleForeTime[value].substring(0, 10) + '\n' + globleForeTime[value].substring(10, 19);
+        }
+      }
+    },
+    {
+      type: 'inside',
+      realtime: true,
+      startValue: startTime,
+      endValue: endTime,
+      height: 10,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      handleStyle: {
+        color: '#fff',
+        borderWidth: "0",
+        shadowBlur: 3,
+        shadowColor: 'rgba(0, 0, 0, 0.6)',
+        shadowOffsetX: 2,
+        shadowOffsetY: 2
+      }
+    }
+    ]
+  } else {
+    return [{
+      show: infoObj.isTrue,
+      realtime: true,
+      // start: infoObj.start,
+      // end: infoObj.end,
+      start: dataZoomStartPercent,
+      end: dataZoomEndPercent,
+      height: 10,
+      bottom: 7,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      fillerColor: 'rgba(70,130,180,0.5)',
+      backgroundColor: ['rgba(47,69,84,1)'],
+      realtime: false,
+      labelFormatter: function (value) {
+        if (globleForeTime != null) {
+          return globleForeTime[value].substring(0, 10) + '\n' + globleForeTime[value].substring(10, 19);
+        }
+      }
+    },
+    {
+      type: 'inside',
+      realtime: true,
+      // start: infoObj.start,
+      // end: infoObj.end,
+      start: dataZoomStartPercent,
+      end: dataZoomEndPercent,
+      height: 10,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      handleStyle: {
+        color: '#fff',
+        borderWidth: "0",
+        shadowBlur: 3,
+        shadowColor: 'rgba(0, 0, 0, 0.6)',
+        shadowOffsetX: 2,
+        shadowOffsetY: 2
+      },
+    }
+    ]
+  }
+}
+
+
+function createSeriesRain(info) {
+  var arr = [];
+  for (var i = 0; i < info.length; i++) {
+    var index = info[i];
+    var tempObj = {
+      name: index.name,
+      type: index.type,
+      z: index.z,
+      yAxisIndex: index.yAxisIndex,
+      smooth: true,
+      symbol: 'none',
+      large: true,
+      animation: false,
+      data: index.data,
+    }
+    if (index.name == "降水(mm)") {
+      tempObj.data = index.data.map(function (ele) {
+        return (ele) * -1
+      });
+      tempObj.markPoint = {
+        silent: true,
+        symbol: 'pin',
+        itemStyle: {
+          color: 'rgba(128, 128, 128,0)'
+        },
+        data: [{
+          type: 'min',
+          name: '最大值',
+          label: {
+            formatter: function (p) {
+              var value = p.value;
+              if (-value == 0) {
+                return -value;
+              } else {
+                return -value
+              }
+            },
+            position: index.labelPosition,
+            color: index.color
+          }
+        }]
+      }
+    } else if (index.name == "土壤含水量(%)") {
+      tempObj.markPoint = {
+        silent: true,
+        symbol: 'pin',
+        itemStyle: {
+          color: 'rgba(128, 128, 128,0)'
+        },
+        data: [{
+          type: 'max',
+          name: '最大值',
+          label: {
+            position: index.labelPosition,
+            color: index.color
+          }
+        }]
+      }
+    } else {
+      delete tempObj.z;
+      delete tempObj.yAxisIndex;
+      tempObj.data = index.data.map(function (ele) {
+        return ''
+      });
+    }
+    arr.push(tempObj);
+  }
+  return arr;
+}
+
+function echart4Tooltip() {
+  return {
+    trigger: 'axis',
+    position: function (point, params, dom, rect, size) {
+      //在最左边时候
+      if (point[0] < size.contentSize[0]) {
+        return [point[0] + 20, '10%'];
+      } else {
+        return [point[0] - size.contentSize[0] - 20, '25%'];
+      }
+    },
+    formatter: function (params) {
+      var tip = '';
+      var time = '';
+      for (var i = 0; i < params.length; i++) {
+        var index = params[i];
+        if (typeof index.data === "number") {
+          time = index.name;
+          tip += '<br/>' + index.seriesName + "：" + index.data;
+        }
+      }
+      return time + tip;
+    },
+    axisPointer: {
+      lineStyle: {
+        color: '#f40c0c',
+        opacity: 1
+      }
+    }
+  }
+}
+
+function echart4yAxis(yAxisObj) {
+  return [{
+    type: 'value',
+    splitNumber: 5,
+    name: yAxisObj.yname,
+    nameLocation: 'middle',
+    nameGap: '45',
+    position: 'left',
+    nameTextStyle: {
+      color: '#fff'
+    },
+    splitNumber: 1,
+    type: 'value',
+    axisLabel: {
+      textStyle: {
+        color: '#fff'
+      }
+    },
+    boundaryGap: ['45%', '45%'], //Y轴数据显示区域上下留出20%空白
+    min: 0,
+    // max:3000,
+    // max: yAxisObj.max,
+    scale: false,
+    splitLine: {
+      show: false,
+      lineStyle: {
+        color: earlyColor
+      }
+    },
+    splitArea: {
+      show: true,
+      areaStyle: {
+        // color: ['rgba(17,85,127,0.3)', 'rgba(121,166,191,0.3)']
+        color: [earlyColor]
+      }
+    },
+    axisLine: {
+      onZero: true,
+      lineStyle: {
+        color: axisLineColor
+      }
+    },
+    axisTick: {
+      lineStyle: {
+        color: '#fff'
+      }
+    }
+  }]
+}
+
+
+function echart4DataZoomOptionTwo(infoObj, timeArr) {
+  if (typeof timeArr !== 'undefined') {
+    var startTime = timeArr[0]; //发生预警之前的时间节点
+    var endTime = timeArr[1]; //发生预警后的时间节点
+
+    return [{
+      show: infoObj.isTrue,
+      // realtime: true,
+      startValue: zoomStart,
+      endValue: zoomEnd,
+      height: 10,
+      bottom: 7,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      handleSize: 23,
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      fillerColor: 'rgba(70,130,180,0.5)',
+      backgroundColor: ['rgba(47,69,84,1)'],
+      realtime: false,
+      labelFormatter: function (value) {
+        if (globleForeTime != null) {
+          return globleForeTime[value].substring(0, 10) + '\n' + globleForeTime[value].substring(10, 19);
+        }
+      }
+    },
+    {
+      type: 'inside',
+      // realtime: true,
+      startValue: zoomStart,
+      endValue: zoomEnd,
+      height: 10,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      handleSize: 23,
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      handleStyle: {
+        color: '#fff',
+        borderWidth: "0",
+        shadowBlur: 3,
+        shadowColor: 'rgba(0, 0, 0, 0.6)',
+        shadowOffsetX: 2,
+        shadowOffsetY: 2
+      },
+
+    }
+    ]
+  } else {
+    return [{
+      show: infoObj.isTrue,
+      realtime: true,
+      start: dataZoomStartPercent,
+      end: dataZoomEndPercent,
+      // start: infoObj.start,
+      // end: infoObj.end,
+      height: 10,
+      bottom: 7,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      fillerColor: 'rgba(70,130,180,0.5)',
+      backgroundColor: ['rgba(47,69,84,1)'],
+      realtime: false,
+      labelFormatter: function (value) {
+        if (globleForeTime != null) {
+          return globleForeTime[value].substring(0, 10) + '\n' + globleForeTime[value].substring(10, 19);
+        }
+      }
+    },
+    {
+      type: 'inside',
+      realtime: true,
+      start: dataZoomStartPercent,
+      end: dataZoomEndPercent,
+      // start: infoObj.start,
+      // end: infoObj.end,
+      height: 10,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      handleStyle: {
+        color: '#fff',
+        borderWidth: "0",
+        shadowBlur: 3,
+        shadowColor: 'rgba(0, 0, 0, 0.6)',
+        shadowOffsetX: 2,
+        shadowOffsetY: 2
+      },
+
+    }
+    ]
+  }
+}
+
+
+function createSeries(info) {
+  if (info.length >= 1) {
+    var arr = [];
+    for (var i = 0; i < info.length; i++) {
+      var index = info[i];
+      var tempObj = {
+        name: index.name,
+        type: 'line',
+        z: index.z,
+        smooth: true,
+        symbol: 'none',
+        data: index.data,
+        large: true,
+        animation: false,
+        yAxisIndex: index.yAxisIndex,
+        lineStyle: {
+          normal: {
+            type: index.lineStyleType
+          }
+        },
+        markPoint: {
+          silent: true,
+          symbol: 'pin',
+          itemStyle: {
+            color: 'rgba(128, 128, 128,0)'
+          },
+          data: [{
+            type: 'max',
+            name: '最大值',
+            label: {
+              position: index.labelPosition,
+              distance: 28,
+              color: index.color
+            }
+          },]
+        }
+      }
+      arr.push(tempObj);
+    }
+    return arr;
+  }
+}
+
+
+function echart4DataZoomOptionThree(infoObj, timeArr) {
+  if (typeof timeArr !== 'undefined') {
+    var startTime = timeArr[0]; //发生预警之前的时间节点
+    var endTime = timeArr[1]; //发生预警后的时间节点
+
+    return [{
+      show: infoObj.isTrue,
+      startValue: startTime,
+      endValue: endTime,
+      height: 10,
+      bottom: 7,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      fillerColor: 'rgba(70,130,180,0.5)',
+      backgroundColor: ['rgba(47,69,84,1)'],
+      realtime: false,
+      labelFormatter: function (value) {
+        if (globleForeTime != null) {
+          return globleForeTime[value].substring(0, 10) + '\n' + globleForeTime[value].substring(10, 19);
+        }
+      }
+    },
+    {
+      type: 'inside',
+      startValue: startTime,
+      endValue: endTime,
+      height: 10,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      handleStyle: {
+        color: '#fff',
+        borderWidth: "0",
+        shadowBlur: 3,
+        shadowColor: 'rgba(0, 0, 0, 0.6)',
+        shadowOffsetX: 2,
+        shadowOffsetY: 2
+      },
+
+    }
+    ]
+  } else {
+    return [{
+      show: infoObj.isTrue,
+      realtime: true,
+      // start: infoObj.start,
+      // end: infoObj.end,
+      start: dataZoomStartPercent,
+      end: dataZoomEndPercent,
+      height: 10,
+      bottom: 7,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      fillerColor: 'rgba(70,130,180,0.5)',
+      backgroundColor: ['rgba(47,69,84,1)'],
+      realtime: false,
+      labelFormatter: function (value) {
+        if (globleForeTime != null) {
+          return globleForeTime[value].substring(0, 10) + '\n' + globleForeTime[value].substring(10, 19);
+        }
+      }
+    },
+    {
+      type: 'inside',
+      realtime: true,
+      // start: infoObj.start,
+      // end: infoObj.end,
+      start: dataZoomStartPercent,
+      end: dataZoomEndPercent,
+      height: 10,
+      handleSize: 23,
+      handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23h6.6V24.4z M13.3,19.6H6.7v-1.4h6.6V19.6z',
+      filterMode: 'filter',
+      textStyle: {
+        color: '#fff'
+      },
+      handleStyle: {
+        color: '#fff',
+        borderWidth: "0",
+        shadowBlur: 3,
+        shadowColor: 'rgba(0, 0, 0, 0.6)',
+        shadowOffsetX: 2,
+        shadowOffsetY: 2
+      },
+
+    }
+    ]
+  }
+}
+
+function getMarkLine(ftime, maxparam, caltime) {
+  // var ftimes = ftime + '（' + caltime + '）';
+  var ftimes = caltime;
+  return {
+    silent: true,
+    symbol: "none",
+    label: {
+      normal: {
+        show: true,
+        position: "end",
+        formatter: ftimes //标注名称，对分割线的说明
+      }
+    },
+    lineStyle: {
+      normal: {
+        type: 'dashed',
+        width: "2",
+        color: '#e0db1e'
+      }
+    },
+    animation: false,
+    data: [{
+      name: ftimes,
+      xAxis: ftime,
+    }]
+    // data: [
+    //     [{
+    //         coord: [ftime, 0],//第二个参数表示起始点
+    //         label: {
+    //             normal: {
+    //                 show: true,
+    //                 position: "end",//标注的位置(start)表示起始位置，(end)表示结束位置,
+    //                 formatter: ftime
+    //             }
+    //         }
+    //     }, {coord: [ftime, -maxparam * 0.9]}]//第二个参数表示终点,是y轴的最大值
+    // ]
+  };
+}
+
+
+function setDataZoomOption(startPercent, endPercent) {
+  if (option != null) {
+    option.dataZoom[0].startValue = startPercent;
+    option.dataZoom[0].endValue = endPercent;
+    option.dataZoom[1].startValue = startPercent;
+    option.dataZoom[1].endValue = endPercent;
+  }
+  if (option2 != null) {
+    option2.dataZoom[0].startValue = startPercent;
+    option2.dataZoom[0].endValue = endPercent;
+    option2.dataZoom[1].startValue = startPercent;
+    option2.dataZoom[1].endValue = endPercent;
+  }
+  if (option3 != null) {
+    option3.dataZoom[0].startValue = startPercent;
+    option3.dataZoom[0].endValue = endPercent;
+    option3.dataZoom[1].startValue = startPercent;
+    option3.dataZoom[1].endValue = endPercent;
+  }
+  if (option4 != null) {
+    option4.dataZoom[0].startValue = startPercent;
+    option4.dataZoom[0].endValue = endPercent;
+    option4.dataZoom[1].startValue = startPercent;
+    option4.dataZoom[1].endValue = endPercent;
+  }
+  if (option5 != null) {
+    option5.dataZoom[0].startValue = startPercent;
+    option5.dataZoom[0].endValue = endPercent;
+    option5.dataZoom[1].startValue = startPercent;
+    option5.dataZoom[1].endValue = endPercent;
+  }
+
+  if (option6 != null) {
+    option6.dataZoom[0].startValue = startPercent;
+    option6.dataZoom[0].endValue = endPercent;
+    option6.dataZoom[1].startValue = startPercent;
+    option6.dataZoom[1].endValue = endPercent;
+  }
+
+  if (mychart != null) {
+    mychart.setOption(option)
+  }
+  if (mychart2 != null) {
+    mychart2.setOption(option2)
+  }
+  if (mychart3 != null) {
+    mychart3.setOption(option3)
+  }
+  if (mychart4 != null) {
+    mychart4.setOption(option4)
+  }
+  if (mychart5 != null) {
+    mychart5.setOption(option5)
+  }
+  if (mychart6 != null) {
+    mychart6.setOption(option6)
+  }
+}
+
+function listenDataZoom3() {
+  if (mychart3 != null) {
+    mychart3.on('datazoom', function (params) {
+      var startIndex = mychart3.getModel().option.dataZoom[0].startValue;
+      var endIndex = mychart3.getModel().option.dataZoom[0].endValue;
+      var startPercent = mychart3.getModel().option.dataZoom[0].start;
+      var endPercent = mychart3.getModel().option.dataZoom[0].end;
+      dataZoomStartPercent = startPercent;
+      dataZoomEndPercent = endPercent;
+      valueIndexStart = startIndex;
+      valueIndexEnd = endIndex;
+      setDataZoomToOption(startPercent, endPercent);
+    })
+  }
+}
+
+function listenDataZoom5() {
+  if (mychart5 != null) {
+    mychart5.on('datazoom', function (params) {
+      var startIndex = mychart5.getModel().option.dataZoom[0].startValue;
+      var endIndex = mychart5.getModel().option.dataZoom[0].endValue;
+      var startPercent = mychart5.getModel().option.dataZoom[0].start;
+      var endPercent = mychart5.getModel().option.dataZoom[0].end;
+      dataZoomStartPercent = startPercent;
+      dataZoomEndPercent = endPercent;
+      valueIndexStart = startIndex;
+      valueIndexEnd = endIndex;
+      setDataZoomToOption(startPercent, endPercent);
+    })
+  }
+}
+
+function listenDataZoom6() {
+  if (mychart6 != null) {
+    mychart6.on('datazoom', function (params) {
+      var startIndex = mychart6.getModel().option.dataZoom[0].startValue;
+      var endIndex = mychart6.getModel().option.dataZoom[0].endValue;
+      var startPercent = mychart6.getModel().option.dataZoom[0].start;
+      var endPercent = mychart6.getModel().option.dataZoom[0].end;
+      dataZoomStartPercent = startPercent;
+      dataZoomEndPercent = endPercent;
+      valueIndexStart = startIndex;
+      valueIndexEnd = endIndex;
+      setDataZoomToOption(startPercent, endPercent);
+    })
+  }
+}
+
+function setDataZoomToOption(startPercent, endPercent) {
+  if (option != null) {
+    option.dataZoom[0].start = startPercent;
+    option.dataZoom[0].end = endPercent;
+    option.dataZoom[1].start = startPercent;
+    option.dataZoom[1].end = endPercent;
+  }
+  if (option2 != null) {
+    option2.dataZoom[0].start = startPercent;
+    option2.dataZoom[0].end = endPercent;
+    option2.dataZoom[1].start = startPercent;
+    option2.dataZoom[1].end = endPercent;
+  }
+  if (option3 != null) {
+    option3.dataZoom[0].start = startPercent;
+    option3.dataZoom[0].end = endPercent;
+    option3.dataZoom[1].start = startPercent;
+    option3.dataZoom[1].end = endPercent;
+  }
+  if (option4 != null) {
+    option4.dataZoom[0].start = startPercent;
+    option4.dataZoom[0].end = endPercent;
+    option4.dataZoom[1].start = startPercent;
+    option4.dataZoom[1].end = endPercent;
+  }
+  if (option5 != null) {
+    option5.dataZoom[0].start = startPercent;
+    option5.dataZoom[0].end = endPercent;
+    option5.dataZoom[1].start = startPercent;
+    option5.dataZoom[1].end = endPercent;
+  }
+
+  if (option6 != null) {
+    option6.dataZoom[0].start = startPercent;
+    option6.dataZoom[0].end = endPercent;
+    option6.dataZoom[1].start = startPercent;
+    option6.dataZoom[1].end = endPercent;
+  }
+
+  if (mychart != null) {
+    mychart.setOption(option)
+  }
+  if (mychart2 != null) {
+    mychart2.setOption(option2)
+  }
+  if (mychart3 != null) {
+    mychart3.setOption(option3)
+  }
+  if (mychart4 != null) {
+    mychart4.setOption(option4)
+  }
+  if (mychart5 != null) {
+    mychart5.setOption(option5)
+  }
+  if (mychart6 != null) {
+    mychart6.setOption(option6)
+  }
+}
+
+
+function disposeCharts() {
+  if (mychart != null) {
+    mychart.dispose();
+    mychart = null;
+  }
+  if (mychart2 != null) {
+    mychart2.dispose();
+    mychart2 = null;
+  }
+  if (mychart3 != null) {
+    mychart3.dispose();
+    mychart3 = null;
+  }
+  mychart = null;
+  mychart2 = null;
+  mychart3 = null;
+
+  if (mychart4 != null) {
+    mychart4.dispose();
+    mychart4 = null;
+  }
+  if (mychart5 != null) {
+    mychart5.dispose();
+    mychart5 = null;
+  }
+  if (mychart6 != null) {
+    mychart6.dispose();
+    mychart6 = null;
+  }
+  mychart4 = null;
+  mychart5 = null;
+  mychart6 = null;
+}
+
+function disposeMiniCharts() {
+  if (mychartMini != null) {
+    mychartMini.dispose();
+    mychartMini = null;
+  }
+  if (mychart2Mini != null) {
+    mychart2Mini.dispose();
+    mychart2Mini = null;
+  }
+  if (mychart3Mini != null) {
+    mychart3Mini.dispose();
+    mychart3Mini = null;
+  }
+  mychartMini = null;
+  mychart2Mini = null;
+  mychart3Mini = null;
+
+  if (mychart4Mini != null) {
+    mychart4Mini.dispose();
+    mychart4Mini = null;
+  }
+  if (mychart5Mini != null) {
+    mychart5Mini.dispose();
+    mychart5Mini = null;
+  }
+  if (mychart6Mini != null) {
+    mychart6Mini.dispose();
+    mychart6Mini = null;
+  }
+  mychart4Mini = null;
+  mychart5Mini = null;
+  mychart6Mini = null;
+}
+
+
+function resizeMiniChart() {
+  if (mychartMini != null) {
+    mychartMini.resize();
+  }
+  if (mychart2Mini != null) {
+    mychart2Mini.resize();
+  }
+  if (mychart3Mini != null) {
+    mychart3Mini.resize();
+  }
+  if (mychart4Mini != null) {
+    mychart4Mini.resize();
+  }
+  if (mychart5Mini != null) {
+    mychart5Mini.resize();
+  }
+  if (mychart6Mini != null) {
+    mychart6Mini.resize();
+  }
+}
+
+function resizeWarningChart() {
+  if (mychart != null) {
+    mychart.resize();
+  }
+  if (mychart2 != null) {
+    mychart2.resize();
+  }
+  if (mychart3 != null) {
+    mychart3.resize();
+  }
+  if (mychart4 != null) {
+    mychart4.resize();
+  }
+  if (mychart5 != null) {
+    mychart5.resize();
+  }
+  if (mychart6 != null) {
+    mychart6.resize();
+  }
+}

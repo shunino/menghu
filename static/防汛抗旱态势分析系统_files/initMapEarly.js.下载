@@ -1,0 +1,519 @@
+var initTotalShowData = [];
+var clinckAdcd = "";
+var allAdcdListData;
+$(function () {
+    $('#map-load-early-close').unbind("click").bind('click', function () {
+        $("#map-load-early-warn-right").hide();
+    })
+    ajaxCallJson({}, '/bigData/getPositionOfSubareas', function (res) {
+        if (res.flag) {
+            allAdcdListData = ""
+            var data = JSON.parse(res.data);
+            if (data.resflag == false && data.data && data.data.length == 0) {
+                return;
+            }
+            if (data.data == null) {
+                return;
+            }
+            allAdcdListData = (data.data);
+        } else {
+
+        }
+    })
+});
+
+function initLoadMapEarly() {
+    var layerIndex;
+    var mapPointArr = [];
+    var mapPointOneArr = [];
+    var mapPointTwoArr = [];
+    var classBreakInfos = [];
+    var endTime = moment(SYSTEM.getSystemTime()).format('YYYY[-]MM[-]DD HH:mm:ss');
+    ajaxCallJson({
+        endTime: endTime
+    }, '/bigData/getTopAlarms', function (_data) {
+        if (_data && _data.data) {
+            var data = JSON.parse(_data.data);
+            if (data.resflag == false && data.data && data.data.length == 0) {
+                return;
+            }
+            if (data.data == null) {
+                return;
+            }
+            for (var i = 0; i < data.data.length; i++) {
+                var sourceList = {};
+                sourceList = {
+                    adcd: data.data[i].adcd,
+                    addr: "",
+                    adnm: "",
+                    lgtd: data.data[i].lgtd,
+                    lttd: data.data[i].lttd,
+                    mocd: data.data[i].adcd,
+                    monm: data.data[i].adnm + "(" + data.data[i].alarm + ")",
+                    motype: "111",
+                    oecd: data.data[i].alarm,
+                    stcd: "",
+                    wlevel: 11
+                };
+                mapPointOneArr.push(sourceList);
+                classBreakInfos.push({
+                    maxValue: 11,
+                    minValue: 11,
+                    symbol: {
+                        height: "32px",
+                        type: "picture-marker",
+                        url: "/images/icon/warning_num.png",
+                        width: "32px",
+                    }
+                });
+            }
+            var startTime = moment(SYSTEM.getSystemTime()).format('YYYY[-]MM[-]DD 00:00:00');
+            var endRankTime = moment(SYSTEM.getSystemTime()).format('YYYY[-]MM[-]DD 24:00:00');
+            ajaxCallJson({
+                startTime: startTime,
+                endTime: endRankTime
+            }, '/bigData/getRankByAdcd', function (_data) {
+                if (_data && _data.data) {
+                    var data = JSON.parse(_data.data);
+                    if (data.resflag == false && data.data && data.data.length == 0) {
+                        return;
+                    }
+                    if (data.data == null) {
+                        return;
+                    }
+                    for (var i = 0; i < data.data.length; i++) {
+                        var sourceList = {};
+                        if (mapPointOneArr.length > 0) {
+                            for (var j = 0; j < mapPointOneArr.length; j++) {
+                                if (data.data[i].adcd == mapPointOneArr[j].mocd) {
+                                    sourceList = {};
+                                    var total = data.data[i].alarm + mapPointOneArr[j].oecd
+                                    sourceList = {
+                                        adcd: data.data[i].adcd,
+                                        addr: "",
+                                        adnm: "",
+                                        lgtd: data.data[i].lgtd,
+                                        lttd: data.data[i].lttd,
+                                        mocd: data.data[i].adcd,
+                                        monm: data.data[i].adnm + "(" + total + ")",
+                                        motype: "111",
+                                        oecd: total,
+                                        stcd: "",
+                                        wlevel: 11
+                                    };
+                                    mapPointTwoArr.push(sourceList);
+                                } else {
+                                    sourceList = {
+                                        adcd: data.data[i].adcd,
+                                        addr: "",
+                                        adnm: "",
+                                        lgtd: data.data[i].lgtd,
+                                        lttd: data.data[i].lttd,
+                                        mocd: data.data[i].adcd,
+                                        monm: data.data[i].adnm + "(" + data.data[i].alarm + ")",
+                                        motype: "111",
+                                        oecd: data.data[i].alarm,
+                                        stcd: "",
+                                        wlevel: 11
+                                    };
+                                    mapPointTwoArr.push(sourceList);
+                                }
+                            }
+                        } else {
+                            sourceList = {
+                                adcd: data.data[i].adcd,
+                                addr: "",
+                                adnm: "",
+                                lgtd: data.data[i].lgtd,
+                                lttd: data.data[i].lttd,
+                                mocd: data.data[i].adcd,
+                                monm: data.data[i].adnm + "(" + data.data[i].alarm + ")",
+                                motype: "111",
+                                oecd: data.data[i].alarm,
+                                stcd: "",
+                                wlevel: 11
+                            };
+                            mapPointTwoArr.push(sourceList);
+                        }
+                        classBreakInfos.push({
+                            maxValue: 11,
+                            minValue: 11,
+                            symbol: {
+                                height: "32px",
+                                type: "picture-marker",
+                                url: "/images/icon/warning_num.png",
+                                width: "32px",
+                            }
+                        });
+                    }
+                    let params = {
+                        startTime: moment(getTime(getSystemTime())).subtract(8, 'hour').format('YYYY[-]MM[-]DD HH:mm:ss'),
+                        endTime: moment(getTime(getSystemTime())).add(1, 'day').subtract(8, 'hour').format("YYYY-MM-DD HH:mm:ss"),
+                        severity,
+                    };
+                    ajaxCallJson(params, '/warning/findWarnDetailCount', function (res) {
+                        if (res.flag) {
+                            var sourceList = {};
+                            for (var i = 0; i < res.info.detail.length; i++) {
+                                for (var j = 0; j < allAdcdListData.length; j++) {
+                                    if ((allAdcdListData[j].adcd).slice(0, 6) == res.info.detail[i].regionid) {
+                                        if (mapPointTwoArr.length > 0) {
+                                            for (var k = 0; k < mapPointTwoArr.length; k++) {
+                                                if (allAdcdListData[j].adcd == mapPointTwoArr[k].mocd) {
+                                                    sourceList = {};
+                                                    var total = res.info.detail[i].count + mapPointTwoArr[k].oecd;
+                                                    sourceList = {
+                                                        adcd: allAdcdListData[j].adcd,
+                                                        addr: "",
+                                                        adnm: "",
+                                                        lgtd: allAdcdListData[j].lgtd,
+                                                        lttd: allAdcdListData[j].lttd,
+                                                        mocd: allAdcdListData[j].adcd,
+                                                        monm: res.info.detail[i].name + "(" + total + ")",
+                                                        motype: "111",
+                                                        oecd: "",
+                                                        stcd: "",
+                                                        wlevel: 11
+                                                    };
+                                                    mapPointArr.push(sourceList);
+                                                } else {
+                                                    sourceList = {
+                                                        adcd: allAdcdListData[j].adcd,
+                                                        addr: "",
+                                                        adnm: "",
+                                                        lgtd: allAdcdListData[j].lgtd,
+                                                        lttd: allAdcdListData[j].lttd,
+                                                        mocd: allAdcdListData[j].adcd,
+                                                        monm: res.info.detail[i].name + "(" + res.info.detail[i].count + ")",
+                                                        motype: "111",
+                                                        oecd: "",
+                                                        stcd: "",
+                                                        wlevel: 11
+                                                    };
+                                                    mapPointArr.push(sourceList);
+                                                }
+                                            }
+
+                                        } else {
+                                            sourceList = {
+                                                adcd: allAdcdListData[j].adcd,
+                                                addr: "",
+                                                adnm: "",
+                                                lgtd: allAdcdListData[j].lgtd,
+                                                lttd: allAdcdListData[j].lttd,
+                                                mocd: allAdcdListData[j].adcd,
+                                                monm: res.info.detail[i].name + "(" + res.info.detail[i].count + ")",
+                                                motype: "111",
+                                                oecd: "",
+                                                stcd: "",
+                                                wlevel: 11
+                                            };
+                                            mapPointArr.push(sourceList);
+                                        }
+                                        classBreakInfos.push({
+                                            maxValue: 11,
+                                            minValue: 11,
+                                            symbol: {
+                                                height: "32px",
+                                                type: "picture-marker",
+                                                url: "/images/icon/warning_num.png",
+                                                width: "32px",
+                                            }
+                                        });
+                                    }
+                                }
+                            }
+                            require(["myMap/layer/PointLayer"], function (PointLayer) {
+                                layerIndex = new PointLayer(mapPointArr, classBreakInfos, "1112");
+                                map.add(layerIndex.pointLayer);
+                            });
+                        } else {
+
+                        }
+                    })
+
+                }
+            });
+        }
+    });
+
+
+}
+
+function showMapEarlyWarin(obj) {
+    clinckAdcd = "";
+    clinckAdcd = obj.mocd;
+    $("#map-load-early-warn-right-content-title").html("");
+    var name = obj.name.replace(/\d+/g, '').replace("(", "").replace(")", "");
+    $("#map-load-early-warn-right-content-title").html(name + "-预警分布");
+    $("#map-load-early-warn-right").show();
+    var endTime = moment(SYSTEM.getSystemTime()).format('YYYY[-]MM[-]DD HH:mm:ss');
+    var sendtime = moment(getTime(getSystemTime())).subtract(8, 'hour').format("YYYY-MM-DD HH:mm:ss");
+    var sendtimeend = moment(getTime(getSystemTime())).add(1, 'day').subtract(8, 'hour').format("YYYY-MM-DD HH:mm:ss");
+    ajaxCallJson({
+        startTime: sendtime,
+        endTime: sendtimeend,
+        adcd: clinckAdcd
+    }, '/warning/findWarn', function (_data) {
+        if (_data && _data.info) {
+            if (_data.flag) {
+                if (_data.info && _data.info.Num.total) {
+                    if (_data.info.Num.total == undefined) {
+                        return
+                    }
+                    const Num = _data.info.Num;
+                    defaultSeverity = Num.red > 0 ? 'Red' : Num.orange > 0 ? 'Orange' : Num.yellow > 0 ? 'Yellow' : Num.blue > 0 ? 'Blue' : '';
+                    let string = JSON.stringify(_data.info.Num.total),
+                        result = '',
+                        index = 0;
+                    if (string.length == 0) {
+                        return
+                    }
+                    var strs = string;
+                    result += "<span >预警发布中心:</span><span class='span-background-color' onclick='initWarningDataMapList(clinckAdcd)' style='color: " + defaultSeverity + "'>" + strs + "</span>";
+                    $("#early-warning-release-center").html(result);
+                } else {
+                    $("#early-warning-release-center").html("<span class='span-background-color'>0</span>");
+                }
+            } else {
+                $("#early-warning-release-center").html("<span class='span-background-color'>0</span>");
+            }
+        } else {
+            $("#early-warning-release-center").html("<span class='span-background-color'>0</span>");
+        }
+    });
+    ajaxCallJson({
+        time: endTime,
+        adcd: clinckAdcd
+    }, '/bigData/getAlarmMapByAdcd', function (_data) {
+        if (_data && _data.data) {
+            var data = JSON.parse(_data.data);
+            if (data.resflag == false && data.data.length == 0) {
+                return;
+            }
+            if (data.data == null) {
+                return;
+            }
+            var legendData = ["水库", "雨量站", "河道站"];
+            var seriesData = [];
+            if (data.data == null) {
+                seriesData.push({
+                    value: 0,
+                    name: '水库'
+                }, {
+                    value: 0,
+                    name: '雨量站'
+                }, {
+                    value: 0,
+                    name: '河道站'
+                })
+            } else {
+                if (data.data && data.data["15"] != null && data.data["15"] != undefined) {
+                    seriesData.push({
+                        value: data.data["15"],
+                        name: '河道站'
+                    })
+                }
+                if (data.data && data.data["01"] != null && data.data["01"] != undefined) {
+                    seriesData.push({
+                        value: data.data["01"],
+                        name: '水库'
+                    })
+                }
+                if (data.data && data.data["04"] != null && data.data["04"] != undefined) {
+                    seriesData.push({
+                        value: data.data["04"],
+                        name: '雨量站'
+                    })
+                }
+                for (var i = 0; i < seriesData.length; i++) {
+                    if (seriesData[i].name == "水库") {
+                        $("#actual-monitoring-reservoir").html();
+                        $("#actual-monitoring-reservoir").html("<span onclick='initmoActualMnitoring(\"水库\",1," + seriesData[i].value + ")'><span >水库:</span>" + seriesData[i].value + "</span>");
+                    }
+                    if (seriesData[i].name == "河道站") {
+                        $("#actual-monitoring-river").html();
+                        $("#actual-monitoring-river").html("<span onclick='initmoActualMnitoring(\"水文站\",15," + seriesData[i].value + ")'><span >水文站:</span>" + seriesData[i].value + "</span>");
+                    }
+                    if (seriesData[i].name == "雨量站") {
+                        $("#actual-monitoring-rain").html();
+                        $("#actual-monitoring-rain").html("<span onclick='initmoActualMnitoring(\"雨量站\",4," + seriesData[i].value + ")'><span >雨量站:</span>" + seriesData[i].value + "</span>");
+                    }
+                }
+            }
+
+        }
+    });
+    initTotalEarlyShowData(obj);
+}
+
+function initTotalEarlyShowData(obj) {
+    const paramsOne = {
+        adcd: obj.mocd,
+        alarmtype: 2,
+        startTime: `${today} 00:00:00`,
+        endTime: `${today} 24:00:00`
+    };
+    const paramsTwo = {
+        adcd: obj.mocd,
+        alarmtype: 3,
+        startTime: `${today} 00:00:00`,
+        endTime: `${today} 24:00:00`
+    };
+    const paramsThree = {
+        adcd: obj.mocd,
+        alarmtype: 4,
+        startTime: `${today} 00:00:00`,
+        endTime: `${today} 24:00:00`
+    };
+    const paramsFour = {
+        adcd: obj.mocd,
+        alarmtype: 5,
+        startTime: `${today} 00:00:00`,
+        endTime: `${today} 24:00:00`
+    };
+    initTotalShowData = [];
+    $("#other-early-warning").html("");
+    ajaxCallJson(paramsOne, '/warning/getWarningCount', function (res) {
+        if (res.flag) {
+            var html = "";
+            html += '<div style="margin: 5px 5px 5px 0"><span>暴雨预警:</span><span class="very-danger-color margin-span-color" onclick="clickTypeWarning(2,' + res.info.level4 + ',this)">极危:' + res.info.level4 + '</span><span class="high-danger-color margin-span-color" onclick="clickTypeWarning(2,' + res.info.level3 + ',this)">高危:' + res.info.level3 + '</span><span class="danger-color margin-span-color" onclick="clickTypeWarning(2,' + res.info.level2 + ',this)">危险:' + res.info.level2 + '</span><span class="low-dange-color margin-span-color" onclick="clickTypeWarning(2,' + res.info.level1 + ',this)">低危:' + res.info.level1 + '</span></div>';
+            $("#other-early-warning").append(html);
+        }
+    });
+    ajaxCallJson(paramsTwo, '/warning/getWarningCount', function (res) {
+        if (res.flag) {
+            res.info.name = ['洪水预警', 'flood'];
+            var html = "";
+            html += '<div style="margin: 5px 5px 5px 0"><span>洪水预警:</span><span class="very-danger-color margin-span-color" onclick="clickTypeWarning(3,' + res.info.level4 + ',this)">极危:' + res.info.level4 + '</span><span class="high-danger-color margin-span-color" onclick="clickTypeWarning(3,' + res.info.level3 + ',this)">高危:' + res.info.level3 + '</span><span class="danger-color margin-span-color" onclick="clickTypeWarning(3,' + res.info.level2 + ',this)">危险:' + res.info.level2 + '</span><span class="low-dange-color margin-span-color" onclick="clickTypeWarning(3,' + res.info.level1 + ',this)">低危:' + res.info.level1 + '</span></div>';
+            $("#other-early-warning").append(html);
+        }
+    });
+    ajaxCallJson(paramsThree, '/warning/getWarningCount', function (res) {
+        if (res.flag) {
+            res.info.name = ['滑坡预警', 'landslide'];
+            var html = "";
+            html += '<div style="margin: 5px 5px 5px 0"><span>滑坡预警:</span><span class="very-danger-color margin-span-color" onclick="clickTypeWarning(4,' + res.info.level4 + ',this)">极危:' + res.info.level4 + '</span><span class="high-danger-color margin-span-color" onclick="clickTypeWarning(4,' + res.info.level3 + ',this)">高危:' + res.info.level3 + '</span><span class="danger-color margin-span-color" onclick="clickTypeWarning(4,' + res.info.level2 + ',this)">危险:' + res.info.level2 + '</span><span class="low-dange-color margin-span-color" onclick="clickTypeWarning(4,' + res.info.level1 + ',this)">低危:' + res.info.level1 + '</span></div>';
+            $("#other-early-warning").append(html);
+        }
+    });
+    ajaxCallJson(paramsFour, '/warning/getWarningCount', function (res) {
+        if (res.flag) {
+            res.info.name = ['火险预警', 'fire'];
+            var html = "";
+            html += '<div style="margin: 5px 5px 5px 0"><span>火险预警:</span><span class="very-danger-color margin-span-color" onclick="clickTypeWarning(5,' + res.info.level4 + ',this)">极危:' + res.info.level4 + '</span><span class="high-danger-color margin-span-color" onclick="clickTypeWarning(5,' + res.info.level3 + ',this)">高危:' + res.info.level3 + '</span><span class="danger-color margin-span-color" onclick="clickTypeWarning(5,' + res.info.level2 + ',this)">危险:' + res.info.level2 + '</span><span class="low-dange-color margin-span-color" onclick="clickTypeWarning(5,' + res.info.level1 + ',this)">低危:' + res.info.level1 + '</span></div>';
+            $("#other-early-warning").append(html);
+        }
+    });
+
+}
+
+function initmoActualMnitoring(name, type, value) {
+    if (value == 0) {
+        return
+    }
+    if (type == 1) {
+        type = "01"
+    }
+    if (type == 4) {
+        type = "04"
+    }
+    if (type == 5) {
+        type = "05";
+    }
+    if (type == "01" || type == "04" || type == "05" || type == "15") {
+        pageNow = 1;
+        tableSearchKey = '';
+        motype = type;
+        showMapListImmediate();
+        propertiesWin.setTitle(name + '实时数据表');
+        propertiesWin.dom.css("z-index", "999");
+    }
+}
+
+function clickTypeWarning(id, value, type) {
+    motype = id;
+    if (value <= 0 || motype == 'error') {
+        layer.msg('没有预警信息', {
+            time: 2000
+        })
+        return
+    }
+    const css = $(type).attr('class').split(" ")[0];
+    Warning_Rank = css == 'very-danger-color' ? 10 : css == 'high-danger-color' ? 6 : css == 'danger-color' ? 4 : css == 'low-dange-color' ? 1 : 0;
+    pageNow = 1;
+    tableSearchKey = '';
+    showWarningMapLayer();
+    var title;
+    if (id == 2) {
+        title = "暴雨预警"
+    }
+    if (id == 3) {
+        title = "洪水预警"
+    }
+    if (id == 4) {
+        title = "滑坡预警"
+    }
+    if (id == 5) {
+        title = "火险预警"
+    }
+    propertiesWin.setTitle(title);
+    propertiesWin.dom.css("z-index", "999");
+}
+
+function showWarningMapLayer() {
+    showTip(0);
+    const params = {
+        adcd: clinckAdcd,
+        type: motype,
+        startTime: `${today} 00:00:00`,
+        endTime: `${today} 24:00:00`,
+        rank: Warning_Rank,
+        pageNow,
+        pageSize,
+        searchKey: tableSearchKey,
+    }
+    ajaxCallJson(params, '/warning/getAlarmByPage', function (res) {
+        showTip(2)
+        $('#base-properties-table').bootstrapTable('destroy');
+        if (res.flag) {
+            const methodType = 'Warning';
+            creatTabledata(res.info, methodType);
+        } else {
+            propertiesWin.hide();
+            showTip(1);
+        }
+    })
+}
+
+function initWarningDataMapList(obj) {
+    clinckAdcd = obj;
+    showTip(0);
+    pageNow = 1;
+    severity = defaultSeverity;
+    loadWarningDataMapList();
+    propertiesWin.setTitle('已发布预警信息表');
+    propertiesWin.dom.css("z-index", "999");
+}
+
+function loadWarningDataMapList() {
+    const today = getTime(getSystemTime());
+    let params = {
+        adcd: clinckAdcd,
+        startTime: moment(today).subtract(8, 'hour').format("YYYY-MM-DD HH:mm:ss"),
+        endTime: moment(today).add(1, 'day').subtract(8, 'hour').format("YYYY-MM-DD HH:mm:ss"),
+        severity,
+        pageNow,
+        pageSize,
+    };
+    ajaxCallJson(params, '/warning/findWarn', function (res) {
+        $('#base-properties-table').bootstrapTable('destroy');
+        if (res.flag) {
+            const methodType = 'warnData';
+            creatTabledata(res.info, methodType);
+        } else {
+            propertiesWin.hide();
+            showTip(1);
+        }
+    })
+}

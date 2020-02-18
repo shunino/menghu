@@ -1,0 +1,561 @@
+//自定义地图操作模块
+//空间分析table
+
+var areaForcastChart = null,
+    miniKjfx1Chart = null,
+    miniKjfx2Chart = null,
+    kjfx1Chart = null,
+    kjfx2Chart = null;
+var isXzqPoint = false;
+var isXzqPolygon = false;
+var pointType = 0;
+define([
+        "esri/widgets/Sketch/SketchViewModel",
+        "esri/Graphic",
+        "esri/geometry/support/webMercatorUtils"
+    ],
+    function (SketchViewModel, Graphic, webMercatorUtils) {
+        return function (view, graphicsLayer) {
+            let editGraphic,
+                analysisPoint, analysisType;
+
+            const pointSymbol = {
+                type: "simple-marker",
+                style: "square",
+                color: "#8A2BE2",
+                size: "16px",
+                outline: {
+                    color: [255, 255, 255],
+                    width: 3
+                }
+            };
+
+            const polylineSymbol = {
+                type: "simple-line",
+                color: "#8A2BE2",
+                width: "4",
+                style: "dash"
+            };
+
+            const polygonSymbol = {
+                type: "simple-fill",
+                color: "rgba(138,43,226, 0.8)",
+                style: "solid",
+                outline: {
+                    color: "white",
+                    width: 1
+                }
+            };
+
+            view.when(function () {
+                const sketchViewModel = new SketchViewModel({
+                    view,
+                    layer: graphicsLayer,
+                    pointSymbol,
+                    polylineSymbol,
+                    polygonSymbol
+                });
+
+                setUpClickHandler();
+                // var eventType = ["create", "create-cancel", "create-init", "create-start",
+                //     "move", "move-complete", "move-start", "redo", "reshape",
+                //     "reshape-complete", "reshape-start", "rotate", "rotate-complete", "rotate-start", "scale", "scale-complete", "scale-start", "undo", "update", "update-cancel", "update-init"
+                // ];
+                // for (var i = 0; i < eventType.length; i++) {
+                //     var index = eventType[i];
+                //     sketchViewModel.on(index, function (event) {
+                //         console.log("sketchViewModel事件")
+                //         console.log(event)
+                //     });
+                // }
+
+
+                sketchViewModel.on("create-complete", addGraphic);
+                sketchViewModel.on("update-complete", updateGraphic);
+                sketchViewModel.on("update-cancel", updateGraphic);
+
+                function addGraphic(event) {
+
+                    if (event.tool == "point") {
+                        //创建地图点成功(点空间分析)
+                        var longitude = event.geometry.longitude; //经度
+                        var latitude = event.geometry.latitude; //纬度
+                        if (pointType == 1) {
+                            points = [longitude, latitude];
+                            if (isXzqPoint) {
+                                // do something
+                                isXzqPoint = false;
+                            } else {
+                                loadAreaAnalysis(points, 1)
+                            }
+                        } else if (pointType == 2) {
+                            ajaxCallJson({
+                                pointWKT: `POINT(${longitude} ${latitude})`,
+                                range: 3,
+                                startTime: `${today} 00:00:00`,
+                                endTime: `${today} 24:00:00`,
+                                windowWidth,
+                                oldBox: [],
+                                newBox: viewBox,
+                            }, '/floodSituation/area/spatialAnalysis', function (res) {
+                                if (res.flag) {
+                                    addPointToMap(obj = {
+                                        motype: ['13top'],
+                                        sttype: ""
+                                    }, res.info, tpye = "notype");
+                                }
+                            })
+                        }
+                    } else if (event.tool == "polygon") {
+                        //创建面成功(面空间分析)
+                        var geographic = webMercatorUtils.webMercatorToGeographic(event.geometry); //将墨卡托范围转换为地理范围
+                        var points = geographic.rings;
+                        if (isXzqPolygon) {
+                            // do something
+                            isXzqPolygon = false;
+                        } else {
+                            loadAreaAnalysis(points, 2)
+                        }
+                    } else if (event.tool == 'circle') {
+                        const longitude = event.geometry.centroid.longitude; //经度
+                        const latitude = event.geometry.centroid.latitude; //纬度
+                    }
+
+                    var graphic = new Graphic({
+                        geometry: event.geometry,
+                        symbol: sketchViewModel.graphic.symbol
+                    });
+                    graphicsLayer.add(graphic);
+                }
+
+                //分析用户区域（根据行政区编码或者流域编码）
+                var loadAreaAnalysisByCode = function (isDetail, code) {
+                    try {
+                        var data = {
+                            code: code,
+                            duration: 1,
+                            startTime: moment(SYSTEM_TIME).subtract(3, 'd').format('YYYY-MM-DD 08:00:00'),
+                            endTime: moment(SYSTEM_TIME).add(3, 'd').format('YYYY-MM-DD HH:00:00')
+                        };
+                        var m_index = layer.msg("加载中...", {
+                            icon: 16,
+                            time: 8000
+                        });
+                        ajaxCallJson(data, '/floodSituation/area/foreCode', function (result) {
+                            if (!result.flag) return;
+                            layer.close(m_index)
+                            $("#monitor-detail-right-kjfx").show();
+                            showKjfx(result, "Kjfx");
+                            $('#kjfx-basic-max').unbind("click").bind('click', function () {
+                                loadAreaAnalysisMaxByCode("KjfxMax1", isDetail, code);
+                            })
+                            $('#kjfx-chart-max').unbind("click").bind('click', function () {
+                                loadAreaAnalysisMaxByCode("KjfxMax2", isDetail, code);
+                            })
+                            $('#kjfx-basic-close').unbind("click").bind('click', function () {
+                                $("#monitor-detail-right-kjfx").hide();
+                            })
+                        });
+                    } catch (e) {
+                        console.log(e)
+                    }
+                }
+
+                //分析用户选择区域
+                var loadAreaAnalysis = function (points, type, isDetail, poligon) {
+                    try {
+                        if (isDetail) {
+                            data = {
+                                area: poligon,
+                                duration: 1,
+                                startTime: moment(SYSTEM_TIME).subtract(3, 'd').format('YYYY-MM-DD 08:00:00'),
+                                endTime: moment(SYSTEM_TIME).add(3, 'd').format('YYYY-MM-DD HH:00:00')
+                            };
+                        } else {
+                            analysisPoint = points;
+                            analysisType = type;
+                            if (points == null) {
+                                return;
+                            }
+                            let area
+                            if (type == 1) {
+                                [x, y] = points;
+                                area = `POINT(${x} ${y})`;
+                            } else if (type == 2) {
+                                area = 'POLYGON((';
+                                for (let i of points[0]) {
+                                    if (i == points[0][points[0].length - 1]) {
+                                        [x, y] = i;
+                                        area += `${x} ${y}`;
+                                    } else {
+                                        [x, y] = i;
+                                        area += `${x} ${y},`;
+                                    }
+                                }
+                                area += '))';
+                            }
+                            data = {
+                                area,
+                                duration: 1,
+                                startTime: moment(SYSTEM_TIME).subtract(3, 'd').format('YYYY-MM-DD 08:00:00'),
+                                endTime: moment(SYSTEM_TIME).add(3, 'd').format('YYYY-MM-DD HH:00:00')
+                            };
+                        }
+                        var m_index = layer.msg("加载中...", {
+                            icon: 16,
+                            time: 8000
+                        });
+                        ajaxCallJson(data, '/floodSituation/area/fore', function (result) {
+                            // areaForcastChart && areaForcastChart.dispose();
+                            if (!result.flag) return;
+                            layer.close(m_index);
+                            $("#monitor-detail-right-kjfx").show();
+                            showKjfx(result, "Kjfx");
+                            $('#kjfx-basic-max').unbind("click").bind('click', function () {
+                                loadAreaAnalysisMax(analysisPoint, analysisType, "KjfxMax1", isDetail, poligon);
+                            })
+                            $('#kjfx-chart-max').unbind("click").bind('click', function () {
+                                loadAreaAnalysisMax(analysisPoint, analysisType, "KjfxMax2", isDetail, poligon);
+                            })
+                            $('#kjfx-basic-close').unbind("click").bind('click', function () {
+                                $("#monitor-detail-right-kjfx").hide();
+                            })
+                        });
+                    } catch (e) {
+                        console.log(e)
+                    }
+                }
+                var myWindow1;
+                var myWindow2;
+                var loadAreaAnalysisMaxByCode = function (openType, isDetail, code) {
+                    try {
+                        if (isDetail) {
+                            data = {
+                                code: code,
+                                duration: 1,
+                                startTime: moment(SYSTEM_TIME).subtract(1, 'month').format('YYYY-MM-DD 08:00:00'),
+                                endTime: moment(SYSTEM_TIME).add(3, 'd').format('YYYY-MM-DD HH:00:00')
+                            };
+                        }
+                        var m_index = layer.msg("加载中...", {
+                            icon: 16,
+                            time: 8000
+                        });
+                        ajaxCallJson(data, '/floodSituation/area/foreCode', function (result) {
+                            layer.close(m_index)
+                            if (openType == "KjfxMax1") {
+                                myWindow1 = new MyWindow($('#monitor-kjfx-chart1'), {
+                                    title: '1小时降水预报' || ''
+                                });
+                                myWindow1.dom.css("z-index", "1501")
+                                myWindow1.show();
+                                myWindow1.resizecbfn(function () {
+                                    KjfxMaxChart1.resize();
+                                });
+                            }
+                            if (openType == "KjfxMax2") {
+                                myWindow2 = new MyWindow($('#monitor-kjfx-chart2'), {
+                                    title: '24小时降水预报' || ''
+                                });
+                                myWindow2.dom.css("z-index", "1501")
+                                myWindow2.show();
+                                myWindow2.resizecbfn(function () {
+                                    KjfxMaxChart2.resize();
+                                });
+                            }
+                            showKjfx(result, openType);
+                        });
+                    } catch (e) {
+                        console.log(e)
+                    }
+                }
+                var loadAreaAnalysisMax = function (points, type, openType, isDetail, poligon) {
+                    try {
+                        if (isDetail) {
+                            data = {
+                                area: poligon,
+                                duration: 1,
+                                startTime: moment(SYSTEM_TIME).subtract(1, 'month').format('YYYY-MM-DD 08:00:00'),
+                                endTime: moment(SYSTEM_TIME).add(3, 'd').format('YYYY-MM-DD HH:00:00')
+                            };
+                        } else {
+                            if (points == null) {
+                                return;
+                            }
+                            let area
+                            if (type == 1) {
+                                [x, y] = points;
+                                area = `POINT(${x} ${y})`;
+                            } else if (type == 2) {
+                                area = 'POLYGON((';
+                                for (let i of points[0]) {
+                                    if (i == points[0][points[0].length - 1]) {
+                                        [x, y] = i;
+                                        area += `${x} ${y}`;
+                                    } else {
+                                        [x, y] = i;
+                                        area += `${x} ${y},`;
+                                    }
+                                }
+                                area += '))';
+                            }
+                            data = {
+                                area,
+                                duration: 1,
+                                startTime: moment(SYSTEM_TIME).subtract(1, 'month').format('YYYY-MM-DD 08:00:00'),
+                                endTime: moment(SYSTEM_TIME).add(3, 'd').format('YYYY-MM-DD HH:00:00')
+                            };
+                        }
+
+                        var m_index = layer.msg("加载中...", {
+                            icon: 16,
+                            time: 8000
+                        });
+                        ajaxCallJson(data, '/floodSituation/area/fore', function (result) {
+                            layer.close(m_index)
+                            if (openType == "KjfxMax1") {
+                                myWindow1 = new MyWindow($('#monitor-kjfx-chart1'), {
+                                    title: '1小时降水预报' || ''
+                                });
+                                myWindow1.dom.css("z-index", "1501")
+                                myWindow1.show();
+                                myWindow1.resizecbfn(function () {
+                                    KjfxMaxChart1.resize();
+                                });
+                            }
+                            if (openType == "KjfxMax2") {
+                                myWindow2 = new MyWindow($('#monitor-kjfx-chart2'), {
+                                    title: '24小时降水预报' || ''
+                                });
+                                myWindow2.dom.css("z-index", "1501")
+                                myWindow2.show();
+                                myWindow2.resizecbfn(function () {
+                                    KjfxMaxChart2.resize();
+                                });
+                            }
+                            showKjfx(result, openType);
+                        });
+                    } catch (e) {
+                        console.log(e)
+                    }
+                }
+
+                function showKjfx(result, openType) {
+                    var foreData = result.data;
+                    var foredata1 = {
+                        avgdrp: foreData.avgdrp,
+                        drp: foreData.drp,
+                        maxdrp: foreData.maxdrp,
+                        maxtm: foreData.maxtm,
+                        mindrp: foreData.mindrp,
+                        mintm: foreData.mintm,
+                        newtm: foreData.newtm,
+                        sumdrp: foreData.sumdrp,
+                        tm: foreData.tm,
+                    }
+                    var foredata2 = {
+                        avgdrp: foreData.avgdrp,
+                        drp: foreData.drpDay,
+                        maxdrp: foreData.maxdrp,
+                        maxtm: foreData.maxtm,
+                        mindrp: foreData.mindrp,
+                        mintm: foreData.mintm,
+                        newtm: foreData.newtm,
+                        sumdrp: foreData.sumdrp,
+                        tm: foreData.tmDay,
+                    }
+                    if (openType == "KjfxMax1") {
+                        disposeKjfxChart();
+                        kjfx1Chart = createKjfxChartMax(title, 'kjfx-chart-chart1', foredata1, "KjfxMax1");
+                    }
+                    if (openType == "KjfxMax2") {
+                        disposeKjfxChart();
+                        kjfx2Chart = createKjfxChartMax(title, 'kjfx-chart-chart2', foredata2, "KjfxMax2");
+                    }
+                    if (openType == "Kjfx") {
+                        disposeKjfxMiniChart();
+                        miniKjfx1Chart = createKjfxChartMini(title, 'kjfx-mini-chart1', foredata1, "Kjfx1");
+                        miniKjfx2Chart = createKjfxChartMini(title, 'kjfx-mini-chart2', foredata2, "Kjfx2");
+                    }
+
+                }
+
+                function disposeKjfxMiniChart() {
+                    if (Kjfx1Chart1 != null) {
+                        Kjfx1Chart1.dispose();
+                        Kjfx1Chart1 = null;
+                    }
+                    if (Kjfx1Chart2 != null) {
+                        Kjfx1Chart2.dispose();
+                        Kjfx1Chart2 = null;
+                    }
+
+                }
+
+                function disposeKjfxChart() {
+                    if (KjfxMaxChart1 != null) {
+                        KjfxMaxChart1.dispose();
+                        KjfxMaxChart1 = null;
+                    }
+                    if (KjfxMaxChart2 != null) {
+                        KjfxMaxChart2.dispose();
+                        KjfxMaxChart2 = null;
+                    }
+                }
+
+                function updateGraphic(event) {
+                    var graphic = new Graphic({
+                        geometry: event.geometry,
+                        symbol: editGraphic.symbol
+                    });
+                    graphicsLayer.add(graphic);
+
+                    editGraphic = null;
+                }
+
+                function setUpClickHandler() {
+                    view.on("click", function (event) {
+                        view.hitTest(event).then(function (response) {
+                            var results = response.results;
+                            if (results.length > 0) {
+                                for (var i = 0; i < results.length; i++) {
+                                    if (!editGraphic && results[i].graphic.layer.id === "tempGraphics") {
+                                        editGraphic = results[i].graphic;
+
+                                        graphicsLayer.remove(editGraphic);
+                                        sketchViewModel.update(editGraphic);
+                                        break;
+                                    }
+                                }
+                            }
+                        });
+                    });
+                }
+                let analysisTableWin = new MyWindow($('<div id="analysisTable" style="width:100%;height:100%"><div id="analysisTable-box" style="width:100%;height:100%"><table id="analysisTable-box-table"></table></div></div>'), {
+                    title: ''
+                });
+                var openAnalysisTable = function (titlename, type) {
+                    showTip(0);
+                    analysisTableWin.setTitle(titlename);
+                    analysisTableWin.dom.css("z-index", "1000");
+                    analysisTableWin.show();
+                    $('#analysisTable-box-table').bootstrapTable('destroy');
+                    ajaxCallJson({
+                        type: type
+                    }, '/spaceAnalysis/analysis', function (result) {
+                        $('#analysisTable-box-table').bootstrapTable('load', result);
+                        const option = {
+                            columns: result.columnTxt,
+                            height: $("#analysisTable").height(),
+                            data: result.rows,
+                            pagination: false,
+                            pageNumber: 1, //初始化加载第一页，默认第一页
+                            search: false,
+                        };
+                        $('#analysisTable-box-table').bootstrapTable(option);
+                        showTip(2);
+                    });
+                }
+
+                $('body').on('dblclick', "#analysisTable-box-table tbody tr", function () {
+                    var geom = $(this).find(".geomHideData").html();
+                    var code = $(this).find(".xzqhHideData").html();
+                    var name = $(this).find("td").eq(1).html();
+                    // var area = geom.substring("13", geom.length - 1).split(",").map(function (ele) {
+                    //     return ele.replace("((", "").replace("))", "").replace(")", "").replace("(", "").split(" ")
+                    // })
+                    var arr = geom.split(",");
+                    var area = [
+                        [arr[0], arr[1]],
+                        [arr[2], arr[3]]
+                    ];
+                    flyToArea(area);
+                    $(".kjfx-box-title-name").empty();
+                    $(".kjfx-box-title-name").append(name);
+                    loadAreaAnalysisByCode(true, code);
+                    analysisTableWin.hide();
+                })
+
+                $('body').on('click', ".showDetailChart", function () {
+                    var geom = $(this).parent().parent().find(".geomHideData").html();
+                    var code = $(this).parent().parent().find(".xzqhHideData").html();
+                    var name = $(this).parent().parent().find("td").eq(1).html();
+                    // var area = geom.substring("13", geom.length - 1).split(",").map(function (ele) {
+                    //     return ele.replace("((", "").replace("))", "").replace(")", "").replace("(", "").split(" ")
+                    // })
+                    var arr = geom.split(",");
+                    var area = [
+                        [arr[0], arr[1]],
+                        [arr[2], arr[3]]
+                    ];
+                    flyToArea(area);
+                    $(".kjfx-box-title-name").empty();
+                    $(".kjfx-box-title-name").append(name);
+                    loadAreaAnalysisByCode(true, code);
+                    analysisTableWin.hide();
+                })
+
+                var xzqPointButton = document.getElementById("xzqPointButton");
+                xzqPointButton.onclick = function () {
+                    openAnalysisTable("行政区分析", 1)
+                };
+
+
+                var xzqPolygonButton = document.getElementById("xzqPolygonButton");
+                xzqPolygonButton.onclick = function () {
+                    openAnalysisTable("流域分析", 2)
+                };
+
+
+
+                var drawPointButton = document.getElementById("pointButton");
+                drawPointButton.onclick = function () {
+                    sketchViewModel.reset();
+                    graphicsLayer.removeAll();
+                    pointType = 1;
+                    sketchViewModel.create("point");
+                    setActiveButton(this);
+                };
+
+
+                var drawPolygonButton = document.getElementById("polygonButton");
+                drawPolygonButton.onclick = function () {
+                    sketchViewModel.reset();
+                    graphicsLayer.removeAll();
+                    sketchViewModel.create("polygon");
+                    setActiveButton(this);
+                };
+
+                var drawPolygonButton = document.getElementById("addpointBtn");
+                drawPolygonButton.onclick = function () {
+                    sketchViewModel.reset();
+                    graphicsLayer.removeAll();
+                    pointType = 2;
+                    sketchViewModel.create("point");
+                    setActiveButton(this);
+                };
+
+                document.getElementById("resetBtn").onclick = function () {
+                    sketchViewModel.reset();
+                    graphicsLayer.removeAll();
+                    setActiveButton();
+                    if (map.findLayerById('featurePoint13top')) {
+                        map.remove(map.findLayerById('featurePoint13top'))
+                    }
+                };
+
+                function setActiveButton(selectedButton) {
+                    view.focus();
+                    view.graphics.removeAll();
+                    var elements = document.getElementsByClassName("active");
+                    for (var i = 0; i < elements.length; i++) {
+                        elements[i].classList.remove("active");
+                    }
+                    if (selectedButton) {
+                        selectedButton.classList.add("active");
+                    }
+                }
+            });
+        };
+    }
+)

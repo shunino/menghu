@@ -1,0 +1,258 @@
+// $(function () {
+//   $('#chart').css('background-color', ' black')
+//   $('#chart').radarChart({
+//     size: [1320, 600],
+//     step: 1,
+//     title: "水库周边图",
+//     max: 10,
+//     values: {
+//       "啊哈水库": [1, 30, 0],
+//       "观马洞水库": [3.5, 45],
+//       "花溪水库": [8, 60],
+//       "三江水库": [4, 90],
+//       "下坝水库": [2.5, 180],
+//       "紫江水电站": [6, 240],
+//       "龙摊水库": [7.6, 300],
+//     },
+//   });
+// });
+
+(function ($) {
+
+  var Radar = (function () {
+
+    function Radar(ele, settings) {
+      this.ele = ele;
+      this.settings = $.extend({
+        title: "Untitled",
+        step: 1,
+        max: 10,
+        size: [500, 500],
+        values: {},
+        showAxisLabels: true,
+      }, settings);
+      this.width = settings.size[0];
+      this.height = settings.size[1];
+      this.max = Math.ceil(settings.max);
+      $(ele).css({
+        'position': 'relative',
+        'width': this.width,
+        'height': this.height
+      });
+      this.canvases = {};
+      this.points = [];
+      this.draw();
+    }
+
+    Radar.prototype.newCanvas = function (name, delay = 0) {
+      const canvas = document.createElement('canvas');
+      canvas.width = this.width;
+      canvas.height = this.height;
+      $(canvas).css({
+        'position': 'absolute'
+      });
+      this.canvases[name] = canvas;
+      this.ele.appendChild(canvas);
+      this.cxt = canvas.getContext('2d');
+      if (delay != 0) {
+        $(canvas).css('opacity', 0).delay(delay).animate({
+          opacity: 1
+        }, 500);
+      }
+    }
+
+    Radar.prototype.addPoint = function (circle, r, key) {
+      this.points.push({
+        circle,
+        r,
+        key
+      })
+    }
+
+    /** 
+     *  判断一个点是否在圆的内部 
+     *  @param point  测试点坐标 
+     *  @param circle 圆心坐标 
+     *  @param r 圆半径 
+     *  返回true为真，false为假 
+     *  */
+    Radar.prototype.pointInsideCircle = function (point, circle, r) {
+      if (r === 0) return false
+      const dx = circle[0] - point[0]
+      const dy = circle[1] - point[1]
+      return dx * dx + dy * dy <= r * r
+    }
+
+    Radar.prototype.isPoint = function (point) {
+      let key = [];
+      for (let i of this.points) {
+        if (this.pointInsideCircle(point, i.circle, i.r)) {
+          key.push(i.key);
+        }
+      }
+      return key.length <= 0 ? false : key;
+    }
+
+    Radar.prototype.draw = function () {
+      const max = this.max; //最大搜索半径
+      const spacing = this.height <= this.width ? this.height / 2 * 0.8 : this.width / 2 * 0.9; //大圆的半径
+      const scale = spacing / max; //比例尺
+
+      this.newCanvas('axis', 100); //加载底层图层
+      for (let i = 0, r = 0; i <= max; i += max / 5, r += spacing / 5) {
+        this.cxt.beginPath();
+        this.cxt.arc(this.width / 2, this.height / 2, r, 0, 2 * Math.PI, false);
+        this.cxt.fillStyle = "white";
+        this.cxt.strokeStyle = "white";
+        this.cxt.stroke();
+        if (this.settings.showAxisLabels) {
+          this.cxt.fillText(i, this.width / 2 + r + 4, this.height / 2 - 2);
+          this.cxt.fillText(i, this.width / 2 + 4, this.height / 2 - r - 2);
+        }
+      }
+
+      this.cxt.beginPath();
+      this.cxt.arc(this.width / 2, this.height / 2, this.settings.step * 5, 0, 2 * Math.PI, false);
+      this.cxt.fillStyle = `red`;
+      this.cxt.strokeStyle = "white";
+      this.cxt.stroke();
+      this.cxt.fill();
+
+      if (this.settings.showAxisLabels) {
+        this.cxt.beginPath();
+        this.cxt.fillStyle = "white";
+        this.cxt.strokeStyle = "white";
+        this.cxt.moveTo(this.width / 2 - spacing * 1.2, this.height / 2);
+        this.cxt.lineTo(this.width / 2 + spacing * 1.2, this.height / 2);
+        this.cxt.stroke();
+
+        this.cxt.beginPath();
+        this.cxt.fillStyle = "white";
+        this.cxt.strokeStyle = "white";
+        this.cxt.moveTo(this.width / 2, this.height / 2 - spacing * 1.2);
+        this.cxt.lineTo(this.width / 2, this.height / 2 + spacing * 1.2);
+        this.cxt.stroke();
+
+        this.cxt.fillStyle = "white";
+        this.cxt.fillText(`单位:km`, this.width / 2 + spacing * 1.2 + 4, this.height / 2 - 2);
+        this.cxt.fillText(`单位:km`, this.width / 2 + 4, this.height / 2 - spacing * 1.2 - 2);
+      }
+
+      this.newCanvas('part', 200); //加载点
+      const that = this;
+      $.each(this.settings.values, function (key, val) {
+        const x = that.width / 2 + Math.cos((Math.PI * 2 / 360) * val[1]) * scale * val[0];
+        const y = that.height / 2 - Math.sin((Math.PI * 2 / 360) * val[1]) * scale * val[0];
+
+        that.addPoint([
+            x,
+            y,
+          ],
+          that.settings.step * 15,
+          key
+        );
+
+        if (val[2]) {
+          var img = new Image()
+          const png = val[3] = !'error' ? val[3] : val[2] == 4 || val[2] == 5 ? 0 : 5;
+          img.src = `/images/mapIcon/${val[2]<10?`0${val[2]}`:val[2]}/${png}.png`;
+          img.onload = function () {
+            that.cxt.drawImage(this, x - 15, y - 15);
+          }
+        } else {
+          that.cxt.beginPath();
+          that.cxt.arc(x, y, that.settings.step * 15, 0, 2 * Math.PI, false);
+          that.cxt.fillStyle = `rgba(0, 128, 255)`;
+          that.cxt.stroke();
+          that.cxt.fill();
+        }
+      });
+
+      this.newCanvas('labels'); //加载点名称
+      // let size = 0;
+      // for (let key in this.settings.values) {
+      //   size += 1;
+      // }
+      // $.each(this.settings.values, function (key, val) {
+      //   that.cxt.fillStyle = "white";
+      //   that.cxt.strokeStyle = "white";
+      //   that.cxt.font = "bold 12px Verdana";
+      //   const x = that.width / 2 + Math.cos((Math.PI * 2 / 360) * val[1]) * scale * val[0];
+      //   const y = that.height / 2 - Math.sin((Math.PI * 2 / 360) * val[1]) * scale * val[0];
+
+      //   let textX = that.width / 2 + Math.cos((Math.PI * 2 / 360) * val[1]) * scale * val[0];
+      //   let textY = that.height / 2 - Math.sin((Math.PI * 2 / 360) * val[1]) * scale * val[0] * 1.2;
+
+      //   if (textX < that.width / 2) {
+      //     textX -= 75
+      //     that.cxt.textAlign = "end";
+      //     that.cxt.beginPath();
+      //     const width = that.cxt.measureText(key).width;
+      //     that.cxt.moveTo(textX - width - 5, textY + 4);
+      //     that.cxt.lineTo(textX + 15, textY + 4);
+      //     that.cxt.lineTo(x - 2, y);
+      //     that.cxt.lineWidth = 1;
+      //     that.cxt.stroke();
+      //   } else {
+      //     textX += 75
+      //     that.cxt.textAlign = "start";
+      //     that.cxt.beginPath();
+      //     const width = that.cxt.measureText(key).width;
+      //     that.cxt.moveTo(x + 2, y);
+      //     that.cxt.lineTo(textX - 15, textY + 4);
+      //     that.cxt.lineTo(textX + width + 5, textY + 4);
+      //     that.cxt.lineWidth = 1;
+      //     that.cxt.stroke();
+      //   }
+      //   that.cxt.fillText(key, textX, textY);
+      // });
+
+      this.newCanvas('title', 1000);
+      this.cxt.font = "bold 24px Verdana";
+      this.cxt.fillStyle = "white";
+      this.cxt.fillText(this.settings.title, 10, 30);
+    }
+
+    return Radar;
+
+  })();
+
+  $.fn.radarChart = function (settings) {
+    let radar, labels, cxt;
+    let isTimeinterval = false;
+    this.each(function (i, ele) {
+      radar = new Radar(ele, settings);
+      radar.canvases.part.style.zIndex = 1;
+      radar.canvases.labels.style.zIndex = 2;
+      labels = radar.canvases.labels;
+      cxt = labels.getContext("2d");
+    })
+
+    this.on("mousemove", function (e) {
+      if (isTimeinterval) return
+      else {
+        isTimeinterval = true
+        setTimeout(function () {
+          isTimeinterval = false
+        }, 50);
+      }
+      const bbox = this.getBoundingClientRect();
+      const points = [
+        x = (e.clientX - bbox.left) * (this.lastChild.width / bbox.width),
+        y = (e.clientY - bbox.top) * (this.lastChild.height / bbox.height)
+      ];
+      const key = radar.isPoint(points);
+      cxt.clearRect(0, 0, labels.width, labels.height);
+      if (key) {
+        cxt.font = "12px Arial";
+        cxt.fillStyle = "white";
+        let text = '';
+        for (let i of key) {
+          text += `${i} `;
+        }
+        cxt.fillText(text, points[0] - cxt.measureText(text).width / 2, points[1] - 24);
+      }
+    });
+  };
+
+})(jQuery);

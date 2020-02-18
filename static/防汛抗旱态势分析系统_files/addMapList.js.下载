@@ -1,0 +1,779 @@
+let propertiesWin = new MyWindow('<div  id="base-properties-div" style="width: 99%;margin-left: 0.5%;height: 100%;margin-top: 10px"><div style="width: 62px;position: absolute;right: 50px;display: flex;flex-direction: column;" id="export-properties-data" ></div><table id="base-properties-table"  style="font-size: 16px;cursor: pointer;word-break: "></table></div>', {
+  title: '对象属性表'
+});
+let damBreakWin = new MyWindow('<div  id="dam-break-div" ><table id="dam-break-div-table"  style="cursor: pointer; width: 100%;height: 100%"></table></div>', {
+  headDbClick: false,
+  isRestore: false,
+  isMax: false,
+});
+let warnDataImmediate;
+let MapListTip;
+let sttype;
+let motype;
+let severity = '';
+let defaultSeverity = '';
+let pageNow = 1;
+let pageSize = 100;
+let tableSearchKey = '';
+let Maxpage;
+let ListHeight;
+let tableAdcd;
+let adcdUser;
+let drnaType;
+let tableName;
+let listChecked;
+let warningType;
+
+$(function () {
+  note.on("subject.data.load", (event, subject) => {
+    if (subject.code == "01" || subject.code == "04" || subject.code == "05" || subject.code == "15" || subject.code == "09" || subject.code == "14" || subject.code == "16" || subject.code == "30" || subject.code == "31,32" || subject.code == "33" || subject.code == "hpzhyhd") {
+      pageNow = 1;
+      pageSize = 100;
+      tableSearchKey = '';
+      tableAdcd = '';
+      listChecked = '';
+      sttype = subject.sttype;
+      motype = subject.code;
+      tableName = subject.label;
+      showMapListLayer();
+      propertiesWin.dom.css("z-index", "999");
+    } else {
+      layer.msg('暂无数据', {
+        time: 600
+      })
+    }
+  })
+
+  note.on("subject.data.Immediate", (event, subject) => {
+    pageNow = 1;
+    pageSize = 100;
+    adcdUser = '';
+    tableAdcd = '';
+    drnaType = -1;
+    motype = subject.code;
+    tableName = subject.label;
+    sttype = subject.sttype;
+    warningType = subject.type;
+    listChecked = '';
+    showMapListImmediate();
+    propertiesWin.dom.css("z-index", "999");
+  })
+
+  note.on("subject.change", (e, subject) => {
+    if (subject.id === "26") { //调度
+      var station = {
+        motype: "31,32",
+        sttype: ""
+      }
+      if (checkStation) {
+        clearCurrentPointForMap(checkStation);
+        clearCurrentParam(checkStation);
+        clearCurrentParamObj(gloablePointTypeObj, station); //删除取消的地图上存在的点的全局参数对象
+      }
+      checkStation = station
+      toAddMap(station, "notype");
+      pageNow = 1;
+      tableSearchKey = '';
+      tableAdcd = '';
+      motype = "31,32";
+      sttype = "";
+      // showMapListLayer();
+      showDispatchLayer();
+      $('#real-scene-query-win').hide(600);
+    } else if (subject.id === "27") { //三维场景
+      var station = {
+        motype: "33",
+        sttype: ""
+      }
+      if (checkStation) {
+        clearCurrentPointForMap(checkStation);
+        clearCurrentParam(checkStation);
+        clearCurrentParamObj(gloablePointTypeObj, station); //删除取消的地图上存在的点的全局参数对象
+      }
+      checkStation = station;
+      toAddMap(station, "notype");
+      pageNow = 1;
+      tableSearchKey = '';
+      tableAdcd = '';
+      motype = "33";
+      sttype = "";
+      showRealScene();
+      $('#dispatch-query-win').hide(600);
+    } else {
+      if (gloablePointTypeObj.length > 0) {
+        for (var i = 0; i < gloablePointTypeObj.length; i++) {
+          var index = gloablePointTypeObj[i];
+          if (index.motype == "33") {
+            index.motype = "";
+          }
+          if (index.motype == "31,32") {
+            index.motype = "";
+          }
+        }
+      }
+      if (checkStation) {
+        clearCurrentPointForMap(checkStation);
+        clearCurrentParam(checkStation);
+        clearCurrentParamObj(gloablePointTypeObj, station); //删除取消的地图上存在的点的全局参数对象
+      }
+      $('#dispatch-query-win').hide(600);
+      $('#real-scene-query-win').hide(600);
+    }
+    // if (subject.id === "28") {//图像
+    //   window.open('/aaaa',"_blank");
+    // }
+  });
+
+});
+$('#dispatch-query-close').click(function () {
+  $('#dispatch-query-win').hide(600);
+});
+$('#real-scene-query-close').click(function () {
+  $('#real-scene-query-win').hide(600);
+});
+
+function showRealScene() {
+  var wq_win = $("#real-scene-query-win");
+  $("#real-scene-query-win").css("display", "block");
+  const end = `${today} 00:00:00`
+  let page = {
+    pageNow,
+    pageSize
+  };
+  const params = {
+    type: adcdUser,
+    sttype,
+    motype,
+    adcd: tableAdcd,
+    key: tableSearchKey,
+    end,
+    page
+  };
+  ajaxCallJson(params, '/warning/getTableObjectInfo', function (res) {
+    if (!res.info && tableSearchKey) {
+      showTip(1)
+      tableSearchKey = '';
+      return;
+    }
+    if (res.flag) {
+      $('#real_scene_warn_table').bootstrapTable('destroy');
+      var columns = res.info.columnTxt;
+      var option = {
+        columns: columns,
+        data: res.info.rows,
+        pagination: true,
+        pageNumber: 1, //初始化加载第一页，默认第一页
+        pageSize: 8, //每页的记录行数（*）
+        pageList: [8]
+      };
+      $('#real_scene_warn_table').bootstrapTable('load', res.info.rows);
+      $('#real_scene_warn_table').bootstrapTable(option);
+      $('#real_scene_warn_table').on('dbl-click-row.bs.table', function (event, obj) {
+        if (obj && obj.lgtd && obj.lttd) {
+          goToGraphisc([obj.lgtd, obj.lttd]);
+          wq_win.hide();
+        }
+      });
+      WindowManager.windowToCenter(wq_win);
+    } else {
+      showTip(1)
+    }
+  })
+}
+
+function showDispatchLayer() {
+  var wq_win = $("#dispatch-query-win");
+  $("#dispatch-query-win").css("display", "block");
+  const end = `${today} 00:00:00`
+  let page = {
+    pageNow,
+    pageSize
+  };
+  const params = {
+    type: adcdUser,
+    sttype,
+    motype,
+    adcd: tableAdcd,
+    key: tableSearchKey,
+    end,
+    page
+  };
+  ajaxCallJson(params, '/warning/getTableObjectInfo', function (res) {
+    if (!res.info && tableSearchKey) {
+      showTip(1)
+      $("#dispatch-query-win").css("display", "none");
+      tableSearchKey = '';
+      return;
+    }
+    if (!res.info) {
+      showTip(1)
+      tableSearchKey = '';
+      $("#dispatch-query-win").css("display", "none");
+      return;
+    }
+    if (res.flag) {
+      $("#dispatch-query-win").css("display", "block");
+      $('#dispatch_warn_table').bootstrapTable('destroy');
+      var columns = res.info.columnTxt;
+      var option = {
+        columns: columns,
+        data: res.info.rows,
+        pagination: true,
+        pageNumber: 1, //初始化加载第一页，默认第一页
+        pageSize: 8, //每页的记录行数（*）
+        pageList: [8]
+      };
+      $('#dispatch_warn_table').bootstrapTable('load', res.info.rows);
+      $('#dispatch_warn_table').bootstrapTable(option);
+      $('#dispatch_warn_table').on('dbl-click-row.bs.table', function (event, obj) {
+        if (obj && obj.lgtd && obj.lttd) {
+          if (obj.point.mocd !== "DD_CJ") {
+            goToGraphisc([obj.lgtd, obj.lttd]);
+          }
+          wq_win.hide();
+          if (obj.point.type === "31") {
+            loadRiverUnionDispatch();
+          }
+          if (obj.point.type === "32" && obj.point.mocd !== "DD_CJ") {
+            note.notify("scheduling.generalized.open", obj.point.stcd);
+          }
+          if (obj.point.mocd === "DD_CJ") {
+            note.notify("scheduling.yangtze.open");
+          }
+        }
+      });
+      WindowManager.windowToCenter(wq_win);
+    } else {
+      showTip(1)
+    }
+  })
+
+}
+
+const showMapListLayer = function () {
+  showTip(0);
+  const params = {
+    type: adcdUser,
+    sttype,
+    motype,
+    adcd: tableAdcd,
+    key: tableSearchKey,
+    end: `${today} 00:00:00`,
+    page: {
+      pageNow,
+      pageSize
+    }
+  };
+  const path = motype == "hpzhyhd" ? '/warning/getDangerPointsByPage' : '/warning/getTableObjectInfo';
+  ajaxCallJson(params, path, function (res) {
+    if (!res.info && tableSearchKey) {
+      showTip(1);
+      tableSearchKey = '';
+      return;
+    }
+    $('#base-properties-table').bootstrapTable('destroy');
+    if (res.flag) {
+      const path = motype == "hpzhyhd" ? '/warning/countLandslidePoint' : '/warning/countObjectByType';
+      ajaxCallJson(params, path, function (res1) {
+        let data = res.info;
+        data.adcd = res1.info;
+
+        adcdUser = res1.type || '';
+        const methodType = 'MapList';
+        creatTabledata(data, methodType);
+        $(".window-title").html(`${tableName} (${data.Num.total})`);
+      })
+    } else {
+      propertiesWin.hide();
+      showTip(1);
+    }
+  })
+}
+
+async function showMapListImmediate() {
+  showTip(0);
+  const params = {
+    type: adcdUser,
+    areacode: tableAdcd,
+    wlevel: drnaType,
+    motype,
+    sttype,
+    startTime: `${today} 00:00:00`,
+    endTime: `${today} 24:00:00`,
+    pageNow,
+    pageSize,
+  };
+  let data, flag = false;
+  if (warningType == 1) {
+    await new Promise(function (resolve, reject) {
+      ajaxCallJson(params, '/warning/getRealRecordList', function (res) {
+        if (res.flag) {
+          flag = true;
+          data = res.info;
+          adcdUser = res.type;
+          resolve(res.info);
+        } else {
+          propertiesWin.hide();
+          showTip(1);
+          reject('获取告警信息失败！');
+        }
+      })
+    }).catch(e => console.log(e));
+  } else if (warningType == 2) {
+    await new Promise(function (resolve, reject) {
+      ajaxCallJson(params, '/warning/findTopwarningList', function (res) {
+        if (res.flag) {
+          flag = true;
+          data = res.info;
+          adcdUser = res.type;
+          resolve(res.info);
+        } else {
+          propertiesWin.hide();
+          showTip(1);
+          reject('获取预警信息失败！');
+        }
+      })
+    }).catch(e => console.log(e));
+  }
+  if (flag) {
+    ajaxCallJson(params, '/warning/getAlarmWarningCountByUser', function (res1) {
+      $('#base-properties-table').bootstrapTable('destroy');
+      res1.flag && (data.adcd = res1.info);
+      const methodType = 'MapList_Immediate';
+      creatTabledata(data, methodType);
+      $(".window-title").html(`${tableName} (${data.Num.total})`);
+      return data;
+    })
+  }
+}
+
+//创建数据表格
+const creatTabledata = function (list, methodType) {
+  if (list == undefined || list.rows.length == 0) {
+    propertiesWin.hide();
+    showTip(1);
+    return;
+  }
+  for (let i of list.rows) {
+    i.Num = i.Num + (pageNow - 1) * pageSize;
+  }
+  propertiesWin.show();
+  // for (let i of list.columnTxt) {
+  //   i['align'] = "center";
+  // }
+  $('#base-properties-table').bootstrapTable('load', list);
+  ListHeight = 0;
+  $('#base-properties-div').css('width', '99%').css('float', null);
+  const option = {
+    columns: list.columnTxt,
+    height: $("#base-properties-div").height() - 57,
+    data: list.rows,
+    pagination: false,
+    pageNumber: 1, //初始化加载第一页，默认第一页
+    pageSize: 12, //每页的记录行数（*）
+    pageList: [15],
+    search: false,
+  };
+  $('#base-properties-table').bootstrapTable(option);
+  // $('.search').removeClass("pull-right");
+  // $('.search').css("float", "left");
+  // $('.form-control').css("background-color", "rgba(12, 47, 77, 0.7)").css("color", "#00A8FF").css("border", "none");
+  if (methodType == 'MapList' || methodType == 'Warning' || methodType == 'MapList_Immediate') {
+    $('#base-properties-table').unbind().on('dbl-click-row.bs.table', function (event, obj) {
+      if (obj && obj.lgtd && obj.lttd) {
+        goToGraphisc([obj.lgtd, obj.lttd]);
+        propertiesWin.hide();
+      }
+      if (obj.point) {
+        const type = obj.pointType || motype;
+        const point = obj.point;
+        loadingMapPoints(type, point);
+        clearRiskMapPoint("searchDbClickPoint");
+        addRiskPointToMap({ "mapdata": [obj.mapInfo], "name": "searchDbClickPoint" });
+        propertiesWin.hide();
+      }
+    })
+  }
+  Maxpage = Math.ceil(list.Num.total / pageSize);
+  let tablefoot = `
+  <div id='jumpTool' style="margin-top: 10px" methodType='${methodType}'>
+    <span><a id='jumpTool-first' onclick='tableJump(id)'>首页 </a></span>
+    <span><a id='jumpTool-previous' onclick='tableJump(id)'>上一页 </a></span>
+    <span><a id='jumpTool-jump' onclick='tableJump(id)'>转到 </a></span>
+    <span>第<input id='jumpTool-index' style="color: black;text-align: right;width: 50px;" value='${pageNow}'>页/共${Maxpage}页 </span>
+    <span>每页共
+      <ul style="display: inline-grid;">
+        <li><a id='jumpTool-size'  onclick='tableJump(id)'>${pageSize}</a></li>
+        <li><a class='pageSize-change'>100</a></li>
+        <li><a class='pageSize-change'>200</a></li>
+        <li><a class='pageSize-change'>500</a></li>
+      </ul>
+      条数据 </span>
+    <span><a id='jumpTool-next' onclick='tableJump(id)'>下一页 </a></span>
+    <span><a id='jumpTool-last' onclick='tableJump(id)'>尾页</a></span>`;
+  if (methodType == 'MapList' || methodType == 'Warning' || methodType == 'warnData') {
+    tablefoot += `
+    <div class='table-tool-search'>	
+      <input id='tableSearchText' type="text" class='tool-search-input' placeholder="搜索..." value="${tableSearchKey}">
+    </div>`
+  }
+  tablefoot += `</div>`;
+  $('#jumpTool').remove();
+  $('#base-properties-div .bootstrap-table').after(tablefoot);
+
+  $('#jumpTool-index').keydown(function (e) {
+    if (e.keyCode == 13) {
+      tableJump('jumpTool-jump');
+    }
+  });
+
+  $('.pageSize-change').on('click', function (e) {
+    pageSize = e.target.innerHTML;
+    pageNow = 1;
+    executionMethod(methodType);
+  })
+
+  $('#tableSearchText').keydown(function (e) {
+    if (e.keyCode == 13) {
+      tableSearchKey = $('#tableSearchText').val();
+      pageNow = 1;
+      executionMethod(methodType);
+    }
+  });
+
+  if (methodType == 'warnData') {
+    $('#base-properties-table').unbind().on('click-row.bs.table', function (event, obj) {
+      if (obj && obj.Num) {
+        layer.close(warnDataImmediate);
+        const content = `
+        <p>正文：${obj.description}</p><br>
+        <p>预警区域：${obj.province + obj.prefecture + obj.county}</p>
+        `;
+        showDetailWarningData(obj.headline, content);
+      }
+    })
+  }
+  $('.clearfix').remove();
+  $('#alarmInfoList').remove();
+  $('#adcdInfoTable').remove();
+  if (methodType == 'warnData') {
+    let text = `
+      <div id='alarmInfoList'>
+        <span class='redAlarm' AlramNum='${list.Num.red}'>红色预警：${list.Num.red}</span>
+        <span class='orangeAlarm' AlramNum='${list.Num.orange}'>橙色预警：${list.Num.orange}</span>
+        <span class='yellowAlarm' AlramNum='${list.Num.yellow}'>黄色预警：${list.Num.yellow}</span>
+        <span class='blueAlarm' AlramNum='${list.Num.blue}'>蓝色预警：${list.Num.blue}</span>
+      </div>`;
+    $('#base-properties-div').before(text);
+    ListHeight = $("#alarmInfoList").height() || 0;
+    $('#alarmInfoList').unbind().on('click', 'span', function (event, obj) {
+      if ($(this).attr('AlramNum') <= 0) return;
+      const css = $(this).attr('class');
+      severity = css == 'redAlarm' ? 'Red' : css == 'orangeAlarm' ? 'Orange' : css == 'yellowAlarm' ? 'Yellow' : css == 'blueAlarm' ? 'Blue' : '';
+      executionMethod(methodType);
+    })
+  }
+  if (methodType == 'Warning' || methodType == 'MapList' || methodType == 'MapList_Immediate') {
+    let text = `<div id='adcdInfoTable'>`
+    text += `<ul class='table-userType'><li userType=1  style="height: 34px;line-height: 34px">行政区</li><li userType=2 style="height: 34px;line-height: 34px">流域</li></ul>`;
+    if (methodType == 'Warning' && motype == 3) {
+      text += `<table><thead>`;
+      text += `<tr><th rowspan=2>${adcdUser == 1 ? '区域' : '流域'}</th><th rowspan=2>预警数量</th><th colspan=8>流域面积(平方公里)</th></tr>`;
+      text += `<tr><th><5</th><th>5~10</th><th>10~100</th><th>100~200</th><th>200~500</th><th>500~1000</th><th>1000~3000</th><th>>3000</th></tr>`;
+      text += `</thead><tbody>`;
+      for (let i of list.adcd) {
+        text += `<tr data-adcd='${i.adcd}'><td drnaType=0>${i.name}</td><td drnaType=0>${i.alarm}</td><td drnaType=1>${i.Num.Num1}</td><td drnaType=2>${i.Num.Num2}</td><td drnaType=3>${i.Num.Num3}</td><td drnaType=4>${i.Num.Num4}</td><td drnaType=5>${i.Num.Num5}</td><td drnaType=6>${i.Num.Num6}</td><td drnaType=7>${i.Num.Num7}</td><td drnaType=8>${i.Num.Num8}</td></tr>`;
+      }
+      text += `</tbody></table></div>`;
+      $('#base-properties-div').before(text);
+      $("#adcdInfoTable").height(list.adcd.length > 3 ? 188 : null);
+      list.adcd.length > 3 ? $("#adcdInfoTable tbody").height(90).addClass('showScrollBar') : $("#adcdInfoTable tbody").removeClass('showScrollBar');
+      $($("#adcdInfoTable tbody tr")[listChecked]).addClass('checked');
+      $($('#adcdInfoTable li')[adcdUser - 1]).addClass('tableSelection');
+      $('#adcdInfoTable').css('width', '99%');
+      $('#adcdInfoTable .table-userType li').css('width', '9%');
+      ListHeight = $("#adcdInfoTable").height() || 0;
+
+      $('#adcdInfoTable').unbind().on('click', 'td', function (event, obj) {
+        const that = $(this).parent();
+        const adcd = that.attr('data-adcd');
+        const count = $(this).html();
+        const type = $(this).attr('drnaType');
+        if (adcd && (type == 0 || count > 0)) {
+          pageNow = 1;
+          tableSearchKey = '';
+          tableAdcd = adcd;
+          drnaType = type;
+          listChecked = $("#adcdInfoTable tbody tr").index(that);
+          executionMethod(methodType);
+        }
+      })
+    } else if (methodType == 'MapList_Immediate') {
+      text += `<table><thead>`;
+      text += `<tr><th rowspan=2>${adcdUser == 1 ? '区域' : '流域'}</th><th rowspan=2>告警数量</th><th colspan=2>告警</th><th rowspan=2>预警数量</th><th colspan=4>预警</th></tr>`;
+      text += `<tr>${motype == '15' ? '<th>超警戒水位</th><th>超保证水位</th>' : '<th>超汛限水位</th><th>超正常水位</th>'}<th>小洪水</th><th>中洪水</th><th>大洪水</th><th>特大洪水</th></tr>`;
+      text += `</thead><tbody>`;
+      for (let i of list.adcd) {
+        text += `<tr data-adcd='${i.code}'><td>${i.name}</td><td Type=1 drnaType=-1>${i.alarmTotal}</td>${motype == '15' ? `<td Type=1 drnaType=2>${i.alarmCount2}</td><td Type=1 drnaType=1>${i.alarmCount1}</td>` : `<td Type=1 drnaType=4>${i.alarmCount4}</td><td Type=1 drnaType=3>${i.alarmCount3}</td>`}<td Type=2 drnaType=-1>${i.warningTotal}</td><td Type=2 drnaType=1>${i.warningCount1}</td><td Type=2 drnaType=4>${i.warningCount4}</td><td Type=2 drnaType=6>${i.warningCount6}</td><td Type=2 drnaType=10>${i.warningCount10}</td></tr>`;
+      }
+      text += `</tbody></table></div>`;
+      $('#base-properties-div').before(text);
+      $("#adcdInfoTable").height(list.adcd.length > 3 ? 188 : null);
+      list.adcd.length > 3 ? $("#adcdInfoTable tbody").height(90).addClass('showScrollBar') : $("#adcdInfoTable tbody").removeClass('showScrollBar');
+      $($("#adcdInfoTable tbody tr")[listChecked]).addClass('checked');
+      $($('#adcdInfoTable li')[adcdUser - 1]).addClass('tableSelection');
+      $('#adcdInfoTable').css('width', '99%');
+      $('#adcdInfoTable .table-userType li').css('width', '9%');
+      ListHeight = $("#adcdInfoTable").height() || 0;
+
+      $('#adcdInfoTable').unbind().on('click', 'td', function (event, obj) {
+        const that = $(this).parent();
+        const adcd = that.attr('data-adcd');
+        const count = $(this).html();
+        const type = $(this).attr('Type');
+        if (adcd && count > 0) {
+          pageNow = 1;
+          tableSearchKey = '';
+          warningType = type;
+          drnaType = $(this).attr('drnaType');
+          tableAdcd = adcd;
+          listChecked = $("#adcdInfoTable tbody tr").index(that);
+          executionMethod(methodType);
+        }
+      })
+    }
+    else {
+      text += `<div class='table-List'>`;
+      for (let i of list.adcd) {
+        text += `<span data-adcd='${i.adcd == null ? '' : i.adcd}'>${i.name}(${i.alarm})</span>`;
+      }
+      text += `</div></div>`;
+      $('#base-properties-div').css('width', '84%').css('float', 'left').before(text);
+      $($(".table-List span")[listChecked == '' ? 0 : listChecked]).addClass('checked');
+      $('#adcdInfoTable').css('height', '94%').css('width', '15%');
+      $('#adcdInfoTable .table-userType li').css('width', '50%');
+      ListHeight = 0;
+      $($('#adcdInfoTable li')[adcdUser - 1]).addClass('tableSelection');
+
+      $('#adcdInfoTable').unbind().on('click', 'span', function (event, obj) {
+        const adcd = $(this).attr('data-adcd');
+        pageNow = 1;
+        tableSearchKey = '';
+        listChecked = $(".table-List span").index(this);
+        tableAdcd = adcd;
+        // sttype = '';
+        executionMethod(methodType);
+      })
+    }
+
+    $('#adcdInfoTable').on('click', 'li', function (event, obj) {
+      if ($(this).attr('class') != 'tableSelection') {
+        $(this).addClass('tableSelection');
+        pageNow = 1;
+        tableSearchKey = '';
+        tableAdcd = '';
+        drnaType = 0;
+        listChecked = '';
+        adcdUser = $(this).attr('userType');
+        executionMethod(methodType);
+      }
+    })
+  }
+
+  $('#base-properties-table').bootstrapTable('resetView', {
+    height: $("#base-properties-div").height() - 57 - ListHeight
+  });
+
+  $('.window-max-icon,.window-restore-icon').on('click', function () {
+    $('#base-properties-div .fixed-table-body').height($('.fixed-table-container').height() - $('.fixed-table-header').height());
+  })
+
+  propertiesWin.resizecbfn(function () {
+    $("#base-properties-div").height($('#base-properties-div').parent().height());
+    $('.fixed-table-container').height()
+    $('#base-properties-div .fixed-table-body').height($('.fixed-table-container').height() - 40);
+    $('#alarmInfoList').height(ListHeight);
+    $('#adcdInfoTable').height((methodType == 'Warning' && motype == 3) || methodType == 'MapList_Immediate' ? ListHeight : '94%');
+
+    $('#base-properties-table').bootstrapTable('resetView', {
+      height: $("#base-properties-div").height() - 57 - ListHeight
+    });
+  })
+  showTip(2);
+}
+
+function tableJump(id) {
+  let flag = false;
+  const index = document.getElementById("jumpTool-index").value;
+  switch (id) {
+    case 'jumpTool-first':
+      pageNow = 1;
+      flag = true;
+      break;
+    case 'jumpTool-previous':
+      if (pageNow == 1) return
+      pageNow--;
+      flag = true;
+      break;
+    case 'jumpTool-jump':
+      if (index == pageNow || index < 1 || index > Maxpage) return
+      pageNow = index;
+      flag = true;
+      break;
+    case 'jumpTool-next':
+      if (pageNow == Maxpage) return
+      pageNow++;
+      flag = true;
+      break;
+    case 'jumpTool-last':
+      pageNow = Maxpage;
+      flag = true;
+      break;
+    case 'jumpTool-size':
+      $('.pageSize-change').toggle();
+      break;
+  }
+  if (flag) {
+    const methodType = $('#jumpTool').attr('methodType');
+    executionMethod(methodType);
+  }
+  showTip(2);
+}
+
+function executionMethod(methodType) {
+
+  switch (methodType) {
+    case 'MapList':
+      showMapListLayer();
+      break;
+    case 'Warning':
+      showWarningLayer();
+      break;
+    case 'MapList_Immediate':
+      showMapListImmediate();
+      break;
+    case 'warnData':
+      loadWarningDataList();
+      break;
+  }
+}
+
+function showDetailWarningData(title, content) {
+  warnDataImmediate = layer.open({
+    type: 1,
+    title: title,
+    skin: 'layui-layer-rim Detail-winning-Data',
+    area: ['420px', '240px'],
+    closeBtn: 0,
+    shade: 0,
+    content: content,
+    btn: ['确定'],
+    yes: function () {
+      layer.close(warnDataImmediate);
+    }
+  })
+}
+
+function initWarningDataList() {
+  showTip(0);
+  pageNow = 1;
+  pageSize = 100;
+  clinckAdcd = '';
+  tableSearchKey = '';
+  severity = defaultSeverity;
+  loadWarningDataList();
+  propertiesWin.setTitle('已发布预警信息表');
+  propertiesWin.dom.css("z-index", "999");
+}
+
+function loadWarningDataList() {
+  const today = getTime(getSystemTime());
+  let params = {
+    adcd: clinckAdcd,
+    startTime: moment(today).subtract(8, 'hour').format("YYYY-MM-DD HH:mm:ss"),
+    endTime: moment(today).add(1, 'day').subtract(8, 'hour').format("YYYY-MM-DD HH:mm:ss"),
+    severity,
+    pageNow,
+    pageSize,
+    key: tableSearchKey,
+  };
+  ajaxCallJson(params, '/warning/findWarn', function (res) {
+    if (!res.info && tableSearchKey) {
+      showTip(1)
+      tableSearchKey = '';
+      return;
+    }
+    $('#base-properties-table').bootstrapTable('destroy');
+    if (res.flag) {
+      const methodType = 'warnData';
+      creatTabledata(res.info, methodType);
+    } else {
+      propertiesWin.hide();
+      showTip(1)
+    }
+  })
+}
+
+let tipTimer;
+function showTip(flag) {
+  if (flag == 0) {
+    MapListTip = layer.msg('数据加载中...', {
+      icon: 16
+    });
+    tipTimer = setTimeout(function () {
+      MapListTip = layer.msg("加载超时", {
+        time: 2000
+      });
+    }, 20000);
+  } else if (flag == 1) {
+    clearTimeout(tipTimer);
+    MapListTip = layer.msg("暂无数据", {
+      time: 2000
+    });
+  } else if (flag == 2) {
+    layer.close(MapListTip);
+    clearTimeout(tipTimer);
+  }
+}
+
+function loadingMapPoints(type, point) {
+  switch (type) {
+    case "13":
+      getEarlyWarningDbClickData(point, "mapPoint"); //山洪/中小流域
+      break;
+    // case "31":
+    //   loadRiverUnionDispatch(); //贵阳水库联合调度
+    //   break;
+    case "09":
+      initVideoData(point); //视频双击事件
+      break;
+    // case "33":
+    //   loadFloodAnalysis(point); //淹没分析
+    // break;
+    case "04":
+      doubleClickRain(point); //雨量站
+      break;
+    // case "05":
+    //   doubleClickMeteorological(point); //气象站
+    //   break;
+    case "30":
+      doubleClickSoilMoisture(point); //土壤墒情站
+      break;
+    // case "32":
+    //   if (pointObj.wscd != 0) {
+    //     note.notify("scheduling.generalized.open", point.wscd); //概化调度
+    //   }
+    //   break;
+    // case "hpzhyhd":
+    //   doubleClickHpzhyhd(point);
+    //   break;
+    // case "hpzhd":
+    //   doubleClickHpzhyhd(point);
+    //   break;
+    default:
+      point.motype = point.type;
+      point.topoid = point.eacId;
+      monitorClick(point, point);
+      break
+  }
+}

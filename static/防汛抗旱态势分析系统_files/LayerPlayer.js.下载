@@ -1,0 +1,165 @@
+function LayerPlayer(layers) {
+  const QUEUE_SIZE = 7;
+  const TRANSITION_COUNT = 3;
+  this.provider = null;
+  this.option = null;
+  this.index = 0;
+  this.cursor = 0;
+  this.count = 0;
+  this.factor = 0;
+  this.opacity = 0;
+  this.limit = 0;
+  this.queue = [];
+  this.transition = false;
+  this.visibility = true;
+
+  this.initialize = function (index, provider) {
+    this.provider = provider;
+    this.option = provider.option();
+    this.count = provider.count();
+    this.transition = this.option.transition;
+    this.opacity = this.option.opacity;
+    this.factor = this.transition ? this.opacity * 100 / TRANSITION_COUNT / 100 : this.opacity;
+    this.ready(index);
+    // console.log(this);
+  };
+
+  this.ready = function (index) {
+    this.index = index;
+    let max = Math.min(this.count, index + QUEUE_SIZE);
+    for (let i = index; i < max; i++) {
+      this.queue.push(this.get(i));
+    }
+    this.limit = this.transition ? Math.min(this.queue.length >> 1, TRANSITION_COUNT) : 1;
+    layers.addMany(this.queue);
+    this.render(false);
+  };
+
+  this.clear = function () {
+    layers.removeMany(this.queue);
+    this.queue.clear();
+    this.cursor = 0;
+  };
+
+  this.forward = function () {
+    this.next(false);
+  };
+
+  this.backward = function () {
+    const index = this.index, cursor = this.cursor;
+    if (index === 0 && cursor === 0) return;
+    if (index === 0 || cursor > this.limit) {
+      this.cursor--;
+    } else {
+      this.insert(--this.index);
+      if (this.queue.length > QUEUE_SIZE) {
+        layers.remove(this.queue.pop());
+      }
+      this.limit = this.transition ? Math.min(this.queue.length >> 1, TRANSITION_COUNT) : 1;
+    }
+    this.render(false);
+  };
+
+  this.next = function (transition) {
+    const size = this.queue.length, index = this.index, count = this.count;
+    if (index + size >= count && this.cursor >= size) return;
+    if (this.cursor < this.limit || index + size >= count) {
+      this.cursor++;
+    } else {
+      this.append(size + this.index++);
+      layers.remove(this.queue.shift());
+    }
+    this.render(transition)
+  };
+
+  this.jump = function (index) {
+    const size = this.queue.length;
+    if (this.index - index === 1) {
+      this.backward();
+    } else if (index - (this.index + this.cursor) === 1) {
+      this.forward();
+    } else if (index >= this.index && index < this.index + size) {
+      this.cursor = index - this.index;
+      this.render(false);
+    } else {
+      this.clear();
+      this.ready(index);
+    }
+  };
+
+  this.render = function (transition) {
+    setTimeout(this.frame.bind(this), 0, transition);
+  };
+
+  this.frame = function (transition) {
+    const queue = this.queue, cursor = this.cursor;
+    if (queue[cursor]) {
+      queue[cursor].visible = true;
+      queue[cursor].opacity = this.opacity;
+      this.provider.status = queue[cursor].status;
+    }
+    const count = Math.max(cursor, queue.length - cursor);
+    for (let i = 1; i <= count; i++) {
+      let o = Math.max(transition ? this.opacity - this.factor * i : 0, 0);
+      if (queue[cursor + i]) {
+        queue[cursor + i].opacity = o;
+        queue[cursor + i].visible = true;
+      }
+      if (queue[cursor - i]) {
+        queue[cursor - i].opacity = o;
+        queue[cursor - i].visible = true;
+      }
+    }
+  }
+
+  this.pause = function () {
+    this.render(false);
+  };
+  this.end = function () {
+    this.render(false);
+  };
+
+  this.play = function () {
+    this.next(this.transition);
+  };
+
+  this.visible = function (value) {
+    if (value && !this.visibility) {
+      this.visibility = true;
+      layers.addMany(this.queue);
+      return this.render(false);
+    }
+    layers.removeMany(this.queue);
+    this.visibility = false;
+  };
+
+  this.dispose = function () {
+    this.clear();
+  };
+
+
+  //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  this.append = function (index) {
+    let layer = this.get(index);
+    layers.add(layer);
+    this.queue.push(layer);
+  };
+
+  this.insert = function (index) {
+    let layer = this.get(index);
+    layers.add(layer);
+    this.queue.insert(layer);
+  }
+
+  this.get = function (index) {
+    let layer = this.provider.get(index), self = this;
+    layer.index = index;
+    layer.watch(["fetchStatus", "loadStatus"], function (value) {
+      layer.status = value;
+      if (layer.index - self.index === self.cursor) {
+        self.provider.status = value;
+      }
+    });
+    return layer;
+  }
+}

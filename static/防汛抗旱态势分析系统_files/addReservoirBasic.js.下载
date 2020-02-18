@@ -1,0 +1,308 @@
+var addReservoirBasicArray={},eduitReservoirBasicArray={},deleteReservoirBasicArray=[];
+//新增库容曲线数据
+var addReservoirBasicContent=function () {
+    //初始化界面
+    var html='<div style="margin-left: 10%;"><div style="display: inline-block;margin-top: 10px">水位：</div><div  style="display: inline-block" ><input type="text" style="width: 200px;height:30px " class="form-control" id="add-reservoir-water-level" placeholder="请输入水位(m)"></div><br/><div  style="display: inline-block;margin-top: 10px" class="sms-mail-left">库容：</div><div  style="display: inline-block" class="sms-mail-right"><input type="text" style="width: 200px;height:30px " class="form-control" id="add-reservoir-storage-capacity" placeholder="请输入库容(万m³)"></div></div>';
+    var index=layer.open({
+            type:1,
+            area:['360px','200px'],
+            title:'新增',
+            content:html,
+            skin: 'win-class',
+            btn:['确定'],
+            yes:function () {
+                var water=$('#add-reservoir-water-level').val();
+                var rt=$('#add-reservoir-storage-capacity').val();
+                if(!water){
+                    layer.msg('请填写水位！',{time:2500});
+                    return;
+                }
+                if(!rt){
+                    layer.msg('请填写库容！',{time:2500});
+                    return;
+                }
+                var id=($('#basic-data-left-table-content').bootstrapTable('getData')).length+1;
+                var data=[{
+                    id: id,
+                    water:water,
+                    rt:rt
+                }];
+                //$('#basic-data-left-table-content').bootstrapTable('append',data);
+                //$('#basic-data-left-table-content').bootstrapTable('check',id-1);
+                var basicDataTable=$('#basic-data-left-table-content').bootstrapTable('getData');
+                eduitReservoirBasicArray.water=new Array();
+                eduitReservoirBasicArray.rt=new Array();
+                for(var i=0;i<basicDataTable.length;i++){
+                    if(parseFloat(water)==basicDataTable[i].water){
+                        layer.msg('水位值已经存在！',{time:2500});
+                        return;
+                    }else{
+                        eduitReservoirBasicArray.water.push(parseFloat(basicDataTable[i].water));
+                    }
+                    if(parseFloat(rt)==basicDataTable[i].rt){
+                        layer.msg('库容值已经存在！',{time:2500});
+                        return;
+                    }else{
+                        eduitReservoirBasicArray.rt.push(parseFloat(basicDataTable[i].rt));
+                    }
+                }
+                eduitReservoirBasicArray.water.push(parseFloat(water));
+                eduitReservoirBasicArray.rt.push(parseFloat(rt));
+                var params={
+                    mocd:currentMocd,
+                    rzList:(eduitReservoirBasicArray.water).sort(sortNumber),
+                    wList:(eduitReservoirBasicArray.rt).sort(sortNumber)
+                }
+                ajaxCallJson(params,"/base/saveRsvrCurve",function (result) {
+                    if(result&&result.data){
+                        //$('#basic-data-left-table-content').bootstrapTable('load', result.data);
+                        loadReservoirBaseData();
+                    }
+                })
+                layer.close(index);
+            }
+        }
+    );
+};
+//编辑
+var editReservoirBasicContent=function () {
+    deleteReservoirBasicArray = $('#basic-data-left-table-content').bootstrapTable('getSelections');
+    if(deleteReservoirBasicArray.length==0){
+        layer.msg("请选择一条记录",{time:1500});
+        return;
+    }
+    if(deleteReservoirBasicArray.length>1){
+        layer.msg("编辑时只能选择一条记录",{time:1500});
+        return;
+    }
+    var selectData=deleteReservoirBasicArray[0];
+    if(selectData){
+        var html='<div style="margin-left: 10%;"><div style="display: inline-block;margin-top: 10px">水位：</div><div  style="display: inline-block" ><input type="text" style="width: 200px;height:30px " class="form-control" id="eduit-reservoir-water-level" value="'+selectData.water+'" "></div><br/><div  style="display: inline-block;margin-top: 10px" class="sms-mail-left">库容：</div><div  style="display: inline-block" class="sms-mail-right"><input type="text" style="width: 200px;height:30px " class="form-control" id="eduit-reservoir-storage-capacity" value="'+selectData.rt+'"></div></div>';
+        var index=layer.open({
+                type:1,
+                area:['300px','200px'],
+                title:'编辑',
+                content:html,
+                skin: 'win-class',
+                btn:['确定'],
+                yes:function () {
+                    var water=$('#eduit-reservoir-water-level').val();
+                    var rt=$('#eduit-reservoir-storage-capacity').val();
+                    if(!water){
+                        layer.msg('请填写水位！',{time:2500});
+                        return;
+                    }
+                    if(!rt){
+                        layer.msg('请填写库容！',{time:2500});
+                        return;
+                    }
+                    var basicDataTable=$('#basic-data-left-table-content').bootstrapTable('getData');
+                    eduitReservoirBasicArray.water=new Array();
+                    eduitReservoirBasicArray.rt=new Array();
+                    eduitReservoirBasicArray.id=new Array();
+                    var loadEduitReservoirBasicArray=[];
+                    for(var i=0;i<basicDataTable.length;i++){
+                        var temp={};
+                        temp.id=i+1;
+                        eduitReservoirBasicArray.id.push(parseInt(i+1));
+                        if(parseFloat(water)==basicDataTable[i].water){
+                            layer.msg('水位值已经存在！',{time:2500});
+                            return;
+                        }
+                        if(parseFloat(rt)==basicDataTable[i].rt){
+                            layer.msg('库容值已经存在！',{time:2500});
+                            return;
+                        }
+                        if((deleteReservoirBasicArray[0].id-1)==i){
+                            eduitReservoirBasicArray.water.push(parseFloat(water));
+                            eduitReservoirBasicArray.rt.push(parseFloat(rt));
+                            temp.rt=rt;
+                            temp.water=water;
+                        }else {
+                            eduitReservoirBasicArray.water.push(parseFloat(basicDataTable[i].water));
+                            eduitReservoirBasicArray.rt.push(parseFloat(basicDataTable[i].rt));
+                            temp.rt=basicDataTable[i].rt;
+                            temp.water=basicDataTable[i].water;
+                        }
+                        loadEduitReservoirBasicArray.push(temp);
+                    }
+
+                    var params={
+                        mocd:currentMocd,
+                        rzList:(eduitReservoirBasicArray.water).sort(sortNumber),
+                        wList:(eduitReservoirBasicArray.rt).sort(sortNumber)
+                    }
+                    ajaxCallJson(params,"/base/saveRsvrCurve",function (result) {
+                        if(result&&result.data.resflag){
+                            //$('#basic-data-left-table-content').bootstrapTable('load', loadEduitReservoirBasicArray);
+                            layer.msg("数据更新成功！",{time:2000});
+                            loadReservoirBaseData();
+                            layer.close(index);
+                        }
+                    })
+                }
+            }
+        );
+    }
+}
+//删除
+var deleteReservoirBasicContent=function () {
+    deleteReservoirBasicArray = $('#basic-data-left-table-content').bootstrapTable('getSelections');
+    if(deleteReservoirBasicArray.length==0){
+        layer.msg("请选择一条记录",{time:1500});
+        return;
+    }
+    layer.confirm("确定删除吗?",{btn:["删除","取消"]},function () {
+        var basicDataTable=$('#basic-data-left-table-content').bootstrapTable('getData');
+        var loadEduitReservoirBasicArray=[];
+        eduitReservoirBasicArray.water=new Array();
+        eduitReservoirBasicArray.rt=new Array();
+        eduitReservoirBasicArray.id=new Array();
+        for(var i=0;i<basicDataTable.length;i++){
+            var temp={};
+            temp.id=i+1;
+            eduitReservoirBasicArray.id.push(parseInt(i+1));
+            if((deleteReservoirBasicArray[0].id-1)==i){
+                temp.rt=deleteReservoirBasicArray[0].rt;
+                temp.water=deleteReservoirBasicArray[0].water;
+            }else {
+                eduitReservoirBasicArray.water.push(parseFloat(basicDataTable[i].water));
+                eduitReservoirBasicArray.rt.push(parseFloat(basicDataTable[i].rt));
+                temp.rt=basicDataTable[i].rt;
+                temp.water=basicDataTable[i].water;
+            }
+            loadEduitReservoirBasicArray.push(temp);
+        }
+        for(var j=0;j<basicDataTable.length;j++){
+            if((deleteReservoirBasicArray[0].id-1)==j){
+                loadEduitReservoirBasicArray.remove(j);
+            }
+        }
+        var params={
+            mocd:currentMocd,
+            rzList:(eduitReservoirBasicArray.water).sort(sortNumber),
+            wList:(eduitReservoirBasicArray.rt).sort(sortNumber)
+        }
+        ajaxCallJson(params,"/base/saveRsvrCurve",function (result) {
+            if(result&&result.data.resflag){
+                //$('#basic-data-left-table-content').bootstrapTable('load', loadEduitReservoirBasicArray);
+                layer.msg("删除成功！",{time:2000});
+                loadReservoirBaseData();
+                deleteReservoirBasicArray=[];
+                //layer.close(index);
+            }
+        })
+    })
+}
+function sortNumber(a,b)
+{
+    return a - b
+}
+//修改水库基本信息特征值
+function saveReservoirBaseData () {
+    var obj = {};
+    obj.stcd=currentStcd;
+    obj.rsvrnm = reservoirBaseDataWindow.body.find('#basic-data-right input[name="rsvrnm"]')[0].value;
+    obj.adnm = reservoirBaseDataWindow.body.find('#basic-data-right input[name="adnm"]')[0].value;//
+    obj.adcd = reservoirBaseDataWindow.body.find('#basic-data-right input[name="adcd"]')[0].value;//
+    obj.rsvrgrade = reservoirBaseDataWindow.body.find('#basic-data-right input[name="rsvrgrade"]')[0].value;//
+    obj.rorh = reservoirBaseDataWindow.body.find('#basic-data-right input[name="rorh"]')[0].value;//
+    obj.lgtd = reservoirBaseDataWindow.body.find('#basic-data-right input[name="lgtd"]')[0].value;
+    obj.lttd = reservoirBaseDataWindow.body.find('#basic-data-right input[name="lttd"]')[0].value;//
+    obj.address = reservoirBaseDataWindow.body.find('#basic-data-right input[name="address"]')[0].value;//
+    obj.controlarea = reservoirBaseDataWindow.body.find('#basic-data-right input[name="controlarea"]')[0].value;//坝址控制流域面积
+    obj.avgvolumeofr = reservoirBaseDataWindow.body.find('#basic-data-right input[name="avgvolumeofr"]')[0].value;
+    obj.rsvrtp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="rsvrtp"]')[0].value;
+    obj.damtp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="damtp"]')[0].value;
+    obj.materialtp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="materialtp"]')[0].value;
+    obj.structuretp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="structuretp"]')[0].value;
+    obj.sluicetp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="sluicetp"]')[0].value;
+    obj.activtm = reservoirBaseDataWindow.body.find('#basic-data-right input[name="activtm"]')[0].value;
+    obj.adjustfunc = reservoirBaseDataWindow.body.find('#basic-data-right input[name="adjustfunc"]')[0].value;
+    obj.projgrade = reservoirBaseDataWindow.body.find('#basic-data-right input[name="projgrade"]')[0].value;
+    obj.damgrade = reservoirBaseDataWindow.body.find('#basic-data-right input[name="damgrade"]')[0].value;
+    obj.damheight = reservoirBaseDataWindow.body.find('#basic-data-right input[name="damheight"]')[0].value;
+    obj.damlength = reservoirBaseDataWindow.body.find('#basic-data-right input[name="damlength"]')[0].value;
+    obj.hmxotq = reservoirBaseDataWindow.body.find('#basic-data-right input[name="hmxotq"]')[0].value;
+    obj.damel = reservoirBaseDataWindow.body.find('#basic-data-right input[name="damel"]')[0].value;
+    obj.dsflstandard = reservoirBaseDataWindow.body.find('#basic-data-right input[name="dsflstandard"]')[0].value;
+    obj.ckflstandard = reservoirBaseDataWindow.body.find('#basic-data-right input[name="ckflstandard"]')[0].value;
+    obj.ckflz = reservoirBaseDataWindow.body.find('#basic-data-right input[name="ckflz"]')[0].value;
+    obj.dsflz = reservoirBaseDataWindow.body.find('#basic-data-right input[name="dsflz"]')[0].value;
+    obj.flgz = reservoirBaseDataWindow.body.find('#basic-data-right input[name="flgz"]')[0].value;
+    obj.normz = reservoirBaseDataWindow.body.find('#basic-data-right input[name="normz"]')[0].value;
+    obj.flxz = reservoirBaseDataWindow.body.find('#basic-data-right input[name="flxz"]')[0].value;
+    obj.ddz = reservoirBaseDataWindow.body.find('#basic-data-right input[name="ddz"]')[0].value;
+    obj.ttcp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="ttcp"]')[0].value;
+    obj.thcp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="thcp"]')[0].value;
+    obj.fldcp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="fldcp"]')[0].value;
+    obj.actcp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="actcp"]')[0].value;
+    obj.ddcp = reservoirBaseDataWindow.body.find('#basic-data-right input[name="ddcp"]')[0].value;
+    obj.normzarea = reservoirBaseDataWindow.body.find('#basic-data-right input[name="normzarea"]')[0].value;
+    obj.designywsup = reservoirBaseDataWindow.body.find('#basic-data-right input[name="designywsup"]')[0].value;
+    obj.manaunitnm = reservoirBaseDataWindow.body.find('#basic-data-right input[name="manaunitnm"]')[0].value;
+    obj.belongtoman = reservoirBaseDataWindow.body.find('#basic-data-right input[name="belongtoman"]')[0].value;
+    obj.watersourcenm = reservoirBaseDataWindow.body.find('#basic-data-right input[name="watersourcenm"]')[0].value;
+    obj.rivernm = reservoirBaseDataWindow.body.find('#basic-data-right input[name="rivernm"]')[0].value;
+    var params={
+        dpIndex:obj
+    }
+    layer.confirm("确定修改吗?",{btn:["修改","取消"]},function () {
+        ajaxCallJson(params,'/base/updateRsvrBaseInfo',function (result) {
+            if(result&&result.flag&&result.data){
+                layer.msg("修改成功",{time:1500});
+            }
+        })
+    })
+}
+function loadReservoirBaseData()
+{
+    ajaxCallJson({mocd:currentMocd,curvetype:"1"},"/floodSituation/capacity/curve",function (result) {
+        if(!result){
+            return;
+        }
+        var data=result.data;
+        if(!result.data.w||result.data.w==""){
+            $("#basic-data-left-view").hide();
+            $("#basic-data-left-one-chart").html("<span style='font-size: 14px'>暂无数据</span>");
+            return;
+        }
+        if(result.data){
+            if(result.data.w!=undefined){
+                $("#basic-data-left-view").show();
+                var data=result.data;
+                var value=[];
+                if(data.w.length==0){
+                    return
+                }
+                for(var i=0;i<data.w.length;i++){
+                    value[i]=[];
+                    value[i][0]=data.w[i];
+                    value[i][1]=data.z[i];
+                }
+                var title="";
+                var params={
+                    id:"basic-data-left-one-chart",
+                    data:value,
+                    water:data.z,
+                    title:title
+                };
+                initWaterCapacityChart(params);//初始化水位库容曲线
+                initWaterCapacityTable(params,getMoniterClickTableHeight(earlyWarningSinglePointWindow)-10,earlyWarningSinglePointWindow)
+            }
+        }
+    })
+}
+/**
+ * 使用循环的方式判断一个元素是否存在于一个数组中
+ * @param {Object} arr 数组
+ * @param {Object} value 元素值
+ */
+function isInArray(arr,value){
+    for(var i = 0; i < arr.length; i++){
+        if(value === arr[i]){
+            return true;
+        }
+    }
+    return false;
+}

@@ -1,0 +1,138 @@
+(function () {
+  const ENCODE_SCALE = 1024;
+
+  function quantize(val) {
+    return Math.ceil(val * ENCODE_SCALE);
+  }
+
+  function encode(val, prev) {
+    // Quantization
+    val = quantize(val);
+    val = val - prev;
+    if (((val << 1) ^ (val >> 15)) + 64 === 8232) {
+      //WTF, 8232 will get syntax error in js code
+      val--;
+    }
+    val = (val << 1) ^ (val >> 15);
+    return String.fromCharCode(val + 64);
+  }
+
+
+  function compress(coordinates, offsets) {
+    let buf = [];
+
+    let prevX = quantize(coordinates[0][0]);
+    let prevY = quantize(coordinates[0][1]);
+    // Store the origin offset
+    offsets[0] = prevX;
+    offsets[1] = prevY;
+
+    for (let i = 0, c = coordinates.length; i < c; i++) {
+      let point = coordinates[i];
+      buf.push(encode(point[0], prevX));
+      buf.push(encode(point[1], prevY));
+
+      prevX = quantize(point[0]);
+      prevY = quantize(point[1]);
+    }
+
+    return buf.join('');
+  }
+
+  function decompress(coordinates, offsets) {
+    let buf = [];
+    let prevX = offsets[0];
+    let prevY = offsets[1];
+
+    for (let i = 0, c = coordinates.length; i < c; i += 2) {
+      let x = coordinates.charCodeAt(i) - 64;
+      let y = coordinates.charCodeAt(i + 1) - 64; // ZigZag decoding
+
+      x = x >> 1 ^ -(x & 1);
+      y = y >> 1 ^ -(y & 1); // Delta deocding
+
+      x += prevX;
+      y += prevY;
+      prevX = x;
+      prevY = y; // Dequantize
+
+      buf.push([x / ENCODE_SCALE, y / ENCODE_SCALE]);
+    }
+    return buf;
+  }
+
+
+  const CoordEncoder = {
+    Point(coordinates) {
+      return coordinates;
+    },
+    MultiPoint(coordinates, offsets = []) {
+      return compress(coordinates, offsets);
+    },
+    LineString(coordinates, offsets = []) {
+      return compress(coordinates, offsets);
+    },
+    MultiLineString(coordinates, offsets = []) {
+      return compress(coordinates.reduce((p, c) => p.concat(c)), offsets);
+    },
+    Polygon(coordinates, offsets = []) {
+      return coordinates.map((e, i) => compress(e, offsets[i] = []));
+    },
+    MultiPolygon(coordinates, offsets = []) {
+      return coordinates.map((e, i) => {
+        offsets[i] = [];
+        return e.map((x, j) => {
+          return compress(x, offsets[i][j] = [])
+        })
+      });
+    }
+  };
+  const CoordDecoder = {
+    Point(coordinates) {
+      return coordinates;
+    },
+    MultiPoint(coordinates, offsets) {
+      return decompress(coordinates, offsets);
+    },
+    LineString(coordinates, offsets) {
+      return decompress(coordinates, offsets);
+    },
+    MultiLineString(coordinates, offsets) {
+      return decompress(coordinates, offsets);
+    },
+    Polygon(coordinates, offsets) {
+
+    },
+    MultiPolygon(coordinates, offsets) {
+
+    }
+  };
+
+
+  function Geo() {
+  }
+
+  Geo.compress = function (geojson) {
+    if (geojson.UTF8Encoding === true) return geojson;
+    geojson.features && geojson.features.forEach(e => {
+      let encodeOffsets = [], geometry = e.geometry;
+      let coordinates = CoordEncoder[geometry.type](geometry.coordinates, encodeOffsets);
+      Object.assign(e.geometry, {coordinates, encodeOffsets});
+    });
+    return Object.assign(geojson, {UTF8Encoding: true});
+  };
+
+  Geo.decompress = function (geojson) {
+    if (geojson.UTF8Encoding !== true) return geojson;
+    geojson.features && geojson.features.forEach(e => {
+      let geo = e.geometry;
+      let coordinates = CoordDecoder[geo.type](geo.coordinates, geo.encodeOffsets);
+      Object.assign(e.geometry, {coordinates});
+      delete geo.encodeOffsets;
+    });
+    return Object.assign(geojson, {UTF8Encoding: false});
+  };
+
+
+  window.Geo = Geo;
+})();

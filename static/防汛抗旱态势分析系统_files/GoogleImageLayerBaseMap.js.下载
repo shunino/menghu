@@ -1,0 +1,19 @@
+//自定义谷歌模块(WebTileLayer方式)无影像图
+define(["esri/layers/WebTileLayer", "esri/Basemap", "myMap/layer/GoogleAnnoLayer"],
+  function (WebTileLayer, Basemap, GoogleAnnoLayer) {
+    return function () {
+      var mapBaseLayer = new WebTileLayer({
+        urlTemplate: imageBaseLayerUrl + "/vt/lyrs=s@142&hl=zh-CN&gl=cn&x={col}&y={row}&z={level}&s=Galil",
+        opacity: 1,
+        title: "谷歌影像底图"
+      })
+      // var googleAnnoLayer = new GoogleAnnoLayer();
+      var googleImageLayer = new Basemap({
+        baseLayers: [mapBaseLayer],
+        title: "谷歌影像底图",
+        id: "googleImageLayer",
+      });
+      return googleImageLayer;
+    }
+  }
+)

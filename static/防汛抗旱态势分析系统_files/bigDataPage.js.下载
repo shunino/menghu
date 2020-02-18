@@ -1,0 +1,233 @@
+var bigdataHeight, bigdataWidth;
+$(function () {
+  // initPieData();
+  bigdataHeight = $('body').height();
+  bigdataWidth = $('body').width();
+  $(window).resize(function () {
+    bigdataHeight = $('body').height();
+    bigdataWidth = $('body').width();
+  })
+})
+
+
+var changePix = function () {
+  if (bigdataWidth > 1366 && bigdataWidth < 1600) {
+    $(".bigdata-info div").css({ "margin": "2px 0" })
+    return ['22%', '40%'];
+  } else if (bigdataWidth <= 1366) {
+    $(".bigdata-info div").css({ "margin": "2px 0" })
+    return ['20%', '30%'];
+  } else {
+    $(".bigdata-info div").css({ "margin": "5px 0" })
+    return ['30%', '50%'];
+  }
+}
+
+async function initPieData() {
+  let obj = {};
+  await new Promise(function (resolve, reject) {
+    ajaxCallJson({
+      interface: "com.ec.ws.service.def.rwdb.RealCountService",
+      method: "countRealData",
+      args: [user.userId, `${today} 00:00:00`, `${today} 24:00:00`]
+    }, '/rpc', ({ data }) => {
+      let arr = [];
+      var alarm = Object.values(data);
+      alarm.forEach(function (ele, i) {
+        arr.push(Object.values(ele.sttypeMap));
+      })
+      obj.objOne = arr[2];
+      obj.objTwo = arr[0];
+      let html = `
+        <div>大一&nbsp<span>${obj.objOne[0]}</span></div>
+        <div>大二&nbsp<span>${obj.objOne[1]}</span></div>
+        <div>中型&nbsp<span>${obj.objOne[2]}</span></div>
+        <div>小型&nbsp<span>${obj.objOne[3]}</span></div>`;
+      $("#bigdata-info-one").empty();
+      $("#bigdata-info-one").append(html);
+      html = `
+        <div>中央&nbsp<span>${obj.objTwo[0]}</span></div>
+        <div>省级&nbsp<span>${obj.objTwo[1]}</span></div>
+        <div>其它&nbsp<span>${obj.objTwo[2]}</span></div>`;
+      $("#bigdata-info-two").empty();
+      $("#bigdata-info-two").append(html);
+      resolve(obj);
+    })
+  }).catch(e => console.log(e));
+
+  await new Promise(function (resolve, reject) {
+    ajaxCallJson({
+      interface: "com.ec.ws.service.def.monitoring.MonitorObjectService",
+      method: "countStationByArea",
+      args: [userPrivilege || '000000000000000']
+    }, '/rpc', function (res) {
+      if (res.resflag) {
+        for (let i of res.data) {
+          if (i.motype == "01") {
+            obj.objOne.total = Object.values(i.sttypeMap)
+          } else if (i.motype == "15") {
+            obj.objTwo.total = Object.values(i.sttypeMap)
+          }
+        }
+        resolve(obj);
+      }
+      else {
+        reject('获取站点数量失败！');
+      }
+    })
+  }).catch(e => console.log(e));
+
+  initPieChart(obj);
+}
+
+var initPieChart = function ({ objOne, objTwo }) {
+  var optionOne = {
+    title: {
+      text: '水库水电站告警数量',
+      left: 'center',
+      // top: 20,
+      textStyle: {
+        // color: 'white',
+        color: '#0ff',
+        fontWeight: 200,
+        fontSize: 18
+      }
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: function (ele) {
+        return `水库水电站<br>${ele.name.substring(0, ele.name.indexOf(" "))}站点总数：${objOne.total[ele.dataIndex]}<br>${ele.name.substring(0, ele.name.indexOf(" "))}告警数量：${ele.value}`;
+      }
+    },
+    radius: [0, '75%'],
+    legend: {
+      show: false,
+      orient: 'vertical',
+      x: 'right',
+      y: 'bottom',
+      itemHeight: 8,
+      itemWidth: 8,
+      textStyle: {
+        fontSize: 15
+      },
+      data: [{ name: '大一型  objOne[0]', textStyle: { color: "#01d1cf" } },
+      { name: '大二型  objOne[1]', textStyle: { color: "#1978ec" } },
+      { name: '中型  objOne[2]', textStyle: { color: "#43bbf7" } },
+      { name: '小型  objOne[3]', textStyle: { color: "#fd9220" } }]
+    },
+    series: [
+      {
+        name: '水库水电站告警数量',
+        type: 'pie',
+        radius: changePix(),
+        // radius: bigdataWidth < 1600 ? ['20%', '30%'] : ['40%', '60%'],
+        avoidLabelOverlap: false,
+        label: {
+          normal: {
+            show: false,
+            position: 'center'
+          },
+          emphasis: {
+            show: false,
+            textStyle: {
+              fontSize: '30',
+              fontWeight: 'bold'
+            }
+          }
+        },
+        labelLine: {
+          normal: {
+            show: true
+          }
+        },
+        center: ["30%", "50%"],
+        data: [
+          { value: objOne[0], name: '大一型  objOne[0]', itemStyle: { color: "#01d1cf" } },
+          { value: objOne[1], name: '大二型  objOne[1]', itemStyle: { color: "#1978ec" } },
+          { value: objOne[2], name: '中型  objOne[2]', itemStyle: { color: "#43bbf7" } },
+          { value: objOne[3], name: '小型  objOne[3]', itemStyle: { color: "#fd9220" } },
+        ]
+      }
+    ]
+  };
+  var optionTwo = {
+    title: {
+      text: '河道水文站告警数量',
+      left: 'center',
+      // top: 20,
+      textStyle: {
+        // color: 'white',
+        color: '#0ff',
+        fontWeight: 200,
+        fontSize: 18
+      }
+    },
+    tooltip: {
+      trigger: 'item',
+      formatter: function (ele) {
+        return `河道水文站<br>${ele.name.substring(0, ele.name.indexOf(" "))}站点总数：${objTwo.total[ele.dataIndex]}<br>${ele.name.substring(0, ele.name.indexOf(" "))}告警数量：${ele.value}`;
+      }
+    },
+    legend: {
+      show: false,
+      orient: 'vertical',
+      x: 'right',
+      y: 'bottom',
+      itemHeight: 8,
+      itemWidth: 8,
+      textStyle: {
+        fontSize: 15
+      },
+      data: [
+        { name: '中央  objTwo[0]', textStyle: { color: "#01d1cf" } },
+        { name: '省级  objTwo[1]', textStyle: { color: "#1978ec" } },
+        { name: '其它  objTwo[2]', textStyle: { color: "#43bbf7" } },
+      ]
+    },
+    radius: [0, '75%'],
+    series: [
+      {
+        name: '河道水文站告警数量',
+        type: 'pie',
+        radius: changePix(),
+        // radius: bigdataWidth < 1600 ? ['20%', '30%'] : ['40%', '60%'],
+        // radius: ['40%', '60%'],
+        // radius: ['30%', '55%'],
+        avoidLabelOverlap: false,
+        label: {
+          normal: {
+            show: false,
+            position: 'center'
+          },
+          emphasis: {
+            show: false,
+            textStyle: {
+              fontSize: '30',
+              fontWeight: 'bold'
+            }
+          }
+        },
+        labelLine: {
+          normal: {
+            show: true
+          }
+        },
+        // center: ["50%", "50%"],
+        // center: ["70%", "50%"],
+        center: ["30%", "50%"],
+        data: [
+          { value: objTwo[0], name: '中央  objTwo[0]', itemStyle: { color: "#01d1cf" } },
+          { value: objTwo[1], name: '省级  objTwo[1]', itemStyle: { color: "#1978ec" } },
+          { value: objTwo[2], name: '其它  objTwo[2]', itemStyle: { color: "#43bbf7" } },
+        ]
+      }
+    ]
+  };
+  var pieChartOne = echarts.init(document.getElementById('bigdataPie-left'));
+  var pieChartTwo = echarts.init(document.getElementById('bigdataPie-right'));
+  pieChartOne.setOption(optionOne);
+  pieChartTwo.setOption(optionTwo);
+
+  autoCarousel(pieChartOne, { tooltipFlag: true });
+  autoCarousel(pieChartTwo, { tooltipFlag: true });
+}

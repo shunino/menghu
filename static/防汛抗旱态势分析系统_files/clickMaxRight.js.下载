@@ -1,0 +1,474 @@
+
+var showRightInflowForecastWindow;
+//右侧第一个放大窗口
+$("#video-max").click(function () {
+  if (showRightWindow[0].indexOf("video") !== -1) {
+    if (videoUrl.length > 0) {
+      videoWindow = new MyWindow();
+      videoWindow.isClose = true;
+      videoWindow.setWindow(videoUrl, {
+        title: videoTitle
+      });
+      videoWindow.dom.css("z-index", "999");
+      videoWindow.show();
+      maxVideo = false;
+      // openFullscreen(player);
+      player.pause();
+    }
+  }
+  if (showRightWindow[0].indexOf("dam") !== -1) {
+    initRightMaxWindwo("maxRightClick")
+  }
+  if (showRightWindow[0].indexOf("flood") !== -1) {
+    ajaxCallJson(currentChartParam, '/tempRouter', function (result) { //获取快报预警
+      if (result.flag) {
+        var objGridArr = [option1OpenGrid, option2OpenGrid, option3OpenGrid];
+        var myWindow1 = new MyWindow($('#monitor-early-warning'), {
+          title: '洪水风险'
+        });
+        myWindow1.dom.css("z-index", "1000");
+        myWindow1.show();
+        myWindow1.resizecbfn(function () {
+          resizeWarningChart();
+        });
+        newChart(result.info, objGridArr, "notMapPoint");
+      } else {
+        layer.msg('暂无数据', { time: 1000 });
+      }
+    })
+  }
+  if (showRightWindow[0].indexOf("fore") !== -1) {
+    initPostInflowForecast(currentMocd, currentName, showRightWindow, currentType, "maxRightClick");
+  }
+  if (showRightWindow[0].indexOf("hcross") !== -1) {
+    initRightMaxWindwo("maxRightClick")
+  }
+  if (showRightWindow[0].indexOf("real") !== -1) {
+    if (realTimeCheckType === obj_type_river_section) {
+      realTimeRiver(currentMocd, currentName, "river-course-content-max-one-chart", "maxRightClick");
+    }
+    if (realTimeCheckType === obj_type_rain_station) {
+      realTimeRain(currentMocd, currentName, "river-course-content-max-one-chart", "maxRightClick");
+    }
+    if (realTimeCheckType === obj_type_weather_station) {
+      realTimeMeteorological(currentMocd, currentName, "river-course-content-max-one-chart", "maxRightClick");
+    }
+    if (realTimeCheckType === obj_type_soilr) {
+      realTimeSoilMoisture(currentStcd, currentName, currentMocd, "river-course-content-max-one-chart", "maxRightClick");
+    }
+  }
+});
+//右侧第二个放大窗口
+var peripheralWindow = "";
+$("#peripheral-information").click(function () {
+  if (showRightWindow[1].indexOf("video") !== -1) {
+    if (videoUrl.length > 0) {
+      videoWindow = new MyWindow();
+      videoWindow.isClose = true;
+      videoWindow.setWindow(videoUrl, {
+        title: videoTitle
+      });
+      videoWindow.dom.css("z-index", "999");
+      videoWindow.show();
+      maxVideo = false;
+      // openFullscreen(player);
+      player.pause();
+    }
+  }
+  if (showRightWindow[1].indexOf("dam") !== -1) {
+    initRightMaxWindwo("maxRightClick")
+  }
+  if (showRightWindow[1].indexOf("flood") !== -1) {
+    ajaxCallJson(currentChartParam, '/tempRouter', function (result) { //获取快报预警
+      if (result.flag) {
+        var objGridArr = [option1OpenGrid, option2OpenGrid, option3OpenGrid];
+        var myWindow1 = new MyWindow($('#monitor-early-warning'), {
+          title: '洪水风险'
+        });
+        myWindow1.dom.css("z-index", "1000");
+        myWindow1.show();
+        myWindow1.resizecbfn(function () {
+          resizeWarningChart();
+        });
+        newChart(result.info, objGridArr, "notMapPoint");
+      } else {
+        layer.msg('暂无数据', { time: 1000 });
+      }
+    })
+  }
+  if (showRightWindow[1].indexOf("fore") !== -1) {
+    initPostInflowForecast(currentMocd, currentName, showRightWindow, currentType, "maxRightClick");
+  }
+  if (showRightWindow[1].indexOf("real") !== -1) {
+    realTimeRiver(currentMocd, currentName, showRightWindow,"maxRightClick");
+  }
+  if (showRightWindow[1].indexOf("hcross") !== -1) {
+    initRightMaxWindwo("maxRightClick")
+  }
+});
+
+function initRightMaxWindwo(clickType) {
+  // if (clickType === "maxRightClick") {
+  //   rightMaxChartArray.forEach(function (chart) {
+  //     chart.dispose();
+  //   });
+  //   rightMaxChartArray.clear();
+  // }
+  if (reservoirDamWindow != "") {
+    reservoirDamWindow.dom.css("z-index", "999");
+    reservoirDamWindow.show();
+    return;
+  }
+  if (changeType == 1) {
+    ajaxCallJson({
+      mocd: currentMocd
+    }, '/floodSituation/dam/getRsvrFeature', function (_data) {
+      if (_data && _data.flag && _data.data) {
+        if (_data.data.max == 0) {
+          return;
+        }
+        var title = currentName + "-大坝示意图";
+        //初始化大坝示意图
+        $('#reservoir-dam-chart').html('');
+        $('#reservoir-dam-chart').css("text-align", "center");
+        $('#reservoir-dam-chart').css("width", "100%").css("height", "100%");
+        var myWindow = new MyWindow($("#reservoir-dam"), {
+          title: title
+        });
+        myWindow.dom.css("z-index", "-999");
+        _data.data.title = title;
+        myWindow.show();
+        reservoirDamWindow = "";
+        reservoirDamWindow = myWindow;
+        $('#reservoir-dam-chart').html('');
+        var myChart = createDamView("reservoir-dam-chart", _data.data, myWindow, clickType);
+      } else {
+        $("#peripheral-information-max").hide();
+      }
+    });
+  }
+  if (changeType == 2) {
+    ajaxCallJson({
+      mocd: currentMocd,
+      type: 1
+    }, '/floodSituation/cross/data', function (result) {
+      if (result && result.data) {
+        $("#monitor-detail-right").show();
+        $("#peripheral-information-max").css("display", "block");
+        var title = currentName + "-横断面示意图";
+        $('#cross-sectional').prev().find(".title-name").html(title);
+        //初始化横断面示意图
+        $("#monitor-detail-right").show();
+        $('#cross-sectional-chart').html('');
+        $('#cross-sectional-chart').css("text-align", "center");
+        var myWindow = new MyWindow($("#cross-sectional"), {
+          title: title
+        });
+        myWindow.dom.css("z-index", "999");
+        myWindow.show();
+        reservoirDamWindow = "";
+        reservoirDamWindow = myWindow;
+        result.title = title;
+        createSectionView("cross-sectional", result.data, myWindow, clickType);
+        monitorWindow.push(myWindow);
+      } else {
+        $("#peripheral-information-max").hide();
+      }
+    })
+  }
+  if (changeType == 3) {
+    ajaxCallJson({
+      mocd: currentMocd,
+      type: 2
+    }, '/floodSituation/cross/data', function (result) {
+      if (!result) {
+        return;
+      }
+      if (result && result.data) {
+        if (result.data.pointList.length == 0 && result.data.pointArr.length == 0) {
+          $("#monitor-detail-right").hide();
+          $("#peripheral-information-max").hide();
+          return;
+        }
+        $("#monitor-detail-right").show();
+        $("#peripheral-information-max").show();
+        var title = currentName + "-横断面示意图";
+        $('#watershed-cross-sectional').prev().find(".title-name").html(title);
+        //初始化横断面示意图
+        $('#watershed-cross-chart').html('');
+        $('#watershed-cross-chart').css("text-align", "center");
+        var myWindow = new MyWindow($("#watershed-cross-sectional"), {
+          title: title
+        });
+        myWindow.dom.css("z-index", "999");
+        myWindow.show();
+        reservoirDamWindow = "";
+        reservoirDamWindow = myWindow;
+        createSectionView("watershed-cross-sectional", result.data, myWindow, clickType);
+      }
+    })
+  }
+}
+
+var showRightWindow = [];
+//判断右侧显示的窗口优先级
+function initShowRight(obj) {
+  showRightWindow = [];
+  if (!obj.exparams || obj.exparams == "") {
+    if (obj.motype === obj_type_mountain_torrents) {
+      showRightWindow.push("fore");
+    }
+    else if (obj.motype === obj_type_waterlogged) {
+      showRightWindow.push("base");
+    }
+    else {
+      showRightWindow.push("flood");
+      showRightWindow.push("fore");
+    }
+    return showRightWindow;
+  }
+  for (let i = 0; i < obj.exparams.detail.length; i++) {
+    if (obj.exparams.detail[i].video && obj.exparams.detail[i].video === 1) {
+      if (showRightWindow && showRightWindow.length <= 2) {
+        showRightWindow.push("video");
+      }
+    }
+    if (obj.exparams.detail[i].flood && obj.exparams.detail[i].flood === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("flood");
+      }
+    }
+    if (obj.exparams.detail[i].hcross && obj.exparams.detail[i].hcross === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("hcross");
+      }
+    }
+    if (obj.exparams.detail[i].vcross && obj.exparams.detail[i].vcross === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("vcross");
+      }
+    }
+    if (obj.exparams.detail[i].dam && obj.exparams.detail[i].dam === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("dam");
+      }
+    }
+    if (obj.exparams.detail[i].fore && obj.exparams.detail[i].fore === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("fore");
+      }
+    }
+    if (obj.exparams.detail[i].dispatch && obj.exparams.detail[i].dispatch === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("dispatch");
+      }
+    }
+    if (obj.exparams.detail[i].real && obj.exparams.detail[i].real === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("real");
+      }
+    }
+    if (obj.exparams.detail[i].base && obj.exparams.detail[i].base === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("base");
+      }
+    }
+    if (obj.exparams.detail[i].around && obj.exparams.detail[i].around === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("around");
+      }
+    }
+    if (obj.exparams.detail[i].broken && obj.exparams.detail[i].broken === 1) {
+      if (showRightWindow && showRightWindow.length < 2) {
+        showRightWindow.push("broken");
+      }
+    }
+  }
+  return showRightWindow;
+}
+function noReservoirStageHtml(rightData, type) {
+  $("#monitor-detail-right").show();
+  if (rightData.length == 1) {
+    $("#monitor-detail-right-content-video").css("display", "block");
+  } else {
+    $("#peripheral-information-max").css("display", "block");
+  }
+  /*start第一个实时监测窗口内容*/
+  if (rightData && rightData[0].indexOf("video") !== -1) {
+    var htmlone = '<div class="content-img"><img /></div>';
+    $("#detail-right-one").empty();
+    $("#detail-right-one").append(htmlone);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-图像监控");
+  }
+  if (rightData[0].indexOf("dam") !== -1) {
+    var html = '<div id="detail-right-peripheral-content" class="fill" ></div>';
+    $("#detail-right-one").empty();
+    $("#detail-right-one").append(html);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-大坝示意图");
+  }
+  if (rightData[0].indexOf("hcross") !== -1) {
+    var html = '<div id="detail-right-peripheral-content" class="fill" ></div>';
+    $("#detail-right-one").empty();
+    $("#detail-right-one").append(html);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-横断面示意图");
+  }
+  if (rightData[0].indexOf("flood") !== -1) {
+    var html = '<div id="reservoir-early-warning-chart1" class="early-warning-chart" ></div>' +
+      '<div id="reservoir-early-warning-chart2" class="early-warning-chart" ></div>' +
+      '<div id="reservoir-early-warning-chart3" class="early-warning-chart" ></div>';
+    $("#detail-right-one").empty();
+    $("#detail-right-one").append(html);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-预警");
+  }
+  if (rightData[0].indexOf("fore") !== -1) {
+    var html = '<div id="reservoir-rain-right-chart"></div>' +
+      '<div id="reservoir-other-right-chart" ></div>';
+    $("#detail-right-one").empty();
+    $("#detail-right-one").css("height", "240px");
+    $("#detail-right-one").append(html);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-来水预报");
+  }
+  if (rightData[0].indexOf("dispatch") !== -1) {
+    var html = '<div id="reservoir-dispatch-chart"></div>';
+    $("#detail-right-one").empty();
+    $("#detail-right-one").css("height", "240px");
+    $("#detail-right-one").append(html);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-水库调度");
+  }
+  if (rightData[0].indexOf("real") !== -1) {
+    var html = "";
+    if (type) {
+      html += '<div id="river-course-content-one-chart" ></div>';
+    } else {
+      html += '<div id="river-course-content-one-chart" ></div>' +
+        '<div id="river-course-content-two-chart" ></div>';
+    }
+    $("#detail-right-one").empty();
+    $("#detail-right-one").css("height", "240px");
+    $("#detail-right-one").append(html);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-实时数据");
+  }
+  if (rightData[0].indexOf("base") !== -1) {
+    var html = '';
+    $("#detail-right-one").empty();
+    $("#detail-right-one").css("height", "240px");
+    $("#detail-right-one").append(html);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-基础信息");
+  }
+  if (rightData[0].indexOf("around") !== -1) {
+    var html = '';
+    $("#detail-right-one").empty();
+    $("#detail-right-one").css("height", "240px");
+    $("#detail-right-one").append(html);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-周边信息");
+  }
+  if (rightData[0].indexOf("broken") !== -1) {
+    var html = '';
+    $("#detail-right-one").empty();
+    $("#detail-right-one").css("height", "240px");
+    $("#detail-right-one").append(html);
+    $("#show-monitor-detail-right-title").empty();
+    $("#show-monitor-detail-right-title").html(currentName + "-溃坝分析");
+  }
+  if (rightData.length === 1) {
+    $("#peripheral-information-max").css("display", "none");
+    return;
+  }
+  /*end第一个实时监测窗口内容*/
+  /*start第二个实时监测窗口内容*/
+  if (rightData && rightData[1].indexOf("video") !== -1) {
+    var htmlone = '<div class="content-img"><img /></div>';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(htmlone);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-图像监控");
+  }
+  if (rightData[1].indexOf("dam") !== -1) {
+    var html = '<div id="detail-right-peripheral-content" class="fill" ></div>';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(html);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-大坝示意图");
+  }
+  if (rightData[1].indexOf("hcross") !== -1) {
+    var html = '<div id="detail-right-peripheral-content" class="fill" ></div>';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(html);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-横断面示意图");
+  }
+  if (rightData[1].indexOf("flood") !== -1) {
+    var html = '<div id="reservoir-early-warning-chart1" class="early-warning-chart" ></div>' +
+      '<div id="reservoir-early-warning-chart2" class="early-warning-chart" ></div>' +
+      '<div id="reservoir-early-warning-chart3" class="early-warning-chart" ></div>';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(html);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-预警");
+  }
+  if (rightData[1].indexOf("fore") !== -1) {
+    var html = '<div id="reservoir-rain-right-chart"></div>' +
+      '<div id="reservoir-other-right-chart" ></div>';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(html);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-来水预报");
+  }
+  if (rightData[1].indexOf("dispatch") !== -1) {
+    var html = '<div id="reservoir-dispatch-chart"></div>';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(html);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-水库调度");
+  }
+  if (rightData[1].indexOf("real") !== -1) {
+    var html = '<div id="river-course-content-one-chart" ></div>' +
+      '<div id="river-course-content-two-chart" ></div>';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(html);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-实时数据");
+  }
+  if (rightData[1].indexOf("base") !== -1) {
+    var html = '';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(html);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-基础信息");
+  }
+  if (rightData[1].indexOf("around") !== -1) {
+    var html = '';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(html);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-周边信息");
+  }
+  if (rightData[1].indexOf("broken") !== -1) {
+    var html = '';
+    $("#detail-right-peripheral").empty();
+    $("#detail-right-peripheral").css("height", "240px");
+    $("#detail-right-peripheral").append(html);
+    $("#show-two-monitor-detail-right-title").empty();
+    $("#show-two-monitor-detail-right-title").html(currentName + "-溃坝分析");
+  }
+  /*end第二个实时监测窗口内容*/
+
+}

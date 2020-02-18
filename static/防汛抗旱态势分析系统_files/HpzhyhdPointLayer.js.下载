@@ -1,0 +1,150 @@
+// 滑坡灾害隐患点
+define([
+    "esri/layers/FeatureLayer",
+    "esri/layers/support/LabelClass",
+    "esri/geometry/Point",
+  ],
+  function (FeatureLayer, LabelClass, Point) {
+    /**
+     * mapPointArr点数据数组，classBreakInfosArr 渲染器数组,featureLayerID 
+     */
+    return function (mapPointArr, classBreakInfosArr, featureLayerID) {
+      var minScale = 250000000; //label在视图中可见的最小比例
+      var symbol3D = {
+        type: "label-3d", // autocasts as new LabelSymbol3D()
+        symbolLayers: [{
+          type: "text", // autocasts as new TextSymbol3DLayer()
+          material: {
+            color: "black"
+          },
+          halo: {
+            size: 1,
+            color: "white"
+          },
+          size: 10
+        }]
+      }
+      var symbol2D = {
+        type: "text",  // autocasts as new TextSymbol()
+        color: "black",
+        haloSize: 1,
+        haloColor: "white",
+        size: 10
+      }
+      //定义需要显示的字段
+      var fields = [{
+        name: "ObjectID",
+        alias: "ObjectID",
+        type: "oid"
+      }, {
+        name: "id", //id
+        alias: "id",
+        type: "string"
+      }, {
+        name: "region", //地区
+        alias: "region",
+        type: "string"
+      }, {
+        name: "county", //县
+        alias: "county",
+        type: "string"
+      }, {
+        name: "lgtd", //经度
+        alias: "lgtd",
+        type: "double"
+      }, {
+        name: "lttd", //纬度
+        alias: "lttd",
+        type: "double"
+      }, {
+        name: "townships", //乡镇
+        alias: "townships",
+        type: "string"
+      }, {
+        name: "pointLevel", //点级别
+        alias: "pointLevel",
+        type: "string"
+      }, {
+        name: "pointType", //点类型
+        alias: "pointType",
+        type: "string"
+      }, {
+        name: "pointLocation", //点位置
+        alias: "pointLocation",
+        type: "string"
+      }, {
+        name: "typeId", //typeId
+        alias: "typeId",
+        type: "string"
+      },{
+        name: "motype", //motype这个是自定义的
+        alias: "motype",
+        type: "string"
+      }];
+
+      //定义渲染器
+      var pointRenderer = {
+        type: "class-breaks", // autocasts as new ClassBreaksRenderer()
+        field: "id",
+        classBreakInfos: classBreakInfosArr
+      }
+
+      //创建点的label标注
+      var statesLabelClass = new LabelClass({
+        labelExpressionInfo: {
+          expression: "$feature.pointLocation"
+        },
+        labelPlacement: "above-center",
+        minScale: minScale,
+        symbol: dimension === "3D" ? symbol3D : symbol2D
+      });
+
+      var sourceObj = pointCreateGraphicsObj(mapPointArr);
+
+      var pointLayer = new FeatureLayer({
+        id: featureLayerID,
+        source: sourceObj,
+        fields: fields,
+        objectIdField: "ObjectID",
+        renderer: pointRenderer,
+      });
+
+      pointLayer.labelingInfo = [statesLabelClass];
+      var obj = {
+        pointLayer: pointLayer,
+        renderer: pointRenderer,
+        source: sourceObj,
+        labelClass: statesLabelClass,
+        fields: fields,
+        classBreakInfosArr:classBreakInfosArr
+      }
+      return obj;
+    }
+
+    //创建点图形对象
+    function pointCreateGraphicsObj(mapPointArrParam) {
+      return mapPointArrParam.map(function (ele, i) {
+        return {
+          geometry: new Point({
+            x: ele.lgtd,
+            y: ele.lttd
+          }),
+          attributes: {
+            ObjectID: i,
+            id: ele.id,
+            region: ele.region,
+            county: ele.county,
+            townships: ele.townships,
+            pointLevel: ele.pointLevel,
+            pointType: ele.pointType,
+            pointLocation: ele.pointLocation,
+            lgtd: ele.lgtd,
+            lttd: ele.lttd,
+            typeId: ele.typeId,
+            motype: ele.motype,
+          }
+        }
+      })
+    }
+  }
+)

@@ -1,0 +1,120 @@
+/**
+ * The event object for notification or other event handle mechanism.
+ */
+function NotifyEvent(source, name, attachment) {
+
+  /**
+   * @param source {*}
+   * @param name {String}
+   * @param attachment {*?}
+   */
+  this.source = source;
+  this.name = name;
+  this.attachment = attachment;
+  this.consumed = false;
+  this.isStopPropagation = false;
+  this.isStopImmediatePropagation = false;
+
+
+  this.consume = function () {
+    return this.consumed = true;
+  }
+
+  /**
+   * See my name.
+   */
+  this.stopPropagation = function () {
+    return this.isStopPropagation = true;
+  }
+
+  /**
+   * See my name.
+   */
+  this.stopImmediatePropagation = function () {
+    this.isStopImmediatePropagation = true;
+    return this.stopPropagation();
+  }
+
+  this.reset = function () {
+    this.consumed = false;
+    this.isStopPropagation = false;
+    this.isStopImmediatePropagation = false;
+    return this;
+  }
+
+
+}
+
+/**
+ * Make sure an event return from given parameters.
+ *
+ * @param source {*}
+ * @param event {String | NotifyEvent} No-null
+ * @param attachment {*?}
+ */
+NotifyEvent.ensure = function (source, event, attachment) {
+  if ((event instanceof NotifyEvent && event.name == null) || event == null) {
+    throw new Error("Notify event name cannot be null.");
+  }
+  if (event instanceof NotifyEvent) return event.reset();
+  return new NotifyEvent(source, event, attachment);
+}
+
+
+/**
+ * A notification for notify events.
+ *
+ * A action(Function) may add to this class and listener some event.
+ *
+ * This class may has to listener way, witch is listen to name or listen to all action.
+ *
+ * If name is null, the action always point global.
+ */
+function Notifier() {
+
+  this.map = new Map();
+
+
+  this.on = function (name, action) {
+    let set = this.map.get(name);
+    if (!set) this.map.set(name, set = new Set());
+    set.add(action);
+  };
+
+  this.off = function (name, action) {
+    let set = this.map.get(name);
+    if (set) set.delete(action);
+  };
+
+  this.notify = function (event, ...args) {
+    event = NotifyEvent.ensure(this, event);
+    this.doNotify(event, this.map.get(null), args);
+    if (event.isStopPropagation === false) {
+      this.doNotify(event, this.map.get(event.name), args);
+    }
+    return event;
+  };
+
+  this.clear = function () {
+    for (let item of this.map) {
+      item[1].clear();
+    }
+    this.map.clear();
+    this.set.clear();
+  };
+
+
+  this.doNotify = function (event, actions, args) {
+    if (actions == null) return;
+    for (let action of actions) {
+      try {
+        action.apply(this, [event, ...args]);
+        if (event.isStopImmediatePropagation) break;
+      } catch (error) {
+        console.error("Notify failed with error: ", error);
+      }
+    }
+  }
+}
+
+const note = new Notifier();

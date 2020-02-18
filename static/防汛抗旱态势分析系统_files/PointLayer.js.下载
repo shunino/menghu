@@ -1,0 +1,254 @@
+//封装加载地图点模块
+define([
+  "esri/layers/FeatureLayer",
+  "esri/layers/support/LabelClass",
+  "esri/geometry/Point",
+  "esri/symbols/Font"
+],
+  function (FeatureLayer, LabelClass, Point, Font) {
+    /**
+     * mapPointArr点数据数组，classBreakInfosArr 渲染器数组
+     */
+    return function (mapPointArr, classBreakInfosArr, featureLayerID) {
+      var minScale = dimension === "3D" ? 250000000 : 2500000000; //label在视图中可见的最小比例
+      var symbol3D = {
+        type: "label-3d", // autocasts as new LabelSymbol3D()
+        symbolLayers: [{
+          type: "text", // autocasts as new TextSymbol3DLayer()
+          material: {
+            color: "black"
+          },
+          halo: {
+            size: 1,
+            color: "white"
+          },
+          size: 10
+        }]
+      }
+      var symbol2D = {
+        type: "text",  // autocasts as new TextSymbol()
+        color: "black",
+        haloSize: 1,
+        haloColor: "white",
+        size: 10,
+        // font: {  // autocasts as new Font()
+        //   size: 12,
+        //   family: "宋体",
+        //   weight: "bold"
+        // }
+      }
+      //定义需要显示的字段
+      var fields = [
+        {
+        name: "ObjectID",
+        alias: "ObjectID",
+        type: "oid"
+      }, {
+        name: "monm", //名称
+        alias: "monm",
+        type: "string"
+      }, {
+        name: "wlevel", //wlevel
+        alias: "wlevel",
+        type: "double"
+      }, {
+        name: "mocd", //mocd
+        alias: "mocd",
+        type: "string"
+      }, {
+        name: "addr", //地址
+        alias: "addr",
+        type: "string"
+      }, {
+        name: "adnm", //所属区县
+        alias: "adnm",
+        type: "string"
+      }, {
+        name: "lgtd", //经度
+        alias: "lgtd",
+        type: "double"
+      }, {
+        name: "lttd", //纬度
+        alias: "lttd",
+        type: "double"
+      }, {
+        name: "motype", //类型
+        alias: "motype",
+        type: "string"
+      }, {
+        name: "stcd", //stcd
+        alias: "stcd",
+        type: "string"
+      }, {
+        name: "oecd", //mocd
+        alias: "oecd",
+        type: "string"
+      }, {
+        name: "adcd", //adcd
+        alias: "adcd",
+        type: "string"
+      }, {
+        name: "exparams", //exparams
+        alias: "exparams",
+        type: "blob"
+      }, {
+        name: "topoid", //topoid
+        alias: "topoid",
+        type: "string"
+      }, {
+        name: "wscd", //wscd
+        alias: "wscd",
+        type: "string"
+      }, {
+        name: "typeId", //wscd
+        alias: "typeId",
+        type: "string"
+      }
+    ];
+      //构造popUp显示模板
+      var pTemplate = {
+        title: "{monm}",
+        content: [{
+          type: "fields",
+          fieldInfos: [{
+            fieldName: "monm",
+            label: "名称",
+            visible: true
+          }, {
+            fieldName: "wlevel",
+            label: "预警级别",
+            visible: true
+          }, {
+            fieldName: "mocd",
+            label: "mocd",
+            visible: true
+          }, {
+            fieldName: "addr",
+            label: "地址",
+            visible: true
+          }, {
+            fieldName: "adnm",
+            label: "所属区县",
+            visible: true
+          }, {
+            fieldName: "lgtd",
+            label: "经度",
+            visible: true
+          }, {
+            fieldName: "lttd",
+            label: "纬度",
+            visible: true
+          }, {
+            fieldName: "motype",
+            label: "所属类型",
+            visible: true
+          }, {
+            fieldName: "stcd",
+            label: "stcd",
+            visible: true
+          }, {
+            fieldName: "oecd",
+            label: "oecd",
+            visible: true
+          }, {
+            fieldName: "adcd",
+            label: "adcd",
+            visible: true
+          }, {
+            fieldName: "exparams",
+            label: "exparams",
+            visible: true
+          }, {
+            fieldName: "wscd",
+            label: "wscd",
+            visible: true
+          }, {
+            fieldName: "topoid",
+            label: "topoid",
+            visible: true
+          }, {
+            fieldName: "typeId",
+            label: "typeId",
+            visible: true
+          }]
+        }]
+      }
+
+      //定义渲染器
+      var pointRenderer = {
+        type: "class-breaks", // autocasts as new ClassBreaksRenderer()
+        field: "wlevel",
+        classBreakInfos: classBreakInfosArr
+      }
+
+      //创建点的label标注
+      var statesLabelClass = new LabelClass({
+        labelExpressionInfo: {
+          expression: "$feature.monm"
+        },
+        labelPlacement: "above-center",
+        minScale: minScale,
+        symbol: dimension === "3D" ? symbol3D : symbol2D
+      });
+      var sourceObj = pointCreateGraphicsObj(mapPointArr);
+
+      var pointLayer = new FeatureLayer({
+        id: featureLayerID,
+        source: sourceObj.pointObj,
+        fields: fields,
+        objectIdField: "ObjectID",
+        renderer: pointRenderer,
+        popupTemplate: pTemplate,
+      });
+
+      pointLayer.labelingInfo = [statesLabelClass];
+      var obj = {
+        pointLayer: pointLayer,
+        renderer: pointRenderer,
+        source: sourceObj.pointObj,
+        labelClass: statesLabelClass,
+        fields: fields,
+        classBreakInfosArr: classBreakInfosArr,
+        objId: sourceObj.objId
+      }
+      return obj;
+    }
+
+    //创建点图形对象
+    function pointCreateGraphicsObj(mapPointArrParam) {
+      var objId = [];
+      var pointObj = mapPointArrParam.map(function (ele, i) {
+        objId.push(ele.mocd);
+        return {
+          geometry: new Point({
+            x: ele.lgtd,
+            y: ele.lttd,
+            z: ele.z===undefined?undefined:ele.z
+          }),
+          attributes: {
+            ObjectID: i,
+            monm: ele.monm,
+            wlevel: ele.wlevel,
+            mocd: ele.mocd,
+            addr: ele.addr,
+            adnm: ele.adnm,
+            lgtd: ele.lgtd,
+            lttd: ele.lttd,
+            motype: ele.motype,
+            stcd: ele.stcd,
+            oecd: ele.oecd,
+            adcd: ele.adcd,
+            exparams: (ele.exparams===undefined?"":ele.exparams),
+            wscd: ele.wscd,
+            topoid: (ele.topoid===undefined?"1":ele.topoid),
+            typeId: ele.typeId
+          }
+        }
+      });
+      return obj = {
+        pointObj: pointObj,
+        objId: objId
+      }
+    }
+  }
+)

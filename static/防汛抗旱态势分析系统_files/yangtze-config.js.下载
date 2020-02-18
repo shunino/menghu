@@ -1,0 +1,602 @@
+$(function () {
+
+  function valueOf(owner, key, def) {
+    let value = Object.get(owner, key, def);
+    return isNaN(value) ? value : parseFloat(value.toFixed(2));
+  }
+
+  function fixed(value, fraction = 2) {
+    return isNaN(value) ? value : parseFloat(value.toFixed(fraction));
+  }
+
+  function tooltip_r(e) {
+    let buf = [
+      `<li>时间：${e.value[0]}</li>`,
+      `数值（名称/值/极值/单位）`,
+      `<li>水位：${e.value[1].stage}【${e.value[2].stage}】(m)</li>`,
+      `<li>入流：${e.value[1].inflow}【${e.value[2].inflow}】(m³/s)</li>`,
+      `<li>出流：${e.value[1].outflow}【${e.value[2].outflow}】(m³/s)</li>`,
+      `<li>库容：${e.value[1].capacity}【${e.value[2].capacity}】(万m³)</li>`,
+    ];
+    let indices = e.value[1].indices.map(i => {
+      return `<li>${i.name}：${fixed(i.diff)}(${i.unit})</li>`;
+    });
+    return [`<span>${e.name}</span>`, ...buf, ...indices].join("");
+  }
+
+  function tooltip_h(e) {
+    let buf = [
+      `<li>时间：${e.value[0]}</li>`,
+      `数值（名称/值/极值/单位）`,
+      `<li>水位：${e.value[1].stage}【${e.value[2].stage}】(m)</li>`,
+      `<li>流量：${e.value[1].outflow}【${e.value[2].outflow}】(m³/s)</li>`,
+    ];
+    let indices = e.value[1].indices.map(i => {
+      return `<li>${i.name}：${fixed(i.diff)}(${i.unit})</li>`;
+    });
+    return [`<span>${e.name}</span>`, ...buf, ...indices].join("");
+  }
+
+  const label = {
+    normal: {
+      align: "left",
+      fontSize: 18,
+      lineHeight: 16,
+      color: "#c8e7fc",
+      textBorderColor: "#003366",
+      textBorderWidth: 2,
+      formatter: e => e.name
+    }
+  };
+
+  const static_label = {
+    normal: {
+      show: true,
+      align: "center",
+      fontSize: 18,
+      color: "#fff",
+      formatter: e => e.name
+    }
+  };
+
+  const markLine = {
+    lineStyle: { color: "#fff" }
+  };
+
+  const itemStyle = {
+    normal: {
+      color: "#3266cd"
+    },
+    emphasis: {
+      borderColor: "#fff",
+      borderWidth: 1
+    }
+  };
+
+  const lightStyle = {
+    normal: {
+      borderColor: 'rgba(46, 141, 248, 0.15)',
+      borderWidth: 1,
+      areaColor: {
+        type: 'radial',
+        x: 0.5,
+        y: 0.5,
+        r: 0.8,
+        colorStops: [{
+          offset: 0,
+          color: 'rgba(46, 141, 248, 0.1)' // 0% 处的颜色
+        }, {
+          offset: 1,
+          color: 'rgba(46, 141, 248,0.6)' // 100% 处的颜色
+        }],
+        globalCoord: false // 缺省为 false
+      },
+    }
+  };
+
+  window.yangtzeConfig = {
+    // host: "http://10.10.20.191:8070",
+    // host: "http://172.168.1.206:8080",
+    host: "http://10.18.1.59:8030",
+    // host:"http://58.42.247.176:8081",
+    chart: {
+      grid: {
+        top: 20,
+        bottom: 20,
+        left: 20,
+        right: 20,
+      },
+      visualMap: {
+        type: "piecewise",
+        dimension: 3,
+        seriesIndex: null,
+        show: false,
+        pieces: [
+          { value: 0, color: "#0ca800", label: "无预警" },
+          { value: 1, color: "#ff0000", label: "红色预警" },
+          { value: 2, color: "#ff9900", label: "橙色预警" },
+          { value: 3, color: "#ffff00", label: "黄色预警" },
+          { value: 4, color: "#3266ff", label: "蓝色预警" },
+        ],
+        textStyle: {
+          color: '#fff'
+        }
+      },
+      backgroundColor: null,
+      geo: {
+        map: "yangtze",
+        silent: true,
+        roam: true,
+        label: { show: true, color: "rgba(0,255,255,0.5)", fontSize: 14 },
+        itemStyle: {
+          normal: {
+            borderColor: 'rgb(46,141,248,0.3)',
+            borderWidth: 1,
+            // borderType: "dot",
+            areaColor: {
+              type: 'radial',
+              x: 0.5,
+              y: 0.5,
+              r: 0.8,
+              colorStops: [{
+                offset: 0,
+                color: 'rgba(1,20,34,0.1)' // 0% 处的颜色
+              }, {
+                offset: 1,
+                color: 'rgba(0,77,116,0.35)' // 100% 处的颜色
+              }],
+              globalCoord: false // 缺省为 false
+            },
+          }
+        },
+        regions: [
+          { "name": "通天河", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "直门达至石鼓",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "雅砻江", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "牛栏江横江水系",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "大渡河", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "青衣江和岷江干流",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "沱江", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "广元昭化以上",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "涪江", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "渠江",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "广元昭化以下干流", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "乌江水系",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "赤水河綦江水系", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "宜宾至宜昌干流",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "澧水", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "沅江浦市镇以上",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "沅江浦市镇以下", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "资水冷水江以上",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "资水冷水江以下", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "湘江衡阳以上",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "湘江衡阳以下", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "洞庭湖环湖区",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "丹江口以上", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "唐白河",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "丹江口以下干流", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "修水",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "赣江栋背以上", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "赣江栋背至峡江",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "赣江峡江以下", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "抚河",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "信江", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "饶河",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "鄱阳湖环湖区", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "清江",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "宜昌至武汉左岸", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "武汉至湖口左岸",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "城陵矶至湖口右岸", "label": { "show": false }, "itemStyle": lightStyle }, {
+            "name": "巢滁皖及沿江诸河",
+            "label": { "show": false },
+            "itemStyle": lightStyle
+          }, { "name": "青弋江和水阳江及沿江诸", "label": { "show": false }, "itemStyle": lightStyle }]
+      },
+      tooltip: {},
+    },
+    convert(node, provider) {
+      node.max = {
+        stage: valueOf(node.stage, "max", "0"),
+        inflow: valueOf(node.inflow, "max", "0"),
+        outflow: valueOf(node.outflow, "max", "0"),
+        capacity: valueOf(node.capacity, "max", "0")
+      };
+      if (!node.dimensions) console.log(node);
+      let source = node.source.map(e => {
+        return node.dimensions.reduce((p, c, i) => {
+          return ((p[c] = fixed(e[i])) || true) && p;
+        }, { topoid: node.topoid, type: node.type, name: node.name });
+      });
+      source.forEach((item, i) => {
+        item.indices = node.indices.map(e => {
+          let find = e.values.find(i => i.index != null && item[e.dimension] > i.index);
+          return find && Object.assign({}, find, { unit: e.unit, diff: item[e.dimension] - find.index });
+        }).filter(e => e);
+        item.value = item.indices.map(e => e.level).min() || 0;
+        if (item.floodPeak === 1) node.floodPeakTime = provider.tooltip(i);
+      });
+      if (node.calc == null) {
+        node.calc = {
+          series: [],
+          flood: Object.assigns({}, node.flood),
+          initialstate: {
+            inflow: valueOf(node.state, "inflow", "0"),
+            outflow: valueOf(node.state, "outflow", "0"),
+            stage: valueOf(node.state, "stage", "0"),
+            capacity: valueOf(node.state, "capacity", "0")
+          }
+        }
+      }
+      return node.source = source;
+    },
+
+    flag: {
+      symbol: "path://M226.13333333 34.13333333c-18.88 0-34.13333333 15.25333333-34.13333333 34.13333334v887.46666666c0 18.88 15.25333333 34.13333333 34.13333333 34.13333334s34.13333333-15.25333333 34.13333333-34.13333334V68.26666667c0-18.88-15.25333333-34.13333333-34.13333333-34.13333334zM828.37333333 346.56L380.8 66.77333333c-22.72-14.18666667-52.26666667 2.13333333-52.26666667 28.90666667v559.46666667c0 26.77333333 29.44 43.2 52.26666667 28.90666666L828.37333333 404.26666667c21.33333333-13.22666667 21.33333333-44.37333333 0-57.70666667z",
+      symbolSize: 20,
+      symbolKeepAspect: true,
+      symbolOffset: [10, -10],
+      silent: true,
+      itemStyle: { normal: { color: "red" } }
+    },
+
+    map: {
+      chart: {
+        visualMap: { seriesIndex: [0, 1, 2, 3, 4] },
+        geo: {
+          zoom: 4,
+          center: [106.420705, 29.847523],
+          map: "china"
+        }
+      },
+      "01": {
+        filter: e => e.value > 0,
+        series: {
+          normal: {
+            name: "01",
+            type: "scatter",
+            coordinateSystem: "geo",
+            symbolSize: 20,
+            label,
+            tooltip: { formatter: tooltip_r },
+            itemStyle,
+            markLine
+          },
+          effect: {
+            name: "01",
+            type: "effectScatter",
+            coordinateSystem: "geo",
+            symbolSize: 20,
+            label,
+            tooltip: { formatter: tooltip_r },
+            itemStyle,
+            markLine
+          },
+        },
+      },
+      "15": {
+        filter: e => e.value > 0,
+        series: {
+          normal: {
+            name: "15",
+            type: "scatter",
+            coordinateSystem: "geo",
+            symbol: "triangle",
+            symbolSize: 20,
+            label,
+            itemStyle,
+            tooltip: { formatter: tooltip_h },
+            markLine,
+          },
+          effect: {
+            name: "15",
+            type: "effectScatter",
+            coordinateSystem: "geo",
+            symbol: "triangle",
+            symbolSize: 20,
+            label,
+            itemStyle,
+            tooltip: { formatter: tooltip_h },
+          },
+        },
+      },
+      river: {
+        id: "river",
+        name: "static",
+        type: "lines",
+        polyline: true,
+        silent: true,
+        animation: false,
+        lineStyle: {
+          opacity: 1,
+          normal: { color: "#00f8ff" }
+        }
+      },
+      riverName: {
+        name: "static",
+        type: "scatter",
+        coordinateSystem: "geo",
+        symbolSize: 1,
+        silent: true,
+        encode: { lng: 0, lat: 1 },
+        label: {
+          normal: {
+            show: true,
+            color: "rgba(200,231,252,0.72)",
+            textBorderColor: "#003366",
+            textBorderWidth: 2,
+            fontSize: 14,
+            fontStyle: "italic",
+            fontFamily: "宋体",
+            formatter: e => e.name
+          },
+        },
+        itemStyle: {
+          normal: {
+            color: "transparent"
+          }
+        }
+      },
+      cities: {
+        name: "static",
+        type: "scatter",
+        coordinateSystem: "geo",
+        symbolSize: 10,
+        silent: true,
+        encode: { lng: 0, lat: 1 },
+        label: {
+          normal: {
+            show: true,
+            color: "#f9c693",
+            offset: [0, 16],
+            formatter: e => e.name
+          },
+        },
+        itemStyle: {
+          normal: {
+            color: "#ffffff",
+            borderWidth: 4,
+            borderColor: "#ff3e39"
+          }
+        }
+      },
+    },
+
+    simple: {
+      chart: {
+        visualMap: { seriesIndex: [0, 1, 2, 3, 4, 5, 6, 7] },
+        geo: {
+          map: "yangtze",
+          itemStyle: {
+            normal: {
+              areaColor: "transparent",
+              borderWidth: 0
+            }
+          },
+          zoom: 1.5,
+          label: false,
+          regions: null
+        }
+      },
+      "01": {
+        filter: e => e.value > 0,
+        decode(nodes, index, time, option) {
+          return nodes.map(e => {
+            let source = e.source && e.source[index];
+            return {
+              name: e.properties.TEXT_DIR === "0" ? e.properties.NAME : e.properties.NAME.split("").join("\n"),
+              symbolRotate: e.properties.ICON_DIR * 90,
+              symbolSize: e.properties.SIZE || 50,
+              value: [time, source, e.max, source && source.value, ...e.coord],
+              label: { show: true },
+            }
+          });
+        },
+        series: {
+          normal: {
+            name: "01",
+            type: "scatter",
+            coordinateSystem: "geo",
+            symbol: "path://M0,20V0H47.33V20Z",
+            symbolSize: 55,
+            symbolKeepAspect: true,
+            label: static_label,
+            tooltip: { formatter: tooltip_r },
+            itemStyle: {
+              normal: {
+                color: "#3266cd"
+              }
+            },
+          },
+          effect: {
+            name: "01",
+            type: "effectScatter",
+            coordinateSystem: "geo",
+            symbol: "path://M0,20V0H47.33V20Z",
+            symbolSize: 55,
+            symbolKeepAspect: true,
+            label: static_label,
+            tooltip: { formatter: tooltip_r },
+            itemStyle,
+            rippleEffect: {
+              scale: 1.2,
+              brushType: "stroke"
+            }
+          },
+        },
+      },
+      "15": {
+        filter: e => e.value > 0,
+        decode(nodes, index, time, option, dimensions) {
+          return nodes.map(e => {
+            let source = e.source && e.source[index];
+            let pos = e.properties.ICON_POS;
+            let symbolOffset = [15 * pos[0], 15 * pos[1]];
+            return {
+              symbolOffset,
+              name: e.properties.TEXT_DIR === "0" ? e.properties.NAME : e.properties.NAME.split("").join("\n"),
+              value: [time, source, e.max, source && source.value, ...e.coord],
+              symbolRotate: e.properties.ICON_DIR * 90,
+              label: {
+                show: true,
+                normal: {
+                  position: e.properties.TEXT_POS,
+                  align: e.properties.ALIGN,
+                }
+              },
+            }
+          });
+        },
+        series: {
+          normal: {
+            name: "15",
+            type: "scatter",
+            coordinateSystem: "geo",
+            symbol: "path://M10.67,30H0L5.33,0Z",
+            symbolSize: 30,
+            symbolKeepAspect: true,
+            label: static_label,
+            tooltip: { formatter: tooltip_h },
+            itemStyle: {
+              normal: {
+                color: "#8dc73e"
+              }
+            }
+          },
+          effect: {
+            name: "15",
+            type: "effectScatter",
+            coordinateSystem: "geo",
+            symbol: "path://M10.67,30H0L5.33,0Z",
+            symbolSize: 30,
+            symbolKeepAspect: true,
+            label: static_label,
+            tooltip: { formatter: tooltip_h },
+            rippleEffect: {
+              scale: 1.2,
+              brushType: "stroke"
+            }
+          },
+        },
+      },
+      river: {
+        id: "river",
+        name: "static",
+        type: "lines",
+        silent: true,
+        animation: false,
+        lineStyle: {
+          opacity: 1,
+          normal: { color: "#0074ff" }
+        }
+      },
+      name: {
+        name: "static",
+        type: "scatter",
+        coordinateSystem: "geo",
+        symbol: "path://M54.24,13.28,41,26.23V19.75H0V6.48H41.29V0Z",
+        symbolSize: 50,
+        silent: true,
+        label: {
+          normal: {
+            show: true,
+            color: "#fff",
+            align: "center",
+            verticalAlign: "middle",
+            formatter: e => e.name
+          },
+        },
+        itemStyle: {
+          normal: {
+            color: "#02a9f5",
+          }
+        }
+      },
+      lake: {
+        name: "static",
+        type: "lines",
+        silent: true,
+        animation: false,
+        lineStyle: {
+          color: "#fff",
+          width: 20,
+          shadowBlur: 1,
+          shadowColor: "rgba(51,51,51,0.5)"
+        },
+      },
+      lakeName: {
+        name: "static",
+        type: "scatter",
+        coordinateSystem: "geo",
+        symbolSize: 1,
+        silent: true,
+        animation: false,
+        z: 10,
+        label: Object.assigns({}, static_label, { normal: { color: "#000000" } }),
+      },
+      city: {
+        name: "static",
+        type: "scatter",
+        coordinateSystem: "geo",
+        symbolSize: 15,
+        silent: true,
+        label: static_label,
+        itemStyle: {
+          normal: {
+            color: "#3399ff",
+            borderWidth: 4,
+            borderColor: "#66ffff"
+          }
+        }
+      },
+      town: {
+        name: "static",
+        type: "scatter",
+        coordinateSystem: "geo",
+        symbolSize: 15,
+        silent: true,
+        label: static_label,
+        itemStyle: {
+          normal: {
+            color: "#3399ff",
+          }
+        }
+      },
+    }
+  };
+});

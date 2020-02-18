@@ -1,0 +1,242 @@
+let calendar;
+let today, maxNextDay; //`YYYY-MM-dd`
+let isMainClick = false;
+$(function () {
+  today = getTime(getSystemTime());
+  maxNextDay = new Date(today).getTime() + 1000 * 60 * 60 * 24;
+
+  initCalendar();
+
+  note.on("layer.play.init", (e, index, provider, option) => {
+    if (provider && provider.item) {
+      changeMinMax(getTime(provider.times[3]), getTime(provider.times[0]))
+    }
+  })
+
+  $('#calendarGoToday').on('click', function () {
+    if (isMainClick) return
+    isMainClick = true
+    setTimeout(function () {
+      isMainClick = false;
+    }, 1000);
+    $('.laydate-btns-now').trigger('click');
+  })
+
+  $('#back-close-calendar').on('click', function () {
+    $("#calendar-main").animate({
+      width: 'hide',
+    }, 100);
+    // $("#calendar-zoom").animate({
+    //   width: 'show',
+    // }, "slow");
+    $("#flood-back").hide();
+
+    note.notify("calendar.change", "000");
+    if (map.findLayerById('1112') != undefined) {
+      map.findLayerById('1112').visible = true;
+      map.findLayerById('1112').opacity = 1;
+    }
+    let layer = minmap.allLayers.find(function (item) {
+      return item.id != "wmsADCD"
+    });
+    if (layer) {
+      minmap.layers.remove(layer);
+    }
+  })
+
+  $('#calendarChangeDay').on('click', 'span', function () {
+    const name = $(this).attr('name');
+    const date = name == 'prev' ? getTime(new Date(new Date(today).getTime() - 1000 * 60 * 60 * 24)) : //前一天
+      name == 'next' ? getTime(new Date(new Date(today).getTime() + 1000 * 60 * 60 * 24)) : //后一天
+      false;
+    date && new Date(date).getTime() <= maxNextDay ? calendarClick(date) : layer.msg("最多只能选到今天！", {
+      time: 2000
+    });
+  })
+
+  // $('.warning-point').on('click', function () {
+  //   if ($(this).hasClass('isclick')) {
+  //     $(this).removeClass("isclick");
+  //     return
+  //   }
+  //   $(this).addClass('isclick');
+
+  // })
+  // $('#calendar-zoom').on('click', function () {
+  //   $("#calendar-main").animate({
+  //     width: 'show',
+  //   }, 100);
+  //   $("#calendar-zoom").animate({
+  //     width: 'hide',
+  //   }, "slow");
+  // })
+})
+
+function calendarOpen() {
+  calendarBox = layer.open({
+    id: 'calendarBox',
+    title: false,
+    type: 1,
+    shade: false,
+    maxmin: false,
+    offset: ['0', '0'],
+    content: $('#date-main'),
+    cancel: function (index, layero) {
+      $('.date-table-thead').remove();
+      changeCalendar();
+    }
+  })
+  layer.ready(function () {
+    $('.date-table-thead').remove();
+    $('#date-main').prepend(`<div class='date-table-thead'></div>`);
+    setWarningNum(today);
+    changeCalendar();
+  })
+}
+
+function initCalendar() {
+  layui.use('laydate', function () {
+    //执行一个laydate实例
+    calendar = layui.laydate.render({
+      elem: '#date-main',
+      showBottom: false,
+      position: 'static',
+      theme: 'calendarBox',
+      show: false,
+      showBottom: true,
+      btns: ['now'],
+      mark: {},
+      ready: function (date) {
+        changeCalendarTime();
+        setWarningNum(today);
+        $('.laydate-btns-now').html('回到今天');
+        $('.laydate-btns-now').on('click', function () {
+          calendarClick(getTime(getSystemTime()));
+          if (isMainClick) return
+          isMainClick = false;
+        })
+      },
+      change: function (date) {
+        setWarningNum(date);
+      },
+      done: function (value, date, endDate) {
+        setCalendarTime(value);
+      }
+    })
+  })
+
+  // const [year, ...another] = today.split(/[-:_ ]/);
+  // params = {
+  //   start: `${year}-01-01 00:00:00`,
+  //   end: `${year}-12-31 23:59:59`,
+  // }
+  // ajaxCallJson(params, '/warning/getFloodLines', function (res) {
+  // })
+}
+
+function changeCalendar() {
+  // $('#calendar-main').animate({
+  //   height: 'toggle',
+  // }, "slow");
+  $('#date-box').toggle();
+}
+
+let checkDay = null;
+let checkLock = false;
+
+function setWarningNum(time) {
+  if (checkLock) return
+  if (checkDay)
+    if (time.slice(0, 7) == checkDay.slice(0, 7)) return
+  if ($('.layui-laydate-content ul').length > 0) return
+  checkLock = true;
+  const [year, month, ...another] = time.split(/[-:_ ]/);
+  params = {
+    start: `${year}-${month}-01 00:00:00`,
+    end: `${year}-${month}-${dayNum(year, month)} 24:00:00`,
+  }
+  ajaxCallJson(params, '/warning/getFloodLines', function (res) {
+    if (res.flag) {
+      checkDay = time;
+      calendar.config.mark = changeMark(res.info);
+      $('.layui-this').trigger("click");
+    }
+    checkLock = false;
+  });
+}
+
+function getTime(ms) {
+  const now = new Date(ms);
+  const year = now.getFullYear(); //得到年份
+  let month = now.getMonth() + 1; //得到月份
+  let day = now.getDate(); //得到日期
+  month = month < 10 ? `0${month}` : month;
+  day = day < 10 ? `0${day}` : day;
+  return `${year}-${month}-${day}`;
+}
+
+const dayNum = (year = new Date().getFullYear(), Month = new Date().getMonth() + 1) => {
+  return Month == 2 ? (year % 4 == 0 && year % 100 != 0 || year % 400 == 0 ? 29 : 28) : (Month % 2 == 0 ? (Month >= 8 ? 31 : 30) : (Month >= 8 ? 30 : 31))
+}
+
+const getWeek = (week = new Date().getDay()) => {
+  return `星期${"日一二三四五六".charAt(week)}`;
+}
+
+function changeMark(data) {
+  let mark = {};
+  if (data) {
+    for (let i of data) {
+      mark[i.time] = `${i.day}<div title="当天的预警数为：${i.Num}" class="date-warning">${i.Num > 99 ? '99+' : i.Num}</div>`;
+    }
+  }
+  return mark;
+}
+
+function changeCalendarTime() {
+  const [year, month, day, ...another] = today.split(/[-:_ ]/);
+  const text = `
+    <ul>
+        <li>${year}年${month}月${day}日</li>
+    </ul>`;
+  $('#calendarDate').empty();
+  $('#calendarDate').append(text);
+}
+
+function changeMinMax(max, min = `1970-01-01`) {
+  min = min.split(/[-:_ ]/);
+  max = max.split(/[-:_ ]/);
+  calendar.config.min = {
+    year: min[0],
+    month: min[1],
+    date: min[2],
+  }
+
+  calendar.config.max = {
+    year: max[0],
+    month: max[1],
+    date: max[2],
+  }
+  $('.layui-this').trigger("click");
+}
+
+let isdbclick = 0;
+
+function setCalendarTime(date) {
+  isdbclick++;
+  setTimeout(function () {
+    isdbclick = 0
+  }, 500);
+  if (isdbclick <= 1) return
+  calendarClick(date);
+  changeCalendar();
+}
+
+function calendarClick(date) {
+  today = date;
+  changeCalendarTime();
+  getMonitorInfo();
+  note.notify('today.change', today);
+  if ($('#module-play-control').length <= 0) return
+  note.notify("calendar.change", Date.parse(today));
+}

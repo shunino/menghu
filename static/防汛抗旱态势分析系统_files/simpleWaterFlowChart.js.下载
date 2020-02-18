@@ -1,0 +1,195 @@
+(function () {
+  let SERIES = {
+    type: 'line',
+    smooth: true,
+    animation: false,
+    symbol: 'none',
+    markPoint: {
+      symbol: "circle",
+      symbolSize: 10,
+      data: [{type: 'max', name: '最大值'}],
+      label: {
+        offset: [0, -10]
+      }
+    }
+  };
+
+  let BASIC = {
+    calculable: true,
+    title: {
+      show: false,
+      text: '水库调度',
+      left: 'center',
+      align: 'right'
+    },
+    grid: {
+      top: 55,
+      bottom: "9%",
+      left: 80,
+      right: 80,
+    },
+    dataset: {
+      dimensions: [],
+      source: [],
+    },
+    dataZoom: {
+      show: true,
+      realtime: true,
+      start: 0,
+      end: 100,
+      bottom: 8,
+      height: "2.3%"
+    },
+    xAxis: [{
+      type: 'category',
+      nameLocation: 'middle',
+      boundaryGap: false,
+      axisLine: {
+        onZero: false,
+        lineStyle: {color: "#fff"}
+      },
+    }],
+    yAxis: [
+      {
+        name: '流量(m³/s)',
+        type: 'value',
+        nameLocation: 'middle',
+        nameGap: 50,
+        scale: true,
+        nameTextStyle: {
+          color: '#fff'
+        },
+        axisLine: {
+          lineStyle: {color: "#fff"}
+        },
+        splitArea: {
+          show: true,
+          areaStyle: {
+            color: ['rgba(17,85,127,0.3)', 'rgba(121,166,191,0.3)']
+          }
+        }
+      },
+      {
+        name: '水位(m)',
+        type: 'value',
+        nameLocation: 'middle',
+        nameGap: 50,
+        scale: true,
+        nameTextStyle: {
+          color: '#fff'
+        },
+        splitLine: {
+          show: false
+        },
+        axisLine: {
+          lineStyle: {color: "#fff"}
+        }
+      }
+    ],
+    series: null
+  };
+
+  let OPTION = {
+    backgroundColor: undefined,
+    animation: false,
+    color: ['#00AAFF', '#FF7E51', '#EE00EE', '#9DC70D', '#29FB07', '#0CC5FF', '#FFBED6', '#00FAFF', '#F9FBFF', '#FF13E3', '#EDFF00'],
+    title: {
+      textStyle: {
+        color: "#fff"
+      }
+    },
+    legend: {
+      top: '20',
+      textStyle: {
+        color: "#fff",
+        fontSize: 14
+      }
+    },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'cross',
+        animation: false,
+        label: {
+          backgroundColor: '#505765'
+        }
+      }
+    }
+  };
+
+  let DATAMAP = {
+    "01": {
+      key: ['time', 'stage', 'inflow', 'outflow'],
+      dimensions: ['时间', '水位', '入库流量', '出库流量'],
+      head: ['时间', '水位(m)', '入库流量(m³/s)', '出库流量(m³/s)'],
+    },
+    "15": {
+      key: ['time', 'stage', 'inflow'],
+      dimensions: ['时间', '水位', '流量'],
+      head: ['时间', '水位(m)', '流量(m³/s)']
+    }
+  };
+
+  /**
+   * 组装数据集，生成echarts曲线配置
+   *
+   * value数据结构，对应echarts，dataset数据结构
+   * {
+   * dimensions:[时间，水位，流量1，流量2],
+   * source:[["2019/6/25 1:00", 1013.9, 0.97, 0.56]...]
+   * }
+   */
+  function simpleWaterFlowChart(option, _value) {
+    let optioned = Object.assigns({}, OPTION, BASIC, option);
+    if (!_value) return optioned;
+    for(let key in _value){
+      if (_value[key] instanceof Array) {
+        for (let i = 0; i < _value[key].length; i++) {
+          _value[key][i] = parseFloat(_value[key][i]).toFixed(2)
+        }
+      }
+    }
+
+    let length = _value.stage.length, beginDt = moment(SYSTEM.getSystemTime());
+    let map = DATAMAP[option.type], source = [];
+    let tableColumns = [], tableData = [];
+    _value.time = [];
+    for (let i = 0; i < length; i++) {
+      let item = [], tableItem = {};
+      _value.time.push(moment(beginDt).add(i, 'h').format('YYYY/MM/DD HH:00'));
+      for (let j = 0; j < map.key.length; j++) {
+        item.push(_value[map.key[j]][i]);
+        tableItem[map.key[j]] = _value[map.key[j]][i];
+      }
+      source.push(item);
+      tableData.push(tableItem);
+    }
+    let value = {
+      dimensions: map.dimensions,
+      source: source
+    };
+
+    for (let i = 0; i < map.key.length; i++) {
+      tableColumns.push({field: map.key[i], title: map.head[i]});
+    }
+
+    // "dimensions": ["时间", "水位", "流量1", "流量2"], yAxisIndex，对应水位-1
+    if (value.dimensions && value.dimensions.length > 1) {
+      let series = [];
+      for (let i = 1; i < value.dimensions.length; i++) {
+        if (i === 1) {
+          series.push(Object.assigns({}, SERIES, {yAxisIndex: 1}))
+        } else {
+          series.push(Object.assigns({}, SERIES))
+        }
+      }
+      if (series.length) optioned.series = series;
+    }
+    optioned.dataset.source = value.source;
+    optioned.dataset.dimensions = value.dimensions;
+    return {optioned, tableColumns, tableData};
+  }
+
+  window.simpleWaterFlowChart = simpleWaterFlowChart;
+})();
+

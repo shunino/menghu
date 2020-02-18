@@ -1,0 +1,266 @@
+let myChart1, myChart2;
+
+// function warningTimer() {
+//   reWarningData();
+//   setTimeout(function () {
+//     console.log('刷新了');
+//     warningTimer();
+//   }, 1000 * 60 * 3)
+// }
+
+function reWarningData() {
+  const today = getTime(getSystemTime());
+
+  ajaxCallJson({
+    alarmtype: 2,
+    startTime: `${today} 00:00:00`,
+    endTime: `${today} 24:00:00`
+  }, '/warning/getWarningCount', function (res) {
+    if (res.flag) {
+      const id = '暴雨风险';
+      myChart1 ? refreshData(myChart1, res.info) : myChart1 = showWarningChart(res.info, id);
+      // console.log(res.info)
+
+    }
+  })
+
+  ajaxCallJson({
+    alarmtype: 3,
+    startTime: `${today} 00:00:00`,
+    endTime: `${today} 24:00:00`
+  }, '/warning/getWarningCount', function (res) {
+    if (res.flag) {
+      const id = '洪水风险';
+      myChart2 ? refreshData(myChart2, res.info) : myChart2 = showWarningChart(res.info, id);
+      // console.log(res.info)
+    }
+  })
+}
+
+//创建图表
+function showWarningChart(data, id) {
+  let myChart = echarts.init(document.getElementById(id));
+  let option = {
+    title: {
+      show: false,
+      text: '',
+      // textAlign: 'center',
+    },
+    tooltip: {
+      trigger: 'item' //悬浮提示框不显示
+    },
+    grid: {
+      left: '5%',
+      top: '5%',
+      right: '27%',
+      bottom: '20%',
+      borderWidth: 1,
+    },
+    xAxis: [{
+      show: false,
+      type: 'value',
+      position: 'top'
+    }],
+    yAxis: [{
+      type: 'category',
+      data: [data.level1, data.level2, data.level3, data.level4],
+      axisLine: { //坐标轴
+        show: false
+      },
+      axisTick: [{ //坐标轴小标记
+        show: false
+      }],
+      position: 'right',
+      axisLabel: {
+        textStyle: {
+          // color: 'white',
+          color: function (value, index) {
+            const colorList = ['#3266FF', '#FF0', '#F90', 'red'];
+            return colorList[index];
+          },
+          align: 'left',
+          fontSize: '18',
+          fontWeight: 'bold',
+        }
+      }
+    }],
+    series: [{
+      name: id,
+      type: 'bar',
+      tooltip: {
+        trigger: 'item',
+        formatter: function (ele) {
+          const name = ['蓝色预警', '黄色预警', '橙色预警', '红色预警'];
+          var html = `${ele.seriesName}<br/>${name[ele.dataIndex]}：${ele.name}`;
+          return html;
+        }
+      },
+      barWidth: '50%', //柱宽度
+      barMinHeight: '10%',
+      z: 10, // 控制图表前后顺序
+      data: [data.level1 / data.total * 100, data.level2 / data.total * 100, data.level3 / data.total * 100, data.level4 / data.total * 100],
+      itemStyle: {
+        normal: {
+          barBorderRadius: [0, 10, 10, 0],
+          // color: function (params) {
+          //   const colorList = ['#3266FF', '#FF0', '#F90', 'red'];
+          //   return colorList[params.dataIndex];
+          // },
+          color: function (params) {
+            // const colorList0 = ['#00FFFF', '#D2F662', '#FFD300', '#FF9500'];
+            // const colorList1 = ['#30BAFF', '#FFD300', '#FF9500', '#FF554C'];
+            const colorList1 = ['#3266FF', '#FF0', '#F90', 'red'];
+            return new echarts.graphic.LinearGradient(
+              0, 0, 1, 0,
+              [{
+                offset: 0,
+                color: '#1b304d'
+              }, {
+                offset: 1,
+                color: colorList1[params.dataIndex]
+              }]
+            )
+          },
+          // label: {
+          //   show: true, //显示文本
+          //   position: 'inside', //数据值位置
+          // textStyle: {
+          //   color: '#000',
+          //   fontSize: '18'
+          // }
+          // }
+        },
+        emphasis: {
+          barBorderWidth: 1,
+          shadowBlur: 10,
+          shadowOffsetX: 0,
+          shadowOffsetY: 0,
+          shadowColor: 'white'
+        },
+      },
+      animation: true,
+      animationDuration: function (idx) {
+        // 越往后的数据延迟越大
+        return idx * 1000;
+      },
+      animationDurationUpdate: function (idx) {
+        // 越往后的数据延迟越大
+        return idx * 100;
+      },
+    }, {
+      name: id,
+      type: 'bar',
+      data: [100, 100, 100, 100],
+      tooltip: {
+        show: false,
+      },
+      barWidth: '50%',
+      barGap: '-100%', // 两个柱子之间的距离，如果要重叠设置为-100%
+      itemStyle: {
+        normal: {
+          // color: '#01d1cf', // 柱子颜色，作为底层背景
+          color: '#1b304d', // 柱子颜色，作为底层背景
+          // barBorderRadius: 5,
+          label: {
+            show: false,
+          }
+        }
+      },
+      animation: false,
+    }],
+    // backgroundColor: 'rgba(9,25,57,.99)',
+  };
+  myChart.setOption(option);
+  // myChart.on("click", function (param) {
+  //   alert(id + ':' + param.dataIndex);
+  // });
+  autoCarousel(myChart, { countUpFlag: true, tooltipFlag: false });
+  return myChart;
+}
+
+function refreshData(myChart, data) {
+  let option = myChart.getOption();
+  option.series[0].data = [data.level1 / data.total * 100, data.level2 / data.total * 100, data.level3 / data.total * 100, data.level4 / data.total * 100];
+  option.yAxis[0].data = [data.level1, data.level2, data.level3, data.level4];
+  myChart.setOption(option);
+}
+
+function autoCarousel(myChart, Flag = {}) {
+  let charIndex = -1;
+  // 2、鼠标移动上去的时候的高亮动画
+  myChart.on('mouseover', function (param) {
+    $(`#${param.seriesName}-Tips span`).empty();
+    countUp({
+      id: $(`#${param.seriesName}-Tips span`)[3 - param.dataIndex],
+      num: param.name,
+    });
+    clearTimeout(startCharts);
+    // 取消之前高亮的图形
+    myChart.dispatchAction({
+      type: 'downplay',
+      seriesIndex: 0,
+      dataIndex: charIndex
+    })
+    // 高亮当前图形
+    myChart.dispatchAction({
+      type: 'highlight',
+      seriesIndex: 0,
+      dataIndex: param.dataIndex
+    })
+    // 显示 tooltip
+    myChart.dispatchAction({
+      type: 'showTip',
+      seriesIndex: 0,
+      dataIndex: param.dataIndex
+    })
+  })
+  // 3、自动高亮展示
+  var chartHover = function () {
+    startCharts = setTimeout(chartHover, 7000);
+    // 取消之前高亮的图形
+    myChart.dispatchAction({
+      type: 'downplay',
+      seriesIndex: 0,
+      dataIndex: charIndex
+    })
+    charIndex = (charIndex + 1) % myChart.getOption().series[0].data.length;
+    if (Flag.countUpFlag) {
+      $(`#${myChart.getOption().series[0].name}-Tips span`).empty();
+      countUp({
+        id: $(`#${myChart.getOption().series[0].name}-Tips span`)[3 - charIndex],
+        num: myChart.getOption().yAxis[0].data[charIndex],
+      });
+    }
+
+    // 高亮当前图形
+    myChart.dispatchAction({
+      type: 'highlight',
+      seriesIndex: 0,
+      dataIndex: charIndex
+    })
+    // 显示 tooltip
+    if (Flag.tooltipFlag) {
+      myChart.dispatchAction({
+        type: 'showTip',
+        seriesIndex: 0,
+        dataIndex: charIndex
+      })
+    }
+  }
+  let startCharts = setTimeout(chartHover, 7000)
+  // 4、鼠标移出之后，恢复自动高亮
+  myChart.on('mouseout', function (param) {
+    startCharts = setTimeout(chartHover, 7000);
+    charIndex = param.dataIndex;
+  })
+}
+
+function countUp({ id, num }) {
+  $(id).animationCounter({
+    start: num >= 200 ? num - 200 : num,//	数字动画开始的数值。
+    end: num,//	数字动画结束的数值。
+    step: 20,//	数字动画的步长。
+    delay: 20,//	数字跳动的时间间隔，单位毫秒。
+    // txt: '',//	数字动画结束之后显示的文字。
+  });
+}

@@ -1,0 +1,517 @@
+var earlyWarningManageWindow, earlyLayerIndex, earlyWarningCounter, earlyWarningList, riverEarlyWarningList,
+  riverBasicMyWindow, riverBasicMocd;
+var rsvrFloodEarlyWarningList, rsvrEarlyWarningList, rsvrFloodEarlyWarningSinglePointList,
+  rsvrEarlyWarningListSinglePointList, earlyWarningSinglePointWindow, reservoirBasicMocd = "";
+var rsvrFloodEarlyWarningWholeList, rsvrEarlyWarningWholeList, reservoirBasicWholeMocd = "",
+  riverEarlyWarningWholeList = [];
+var initSystemManageWin = function () {
+  earlyWarningCounter = 0;
+  if (!earlyWarningManageWindow) {
+    earlyWarningManageWindow = new MyWindow($("#early-warning-manage"), {title: "预警指标配置"});
+  }
+  earlyWarningManageWindow.dom.css("z-index", "999");
+  earlyWarningManageWindow.show();
+  earlyLayerIndex = layer.msg("数据加载中，请稍等...", {icon: 16, time: 2000});
+  getEarlyWarningByType(obj_type_reservoir, "reservoir-early-warning-setting");
+  earlyWarningManageWindow.body.find("[name='.reservoir-early-warning-setting']").attr('type', obj_type_reservoir);
+  getEarlyWarningByType(obj_type_river_section, "river-channel-early-warning-setting");
+  earlyWarningManageWindow.body.find("[name='.river-channel-early-warning-setting']").attr('type', obj_type_river_section);
+  loadTab();
+  earlyWarningManageWindow.show();
+  earlyWarningManageWindow.body.find(".early-warning-manage-input").on('keyup', function () {
+    var keyword = $(this).val()
+    var type = earlyWarningManageWindow.body.find('.tabs').find('.current').attr("type");
+    var id = earlyWarningManageWindow.body.find('.tabs').find('.current').attr("name").replace(".", "");
+    getEarlyWarningByType(type, id, keyword);
+  })
+}
+
+function getEarlyWarningByType(type, id, keyword) {
+  ajaxCallJson({motype: type, keyword: keyword || ''}, "/base/statistics/search", function (result) {
+    earlyWarningCounter++;
+    //if(earlyWarningCounter==2){
+    //    layer.close(layerIndex)
+    //}
+    if (result && result.data) {
+      var data = result.data, treeData = new Array();
+      for (var i = 0; i < data.length; i++) {
+        var temp = {
+          pId: 0,
+          id: i + 1,
+          mocd: data[i].mocd,
+          type: type,
+          name: data[i].monm,
+        }
+        treeData.push(temp)
+      }
+      var params = {
+        id: id,
+        data: treeData,
+        DblClick: getEarlyWarningData,
+        //renameCallback:saveEarlyWarningData
+      }
+      dataTree.init(params);
+    }
+  })
+}
+
+var getEarlyWarningData = function (node) {
+  if (!node) {
+    return;
+  }
+  var params = {
+    mocd: node.mocd,
+  }
+  reservoirBasicWholeMocd = node;
+  ajaxCallJson(params, '/base/getWarningIndex', function (result) {
+    if (result && result.flag && result.data) {
+      $('.early-warning-manage-right').html("");
+      if (node.type == obj_type_reservoir) {
+        var html = '', htmlTwo = '', previousLengthOneArray, previousLengthTwoArray;
+        rsvrFloodEarlyWarningWholeList = result.data.rsvrFloodIndexList || [];
+        previousLengthOneArray = rsvrFloodEarlyWarningWholeList.length
+        var isOrFloodEnable = false, isOrRsvrEnable = false, isOrRiverEnable = false;
+        if (rsvrFloodEarlyWarningWholeList == undefined) {
+          isOrFloodEnable = true;
+          for (var i = 0; i < 4; i++) {
+            var obj = {};
+            obj.ewcd = "SK_INDEX_" + (i + 1);
+            obj.wlevel = i + 1;
+            obj.remark = "";
+            obj.q = "";
+            obj.qName = "";
+            if (obj.remark) {
+              obj.remark = (obj.remark);
+            }
+            if (obj.q) {
+              obj.q = Number(obj.q);
+            }
+            if (obj.qName) {
+              obj.qName = (obj.qName);
+            }
+            rsvrFloodEarlyWarningWholeList.push(obj)
+          }
+        } else if (rsvrFloodEarlyWarningWholeList.length <= 4) {
+          for (var i = rsvrFloodEarlyWarningWholeList.length; i < 4; i++) {
+            isOrRiverEnable = true;
+            var obj = {};
+            obj.ewcd = "SK_INDEX_" + (i + 1);
+            obj.wlevel = i + 1;
+            obj.remark = "";
+            obj.q = "";
+            obj.qName = "";
+            obj.isAddNullData = true;
+            if (obj.remark) {
+              obj.remark = (obj.remark);
+            }
+            if (obj.q) {
+              obj.q = Number(obj.q);
+            }
+            if (obj.qName) {
+              obj.qName = (obj.qName);
+            }
+            rsvrFloodEarlyWarningWholeList.push(obj);
+          }
+        }
+        rsvrFloodEarlyWarningWholeList.push(node.mocd);
+        rsvrEarlyWarningWholeList = result.data.rsvrIndexList || [];
+        previousLengthTwoArray = rsvrEarlyWarningWholeList.length;
+        if (rsvrEarlyWarningWholeList == undefined) {
+          isOrRsvrEnable = true;
+          for (var i = 0; i < 4; i++) {
+            var obj = {};
+            obj.ewcd = "SK_INDEX_" + (i + 1);
+            obj.wlevel = i + 1;
+            obj.z = "";
+            obj.zName = "";
+            if (obj.remark) {
+              obj.remark = (obj.remark);
+            }
+            if (obj.z) {
+              obj.z = Number(obj.z);
+            }
+            if (obj.zName) {
+              obj.zName = (obj.zName);
+            }
+            rsvrEarlyWarningWholeList.push(obj)
+          }
+        } else if (rsvrEarlyWarningWholeList.length <= 4) {
+          for (var i = rsvrEarlyWarningWholeList.length; i < 4; i++) {
+            isOrRiverEnable = true;
+            var obj = {};
+            obj.ewcd = "SK_INDEX_" + (i + 1);
+            obj.wlevel = i + 1;
+            obj.z = "";
+            obj.zName = "";
+            obj.isAddNullData = true;
+            if (obj.remark) {
+              obj.remark = (obj.remark);
+            }
+            if (obj.z) {
+              obj.z = Number(obj.z);
+            }
+            if (obj.zName) {
+              obj.zName = (obj.zName);
+            }
+            rsvrEarlyWarningWholeList.push(obj)
+          }
+        }
+        rsvrEarlyWarningWholeList.push(node.mocd);
+        //rsvrEarlyWarningWholeList.push(node.mocd);
+        var html = '<div><div style="text-align: center;font-size: 13pt;margin-bottom: 5px"><span>' + node.name + '-入库洪水预警设置</span></div><table class="table table-bordered table-responsive" ><thead class="server-report-thead" style="background-color: rgba(18, 41, 51, 0.7)"><tr><th >序号</th><th>启用</th><th >等级</th><th >洪峰流量下限值(m³/s)</th><th >预警名称</th><th >备注</th></tr></thead>';
+        html += '<tbody class="early-warning-tbody" style="overflow: auto;height: 100%;background-color: rgba(9, 25, 57, 0.85)">'
+        for (var i = 0; i < rsvrFloodEarlyWarningWholeList.length - 1; i++) {
+          html += '<tr >';
+          html += '<tr class="' + rsvrFloodEarlyWarningWholeList[rsvrFloodEarlyWarningWholeList.length - 1] + '">';
+          html += '<td>' + (i + 1) + '</td>';
+          if (isOrFloodEnable && i < previousLengthOneArray) {
+            html += '<td><input type="checkbox" checked="checked" name="zt"/></td>';
+          } else if (i < previousLengthOneArray) {
+            html += '<td><input type="checkbox" checked="checked" name="zt"/></td>';
+          } else {
+            html += '<td><input type="checkbox" name="zt"/></td>';
+          }
+          var wlevelName = "";
+          if (rsvrFloodEarlyWarningWholeList[i].wlevel != undefined) {
+            switch (rsvrFloodEarlyWarningWholeList[i].wlevel) {
+              case 1:
+                wlevelName = "一级";
+                break;
+              case 2:
+                wlevelName = "二级";
+                break;
+              case 3:
+                wlevelName = "三级";
+                break;
+              case 4:
+                wlevelName = "四级";
+                break;
+            }
+          }
+          html += '<td>' + wlevelName + '</td>';
+          html += '<td><input onblur="changeEarlyWarningInputValue(this)" style="width: 100%;height: 100%;border: none;background-color: transparent" value="' + (rsvrFloodEarlyWarningWholeList[i].q == undefined ? "" : rsvrFloodEarlyWarningWholeList[i].q) + ' " name="q"></td>';
+          html += '<td><input onblur="changeEarlyWarningInputValue(this)" style="width: 100%;height: 100%;border: none;background-color: transparent" value=" ' + (rsvrFloodEarlyWarningWholeList[i].qName == undefined ? "" : rsvrFloodEarlyWarningWholeList[i].qName) + '" name="qName"></td>';
+          html += '<td><input onblur="changeEarlyWarningInputValue(this)" style="width: 100%;height: 100%;border: none;background-color: transparent" value=" ' + (rsvrFloodEarlyWarningWholeList[i].remark == undefined ? "" : rsvrFloodEarlyWarningWholeList[i].remark) + '" name="remark"></td>';
+          html += '</tr>'
+        }
+        html += "</tbody></table></div>";
+        var htmlTwo = '<div><div style="text-align: center;font-size: 13pt;margin-bottom: 5px"><span>' + node.name + '-库水位预警设置</span></div><table class="table table-bordered table-responsive" ><thead class="server-report-thead" style="background-color: rgba(18, 41, 51, 0.7)"><tr><th >序号</th><th>启用</th><th >等级</th><th >库水位下限值(m)</th><th >预警名称</th><th >备注</th></tr></thead>';
+        htmlTwo += '<tbody class="early-warning-tbody" style="overflow: auto;height: 100%;background-color: rgba(9, 25, 57, 0.85)">'
+        for (var i = 0; i < rsvrEarlyWarningWholeList.length - 1; i++) {
+          htmlTwo += '<tr>';
+          htmlTwo += '<tr class="' + rsvrEarlyWarningWholeList[rsvrEarlyWarningWholeList.length - 1] + '">';
+          htmlTwo += '<td>' + (i + 1) + '</td>';
+          if (isOrRsvrEnable && i < previousLengthTwoArray) {
+            htmlTwo += '<td><input type="checkbox" checked="checked" name="zt1"/></td>';
+          } else if (i < previousLengthTwoArray) {
+            htmlTwo += '<td><input type="checkbox" checked="checked" name="zt1"/></td>';
+          }
+          else {
+            htmlTwo += '<td><input type="checkbox" name="zt1"/></td>';
+          }
+          var wlevelName = "";
+          if (rsvrEarlyWarningWholeList[i].wlevel != undefined) {
+            switch (rsvrEarlyWarningWholeList[i].wlevel) {
+              case 1:
+                wlevelName = "一级";
+                break;
+              case 2:
+                wlevelName = "二级";
+                break;
+              case 3:
+                wlevelName = "三级";
+                break;
+              case 4:
+                wlevelName = "四级";
+                break;
+            }
+          }
+          htmlTwo += '<td>' + wlevelName + '</td>';
+          htmlTwo += '<td><input onblur="changeEarlyWarningInputValue(this)" style="width: 100%;height: 100%;border: none;background-color: transparent" value="' + (rsvrEarlyWarningWholeList[i].z == undefined ? "" : rsvrEarlyWarningWholeList[i].z) + ' " name="z"></td>';
+          htmlTwo += '<td><input onblur="changeEarlyWarningInputValue(this)" style="width: 100%;height: 100%;border: none;background-color: transparent" value=" ' + (rsvrEarlyWarningWholeList[i].zName == undefined ? "" : rsvrEarlyWarningWholeList[i].zName) + '" name="zName"></td>';
+          htmlTwo += '<td><input onblur="changeEarlyWarningInputValue(this)" style="width: 100%;height: 100%;border: none;background-color: transparent" value=" ' + (rsvrEarlyWarningWholeList[i].remark == undefined ? "" : rsvrEarlyWarningWholeList[i].remark) + '" name="zremark"></td>';
+          htmlTwo += '</tr>'
+        }
+        htmlTwo += "</tbody></table></div>";
+        var htmlButton = "<div style='text-align: center'><button class='button-check-class' onclick='saveRsvrEarlyWarningWholeList()'>保存</button></div>";
+        $('.early-warning-manage-right').html(html + htmlTwo + htmlButton);
+      }
+      else if (node.type == obj_type_river_section) {//河道
+        var html = '', previousLengthArray;
+        riverEarlyWarningWholeList.splice(0, riverEarlyWarningWholeList.length);
+        riverEarlyWarningWholeList = result.data.riverIndexList || [];
+        previousLengthArray = riverEarlyWarningWholeList.length
+        if (riverEarlyWarningWholeList == undefined) {
+          for (var i = 0; i < 4; i++) {
+            var obj = {};
+            obj.ewcd = "SK_INDEX_" + (i + 1);
+            obj.wlevel = i + 1;
+            obj.z = "";
+            obj.q = "";
+            obj.zName = "";
+            if (obj.z)
+              obj.z = Number(obj.z);
+            if (obj.q)
+              obj.q = Number(obj.q);
+            if (obj.zName)
+              obj.zName = (obj.zName);
+            riverEarlyWarningWholeList.push(obj);
+          }
+        } else if (riverEarlyWarningWholeList.length <= 4) {
+          for (var i = riverEarlyWarningWholeList.length; i < 4; i++) {
+            isOrRiverEnable = true;
+            var obj = {};
+            obj.ewcd = "HD_INDEX_" + (i + 1);
+            obj.wlevel = i + 1;
+            obj.z = "";
+            obj.q = "";
+            obj.zName = "";
+            obj.isAddNullData = true;
+            if (obj.z)
+              obj.z = Number(obj.z);
+            if (obj.q)
+              obj.q = Number(obj.q);
+            if (obj.zName)
+              obj.zName = (obj.zName);
+            riverEarlyWarningWholeList.push(obj);
+          }
+        }
+        riverEarlyWarningWholeList.push(node.mocd);
+        var html = '<div><div style="text-align: center;font-size: 13pt;margin-bottom: 5px"><span>' + node.name + '-水位预警设置</span></div><table class="table table-bordered table-responsive" ><thead class="server-report-thead" style="background-color: rgba(18, 41, 51, 0.7)"><tr><th >序号</th><th>启用</th><th >等级</th><th >水位下限值(m)</th><th >对应流量(m³/s)</th><th >预警名称</th></tr></thead>';
+        html += '<tbody class="early-warning-tbody" style="overflow: auto;height: 100%;background-color: rgba(9, 25, 57, 0.85);text-align: center">'
+        for (var i = 0; i < riverEarlyWarningWholeList.length - 1; i++) {
+          html += '<tr class="' + riverEarlyWarningWholeList[riverEarlyWarningWholeList.length - 1] + '">';
+          html += '<td>' + (i + 1) + '</td>';
+          if (isOrRiverEnable && i < previousLengthArray) {
+            html += '<td><input type="checkbox" checked="checked" name="zt"/></td>';
+          } else if (i < previousLengthArray) {
+            html += '<td><input type="checkbox" checked="checked" name="zt"/></td>';
+          } else {
+            html += '<td><input type="checkbox" name="zt"/></td>';
+          }
+          var wlevelName = "";
+          if (riverEarlyWarningWholeList[i].wlevel != undefined) {
+            switch (riverEarlyWarningWholeList[i].wlevel) {
+              case 1:
+                wlevelName = "一级";
+                break;
+              case 2:
+                wlevelName = "二级";
+                break;
+              case 3:
+                wlevelName = "三级";
+                break;
+              case 4:
+                wlevelName = "四级";
+                break;
+            }
+          }
+          html += '<td>' + wlevelName + '</td>';
+          html += '<td><input onblur="changeEarlyWarningInputValue(this)" style="width: 100%;height: 100%;border: none;background-color: transparent" value="' + (riverEarlyWarningWholeList[i].z == undefined ? "" : riverEarlyWarningWholeList[i].z) + ' " name="z"></td>';
+          html += '<td><input onblur="changeEarlyWarningInputValue(this)" style="width: 100%;height: 100%;border: none;background-color: transparent" value="' + (riverEarlyWarningWholeList[i].q == undefined ? "" : riverEarlyWarningWholeList[i].q) + ' " name="q"></td>';
+          html += '<td><input onblur="changeEarlyWarningInputValue(this)" style="width: 100%;height: 100%;border: none;background-color: transparent" value=" ' + (riverEarlyWarningWholeList[i].zName == undefined ? "" : riverEarlyWarningWholeList[i].zName) + '" name="zName"></td>';
+          html += '</tr>'
+        }
+        html += "</tbody></table></div>";
+        var htmlButton = "<div style='text-align: center'><button class='button-check-class' onclick='saveRiverEarlyWarningWholeList()'>保存</button></div>";
+        $('.early-warning-manage-right').html(html + htmlButton);
+      } else {
+        $('.early-warning-manage-right').html("暂无数据");
+      }
+    }
+  })
+}
+
+function changeEarlyWarningInputValue(node) {
+  var dom = $(node);
+  var name = node.name;
+  var id = node.id;
+  id = id.substr(0, id.indexOf('@'));
+  var val = dom.val(), _val = 0.0;
+  dom.attr("value", val);
+}
+
+//全部站点修改保存水库数据
+function saveRsvrEarlyWarningWholeList() {
+  var dpIndex = [], deletRsvrFloodIndex = [], addRsvrFloodIndex = [], deletRsvrIndex = [], addRsvrIndex = [];
+  for (var i = 0; i < rsvrFloodEarlyWarningWholeList.length - 1; i++) {
+    var obj = {};
+    obj.ewcd = rsvrFloodEarlyWarningWholeList[i].ewcd;
+    obj.wlevel = rsvrFloodEarlyWarningWholeList[i].wlevel;
+    obj.remark = earlyWarningManageWindow.body.find('.' + rsvrFloodEarlyWarningWholeList[rsvrFloodEarlyWarningWholeList.length - 1] + ' input[name="remark"]')[i].value;
+    var qEnabled = earlyWarningManageWindow.body.find('.' + rsvrFloodEarlyWarningWholeList[rsvrFloodEarlyWarningWholeList.length - 1] + ' input[name="zt"]')[i].checked;
+    var zEnabled = earlyWarningManageWindow.body.find('.' + rsvrEarlyWarningWholeList[rsvrEarlyWarningWholeList.length - 1] + ' input[name="zt1"]')[i].checked;
+    if (qEnabled) {
+      obj.q = earlyWarningManageWindow.body.find('.' + rsvrFloodEarlyWarningWholeList[rsvrFloodEarlyWarningWholeList.length - 1] + ' input[name="q"]')[i].value;
+      obj.qName = earlyWarningManageWindow.body.find('.' + rsvrFloodEarlyWarningWholeList[rsvrFloodEarlyWarningWholeList.length - 1] + ' input[name="qName"]')[i].value;
+    }
+    if (zEnabled) {
+      obj.z = earlyWarningManageWindow.body.find('.' + rsvrEarlyWarningWholeList[rsvrEarlyWarningWholeList.length - 1] + ' input[name="z"]')[i].value;
+      obj.zName = earlyWarningManageWindow.body.find('.' + rsvrEarlyWarningWholeList[rsvrEarlyWarningWholeList.length - 1] + ' input[name="zName"]')[i].value;
+    }
+    if (obj.q)
+      obj.q = Number(obj.q);
+    if (obj.qName)
+      obj.qName = ((obj.qName).replace(/(^\s*)|(\s*$)/g, ""));
+    if (obj.remark)
+      obj.remark = (obj.remark).replace(/(^\s*)|(\s*$)/g, "");
+    if (obj.z)
+      obj.z = Number(obj.z);
+    if (obj.zName)
+      obj.zName = ((obj.zName).replace(/(^\s*)|(\s*$)/g, ""));
+    if (rsvrFloodEarlyWarningWholeList[i].isAddNullData != undefined && rsvrFloodEarlyWarningWholeList[i].isAddNullData == true && qEnabled == true) {
+      addRsvrFloodIndex.push(obj);
+    }
+    if (rsvrEarlyWarningWholeList[i].isAddNullData != undefined && rsvrEarlyWarningWholeList[i].isAddNullData == true && zEnabled == true) {
+      addRsvrIndex.push(obj);
+    }
+    if (qEnabled && zEnabled) {
+      dpIndex.push(obj);
+    } else {
+      if (rsvrFloodEarlyWarningWholeList[i].isAddNullData == undefined && qEnabled == false) {
+        deletRsvrFloodIndex.push(obj)
+      }
+      if (rsvrEarlyWarningWholeList[i].isAddNullData == undefined && zEnabled == false) {
+        deletRsvrIndex.push(obj)
+      }
+    }
+  }
+  var params = {
+    mocd: reservoirBasicWholeMocd.mocd,
+    dpIndex: dpIndex
+  }
+  if (deletRsvrFloodIndex.length > 0) {
+    var paramsDelet = {
+      mocd: reservoirBasicWholeMocd.mocd,
+      ewcd: deletRsvrFloodIndex[0].ewcd
+    }
+    //入库洪水预警删除
+    ajaxCallJson(paramsDelet, '/base/deleteDefIndex', function (result) {
+      if (result && result.flag && result.data) {
+        layer.msg("修改成功", {time: 1500});
+        deletRsvrFloodIndex.splice(0, deletRsvrFloodIndex.length);
+        getEarlyWarningData(reservoirBasicWholeMocd);
+      }
+    })
+  }
+  if (addRsvrFloodIndex.length > 0) {
+    //入库洪水预警增加
+    var paramsAdd = {
+      mocd: reservoirBasicWholeMocd.mocd,
+      ewcd: addRsvrFloodIndex
+    }
+    ajaxCallJson(paramsAdd, '/base/addRsvrDefIndex', function (result) {
+      if (result && result.flag && result.data) {
+        layer.msg("修改成功", {time: 1500});
+        addRsvrFloodIndex.splice(0, addRsvrFloodIndex.length);
+        getEarlyWarningData(reservoirBasicWholeMocd);
+      }
+    })
+  }
+
+  if (deletRsvrIndex.length > 0) {
+    var paramsDelet = {
+      mocd: reservoirBasicWholeMocd.mocd,
+      ewcd: deletRsvrIndex[0].ewcd
+    }
+    //入库水位预警删除
+    ajaxCallJson(paramsDelet, '/base/deleteDefIndex', function (result) {
+      if (result && result.flag && result.data) {
+        layer.msg("修改成功", {time: 1500});
+        deletRsvrIndex.splice(0, deletRsvrIndex.length);
+        getEarlyWarningData(reservoirBasicWholeMocd);
+      }
+    })
+  }
+  if (addRsvrIndex.length > 0) {
+    //入库水位预警增加
+    var paramsAdd = {
+      mocd: reservoirBasicWholeMocd.mocd,
+      ewcd: addRsvrIndex
+    }
+    ajaxCallJson(paramsAdd, '/base/addRsvrDefIndex', function (result) {
+      if (result && result.flag && result.data) {
+        layer.msg("修改成功", {time: 1500});
+        addRsvrIndex.splice(0, addRsvrIndex.length);
+        getEarlyWarningData(reservoirBasicWholeMocd);
+      }
+    })
+  }
+  ajaxCallJson(params, '/base/saveRsvrIndex', function (result) {
+    if (result && result.flag && result.data) {
+      layer.msg("修改成功", {time: 1500});
+    }
+  })
+}
+
+//全部站点修改保存河道数据
+function saveRiverEarlyWarningWholeList() {
+  var dpIndex = [], deletIndex = [], addIndex = [];
+  for (var i = 0; i < riverEarlyWarningWholeList.length - 1; i++) {
+    var obj = {};
+    obj.ewcd = riverEarlyWarningWholeList[i].ewcd;
+    obj.wlevel = riverEarlyWarningWholeList[i].wlevel;
+    obj.z = earlyWarningManageWindow.body.find('.' + riverEarlyWarningWholeList[riverEarlyWarningWholeList.length - 1] + ' input[name="z"]')[i].value;
+    obj.q = earlyWarningManageWindow.body.find('.' + riverEarlyWarningWholeList[riverEarlyWarningWholeList.length - 1] + ' input[name="q"]')[i].value;
+    obj.zName = earlyWarningManageWindow.body.find('.' + riverEarlyWarningWholeList[riverEarlyWarningWholeList.length - 1] + ' input[name="zName"]')[i].value;
+    var zEnabled = earlyWarningManageWindow.body.find('.' + riverEarlyWarningWholeList[riverEarlyWarningWholeList.length - 1] + ' input[name="zt"]')[i].checked;
+    if (obj.z)
+      obj.z = Number(obj.z);
+    if (obj.q)
+      obj.q = Number(obj.q);
+    if (obj.zName)
+      obj.zName = ((obj.zName).replace(/(^\s*)|(\s*$)/g, ""));
+    if (riverEarlyWarningWholeList[i].isAddNullData != undefined && riverEarlyWarningWholeList[i].isAddNullData == true && zEnabled == true) {
+      addIndex.push(obj);
+    }
+    if (zEnabled) {
+      dpIndex.push(obj);
+    } else {
+      if (riverEarlyWarningWholeList[i].isAddNullData == undefined) {
+        deletIndex.push(obj)
+      }
+    }
+  }
+  var params = {
+    mocd: reservoirBasicWholeMocd.mocd,
+    dpIndex: dpIndex
+  }
+  if (deletIndex.length > 1) {
+    layer.msg("只能单个关闭预警设置,请重新选择", {time: 1500});
+    return;
+  }
+  if (deletIndex.length > 0) {
+    var paramsDelet = {
+      mocd: reservoirBasicWholeMocd.mocd,
+      ewcd: deletIndex[0].ewcd
+    }
+    //删除
+    ajaxCallJson(paramsDelet, '/base/deleteDefIndex', function (result) {
+      if (result && result.flag && result.data) {
+        layer.msg("修改成功", {time: 1500});
+        deletIndex.splice(0, deletIndex.length);
+        getEarlyWarningData(reservoirBasicWholeMocd);
+      }
+    })
+  }
+  if (addIndex.length > 0) {
+    //增加
+    var paramsAdd = {
+      mocd: reservoirBasicWholeMocd.mocd,
+      ewcd: addIndex
+    }
+    ajaxCallJson(paramsAdd, '/base/addRiverDefIndex', function (result) {
+      if (result && result.flag && result.data) {
+        layer.msg("修改成功", {time: 1500});
+        addIndex.splice(0, addIndex.length);
+        getEarlyWarningData(reservoirBasicWholeMocd);
+      }
+    })
+  }
+  ajaxCallJson(params, '/base/saveRiverIndex', function (result) {
+    if (result && result.flag && result.data) {
+      layer.msg("修改成功", {time: 1500});
+    }
+  })
+
+}

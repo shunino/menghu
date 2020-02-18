@@ -1,0 +1,57 @@
+function WKTUtil() {
+
+}
+
+WKTUtil.pattern = {
+  'typeStr': /^\s*(\w+)\s*\(\s*(.*)\s*\)\s*$/,
+  'spaces': /\s+/,
+  'parenComma': /\)\s*,\s*\(/,
+  'doubleParenComma': /\)\s*\)\s*,\s*\(\s*\(/,  // can't use {2} here
+  'trimParens': /^\s*\(?(.*?)\)?\s*$/
+};
+
+/**
+ * APIMethod: read
+ * Deserialize a WKT string and return a vector feature or an
+ * array of vector features.  Supports WKT for POINT, MULTIPOINT,
+ * LINESTRING, MULTILINESTRING, POLYGON, MULTIPOLYGON, and
+ * GEOMETRYCOLLECTION.
+ *
+ * Parameters:
+ * wkt - {String} A WKT string
+ *
+ * Returns:
+ * {<OpenLayers.Feature.Vector>|Array} A feature or array of features for
+ * GEOMETRYCOLLECTION WKT.
+ */
+WKTUtil.read = function (wkt) {
+  var features, type;
+  var matches = WKTUtil.pattern.typeStr.exec(wkt.replace(/[\n\r]/g, " "));
+  if (matches) {
+    type = matches[1].toLowerCase();
+    if (WKTUtil.parse[type]) {
+      features = WKTUtil.parse[type](matches[2]);
+    }
+  }
+  return features;
+};
+
+WKTUtil.trim = function (str) {
+  return str.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+};
+
+/**
+ * Object with properties corresponding to the geometry types.
+ * Property values are functions that do the actual parsing.
+ */
+WKTUtil.parse = {
+  /**
+   * Return point feature given a point WKT fragment.
+   * @param {String} str A WKT fragment representing the point
+   * @returns {Array} A point feature
+   * @private
+   */
+  point: function (str) {
+    return WKTUtil.trim(str).split(WKTUtil.pattern.spaces);
+  },
+};

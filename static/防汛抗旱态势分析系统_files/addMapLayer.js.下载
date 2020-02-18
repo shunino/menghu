@@ -1,0 +1,2075 @@
+var districtBorderPolygonGraphic; //用户区域范围Graphic对象
+var mapParams;
+var mapParamsArr = [];
+var featureLayerIDArr = [];
+var isLoadMapPoint = false;
+var featureLayerID = "featureLayerID";
+var areaColor = [241, 222, 5, 0.8]; //子地图边界颜色
+// var userAreaColor = [242, 239, 233, 0.8]; //用户边界颜色
+var userAreaColor = [235, 239, 36, 1]; //用户边界颜色
+var currentLayerIdArr = []; //当前选中的图层id
+var currentLayerParamArr = []; //当前选中的图层参数
+var subjectIndex; //专题图层加载层
+var userExtend = {};
+var userBox;
+var userCenter;
+var userCamera; //用户视角
+var sljcdGloable = null; //森林监测点数据集合
+var currentZoom = 3; //当前缩放级别
+var gloableAdcd = null; //用户行政区编码
+var userlevel; //用户级别
+var earlyWarningGloable; //山洪/中小流域地图点数据集合
+var showPointAllArr = []; //显示在地图上的所有点
+var showPointAllClass = []; //显示在地图上的所有点样式
+var isShanghong = false; //山洪小流域是否开启
+var objTest;
+var gloableRenderer, gloableSource, gloableLabelClass;
+var isWatershed = false; //是否存在山洪小流域
+var watershedLayerType;
+var watershedStartTime;
+var watershedEndtime;
+var gloableObjId;
+var isClickCalendar = false; //是否点击了日历
+var isWaterSubject = false; //是否水旱专题，默认不是
+var isWscdUser = false; //是否流域用户
+var isRiverEvo = false; //是否点击了河网演进并且执行了底图切换
+var isClickWatershed = false; //是否点击洪水预警
+var currentParams = [];//当前点图层id
+var gloableStation;//全局监控对象的motype,sttype
+var gloablePointTypeObj = [];//全局被选中点类型对象
+var isWatershedOpen = false;//洪水预警是否点击，默认不点击
+var watershedFormCheckbox;//洪水预警点checkedbox全局from
+
+var gloableUserRegion;//全局用户区域
+var gloable2DUserPoint;//2D模式全局用户区域点
+
+
+moment.locale('zh-cn');
+
+var indexOfs = function (arr, index) {
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i] == index) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+var removeArr = function (arr, index) {
+  var index = indexOfs(arr, index);
+  if (index > -1) {
+    arr.splice(index, 1);
+  }
+}
+
+//两数组不同元素
+function getArrDifference(arr1, arr2) {
+  return arr1.concat(arr2).filter(function (v, i, arr) {
+    return arr.indexOf(v) === arr.lastIndexOf(v);
+  });
+}
+
+//两数组相同元素
+function getArrEqual(arr1, arr2) {
+  var newArr = [];
+  for (var i = 0; i < arr2.length; i++) {
+    for (var j = 0; j < arr1.length; j++) {
+      if (arr1[j] === arr2[i]) {
+        newArr.push(arr1[j]);
+      }
+    }
+  }
+  return newArr;
+}
+
+$(function () {
+  $("body").on("click", "#main-basic-layer", function () {
+    $(".mainBox-tab-content").hide();
+  })
+  $("body").on("click", "#main-monitor-object", function () {
+    $(".mainBox-tab-content").show();
+  })
+  $("body").on("click", "#close-timeSelect", function () {
+    $("#timeSelect").hide();
+  })
+  note.on("subjectLayerLoaded", () => {
+    setTimeout(() => {
+      $("#mainBox-mete-content").find(".mainBox-mete:nth-child(1)").trigger('click');
+    }, 1000);
+  })
+  note.on("watershed.ready", function () {
+    var stationObj = {
+      motype: "13",
+      sttype: ''
+    }
+    addMapNewPoint(true, stationObj);
+    note.notify("bigdataIndex.close.watershed");
+  })
+  var height = $(window).height() - 536;
+  $(".mainBox-footer-content-monitor").css({ "height": height });
+  $(".mainBox-footer-content-basic-box").css({ "height": height });
+  $(window).resize(function () {
+    var height = $(window).height() - 526;
+    $(".mainBox-footer-content-monitor").css({ "height": height });
+    $(".mainBox-footer-content-basic-box").css({ "height": height });
+  })
+  note.on("layer.terrainTo3D", () => {
+    if (dimension == "3D") {
+      var currentLayer = {};
+      basicLayers.forEach((ele, index) => {
+        if (ele.id == "layer_base_elev") currentLayer = basicLayers[index];
+      })
+      true ? note.notify("layer.add", currentLayer) : note.notify(
+        "layer.remove", currentLayer.id);
+    } else {
+      var layer = map.findLayerById("layer_base_elev");
+      if (layer) map.layer.remove(layer);
+    }
+  })
+  //监听专题图层
+  note.on("subject.station.checked", (event, checked, station) => {
+    var obj = {
+      motype: station.code,
+      sttype: station.value
+    }
+    addMapNewPoint(checked, obj);
+  })
+  //监听切换专题
+  note.on("subject.change", (event, checked, station) => {
+
+  });
+  //监听时间改变
+  note.on("today.change", (time) => {
+    if (gloablePointTypeObj.length > 0) {
+      gloablePointTypeObj.forEach(function (ele, i) {
+        if (ele.motype == "13") toAddMap(ele, "mapDrag", "todayChange")
+      })
+    }
+  });
+  note.on("layer.play.frame", function (event, index, provider) {
+    let node = provider.decode(index);
+    let option = node.configure;
+    if (option) {
+      var startTime = node.times[0],
+        endTime;
+      if (option.timeType === 1) {
+        endTime = moment(startTime).add(node.stepSize, node.stepUnit).valueOf();
+      }
+      if (option.timeType === 2) {
+        endTime = startTime;
+        startTime = moment(startTime).add(-node.stepSize, node.stepUnit).valueOf();
+      }
+      watershedStartTime = moment(startTime).format("YYYY-MM-DD HH:mm:ss");
+      watershedEndtime = moment(endTime).format("YYYY-MM-DD HH:mm:ss");
+      watershedLayerType = node.laytype;
+    }
+    var obj = {
+      motype: "13",
+      sttype: ""
+    }
+    var layerTypeNum = ["5", "6", "7", "9", "10", "11", "12"]; //执行的图层类型
+    if (currentParams.includes("13") == false) return;
+    for (var i = 0; i < layerTypeNum.length; i++) {
+      if (layerTypeNum[i] == node.laytype) {
+        setTimeout(() => {
+          toAddMap(obj, "mapDrag")
+        }, 200);
+      }
+    }
+  })
+})
+
+
+
+
+function addMapNewPoint(checked, station) {
+  if (checked) {
+    toAddMap(station, "notype");
+  } else {
+    clearCurrentPointForMap(station);
+    clearCurrentParam(station);//
+    clearCurrentParamObj(gloablePointTypeObj, station);//删除取消的地图上存在的点的全局参数对象
+  }
+}
+
+function toAddMap(station, type, timeType) {
+  if (typeof station === 'undefined') return;
+  if (station.motype == "" && station.sttype == "") return;
+  gloableStation = station;
+  var paramObj = {
+    motype: station.motype,
+    sttype: station.sttype,
+    mapWidthPx: windowWidth,
+    newBox: viewBox,
+    layerType: watershedLayerType,
+    startTimes: watershedStartTime,
+    endTimes: watershedEndtime,
+    time: today + ' ' + '00:00:00'
+  };
+  var obj = {
+    motype: [paramObj.motype],
+    sttype: paramObj.sttype
+  }
+  var obiTemp = {
+    motype: paramObj.motype,
+    sttype: paramObj.sttype
+  }
+  if (station.motype == "13" && typeof timeType == 'undefined') {
+    var url = "/base/findMonitorObjectByWatershedCluster"
+    var paramObj = {
+      motype: station.motype,
+      mapWidthPx: windowWidth,
+      oldBox: [],
+      newBox: viewBox,
+      key: null,
+      adcd: gloableAdcd,
+      zoom: currentZoom,
+      startTimes: watershedStartTime,
+      endTimes: watershedEndtime,
+      layerType: watershedLayerType,
+      time: today + ' ' + '00:00:00'
+    }
+    if (currentParams.indexOf(station.motype) == -1) currentParams.push(station.motype);
+  } else if (station.motype == "13" && timeType == 'todayChange') {
+    var url = "/base/findMonitorObjectByWatershedCluster"
+    var paramObj = {
+      motype: station.motype,
+      mapWidthPx: windowWidth,
+      oldBox: [],
+      newBox: viewBox,
+      key: null,
+      adcd: gloableAdcd,
+      zoom: currentZoom,
+      layerType: watershedLayerType,
+      time: today + ' ' + '00:00:00'
+    }
+    if (currentParams.indexOf(station.motype) == -1) currentParams.push(station.motype);
+  } else {
+    var url = "/base/findMonitorObjectByCluster"
+  }
+  ajaxCallJson(paramObj, url, function (data) {
+    if (data.flag) {
+      if (data.data) {
+        layer.close(subjectIndex);
+        if (type != "mapDrag") gloablePointTypeObj.push(obiTemp);
+        addPointToMap(obj, data.data, type);
+      } else {
+        layer.close(subjectIndex);
+        clearRemovePoint(obj.motype);
+        noDataAddFeatureLayer(obj);
+      }
+    }
+  })
+}
+
+
+function clearCurrentPointForMap(currentP) {
+  if (typeof currentP == "undefined") return;
+  var layerId = currentP.motype + currentP.sttype || "";
+  var mapLayerlength = map.allLayers.items.length;
+  for (var i = 0; i < mapLayerlength; i++) {
+    if (map.findLayerById("featurePoint" + layerId)) {
+      map.remove(map.findLayerById("featurePoint" + layerId));
+    }
+  }
+}
+
+function clearCurrentParam(currentP) {
+  if (typeof currentP == "undefined") return;
+  var layerId = currentP.motype + currentP.sttype || "";
+  if (currentParams.includes(layerId)) {
+    // var index = searchValue(currentParams, layerId);
+    var index = currentParams.indexOf(layerId);
+    currentParams.splice(index, 1);
+  }
+}
+
+function clearCurrentParamObj(PointTypeObj, station) {
+  if (typeof station == "undefined") return;
+  var curMotype = station.motype;
+  var curSttype = station.sttype;
+  for (var i = 0; i < PointTypeObj.length; i++) {
+    if (PointTypeObj[i].motype == curMotype && PointTypeObj[i].sttype == curSttype) {
+      gloablePointTypeObj.splice(i, 1);
+    }
+  }
+}
+
+function searchValue(arr, dst) {
+  var i = arr.length;
+  while (i -= 1) {
+    if (arr[i] == dst) {
+      return i;
+    }
+  }
+  return false;
+}
+
+
+
+//获取告警颜色
+function getAlarmColor(value) {
+  var levelname = "", color = "#fff";
+  if (value == 1) {
+    color = "red";
+  } else if (value == 2) {
+    color = "#F90";
+  } else if (value == 3) {
+    color = "#FF0";
+  } else if (value == 4) {
+    color = "#3266FF";
+  } else if (value == 5) {
+    color = "green";
+  }
+  return color;
+}
+
+
+
+//专题图层调用显示站点
+var mapListForParams = function (motypeArr, isShow) {
+  if (isShow) {
+    mapParam(motypeArr);
+  } else {
+    view.popup.close();
+    layer.close(subjectIndex);
+    toRemoveMapPointMany(motypeArr); //删除点
+    if (motypeArr.length > 1) {
+      //联合调度情况
+      removeMapArrParamsByType(motypeArr[0]); //删除参数数组中的 当前  参数
+      removeMapArrParamsByType(motypeArr[1]); //删除参数数组中的 当前  参数
+    } else {
+      removeMapArrParamsByType(motypeArr[0]); //删除参数数组中的 当前  参数
+    }
+  }
+  if (currentLayerParamArr.length == 0) isLoadMapPoint = false;
+}
+
+//构造地图点参数（和时间播放联动）且只限于山洪小流域
+var mapTimeParam = function (motypeArrs, timeObj) {
+  //定义点请求参数对象
+  var paramObj = {
+    motype: motypeArrs, //数组[]
+    mapWidthPx: windowWidth,
+    oldBox: [],
+    newBox: viewBox,
+    key: null,
+    adcd: gloableAdcd,
+    zoom: currentZoom,
+    startTimes: timeObj.startTime,
+    endTimes: timeObj.endTime,
+    time: today + ' ' + '00:00:00',
+    layerType: timeObj.layerType
+  };
+  toRemoveMapPointMany(motypeArrs);
+  for (var i = 0; i < motypeArrs.length; i++) {
+    noDataAddFeatureLayer({
+      motype: [motypeArrs[i]]
+    });
+  }
+  mapDragAddPointCall(paramObj, "mapDrag", motypeArrs);
+}
+
+//构造地图点参数
+var mapParam = function (motypeArrs) {
+  //定义点请求参数对象
+  var paramObj = {
+    motype: motypeArrs,
+    mapWidthPx: windowWidth,
+    oldBox: [],
+    newBox: viewBox,
+    key: null,
+    adcd: gloableAdcd,
+    zoom: currentZoom,
+    layerType: watershedLayerType,
+    startTimes: watershedStartTime,
+    endTimes: watershedEndtime,
+    time: today + ' ' + '00:00:00'
+  };
+  for (var i = 0; i < motypeArrs.length; i++) {
+    noDataAddFeatureLayer({
+      motype: [motypeArrs[i]]
+    });
+  }
+  motypeArrs.map(function (ele) {
+    if (currentLayerParamArr.indexOf(ele) == -1) {
+      // if (ele != "sljcd") currentLayerParamArr.push(ele);
+      currentLayerParamArr.push(ele);
+    }
+  })
+  isLoadMapPoint = true; //是否加载地图点
+  if (isWaterSubject && typeof watershedStartTime == 'undefined' && typeof watershedEndtime == 'undefined') {
+    isWaterSubject = false;
+    layer.close(subjectIndex);
+    return;
+  }
+  mapListAddPoint(paramObj, motypeArrs);
+}
+//请求地图点数据
+var mapListAddPoint = function (pobj, motypeArrs) {
+  ajaxCallJson(pobj, "/base/findMonitorObjectByCluster", function (data) {
+    if (data.flag) {
+      if (data.data) {
+        layer.close(subjectIndex);
+        // toRemoveMapPointMany(motypeArrs);
+        // addPointToMap(pobj, data.data, "clickList");
+        addPointToMap(pobj, data.data, "mapDrag");
+      } else {
+        layer.close(subjectIndex);
+        clearRemovePoint()
+        noDataAddFeatureLayer(pobj);
+      }
+    }
+  })
+}
+
+//无数据添加一个空featureLayer层到地图上
+var noDataAddFeatureLayer = function (pobj) {
+  require([
+    "myMap/layer/EmptyPointLayer",
+    "esri/layers/FeatureLayer",
+    "esri/geometry/Point",
+  ], function (EmptyPointLayer, FeatureLayer, Point) {
+    var name = "monm",
+      field = "wlevel";
+    if (pobj.motype[0] == "hpzhd" || pobj.motype[0] == "hpzhyhd") {
+      name = "pointLocation";
+      field = "id";
+    } else if (pobj.motype[0] == "13") {
+      name = "mname";
+      field = "level";
+    } else if (pobj.motype[0] == "sljcd") {
+      name = "name";
+      field = "t";
+    }
+    var layerId = pobj.motype[0] + pobj.sttype || "";
+    var emptyPointLayerObj = new EmptyPointLayer(name, field, "featurePoint" + layerId);
+    if (map.findLayerById('featurePoint' + layerId)) return;
+    map.add(emptyPointLayerObj);
+  })
+}
+
+
+//拖动地图请求地图点数据
+var mapDragAddPoint = function (type, typeArr) {
+  if (currentParam.length < 1) return;
+  for (var i = 0; i < typeArr.length; i++) {
+    var index = typeArr[i];
+    var paramObj = {
+      motype: [index], //数组[]
+      mapWidthPx: windowWidth,
+      oldBox: [],
+      newBox: viewBox,
+      key: null,
+      adcd: gloableAdcd,
+      zoom: currentZoom,
+      startTimes: watershedStartTime,
+      endTimes: watershedEndtime,
+      layerType: watershedLayerType,
+      time: today + ' ' + '00:00:00'
+    };
+    mapDragAddPointCall(paramObj, type, typeArr);
+  }
+}
+
+function mapDragAddPointCall(pobj, type, typeArr) {
+  ajaxCallJson(pobj, "/base/findMonitorObjectByCluster", function (data) {
+    if (data.flag) {
+      if (data.data) {
+        view.popup.close();
+        addPointToMap(pobj, data.data, type);
+      } else {
+        if (pobj.motype.length == 1) {
+          clearRemovePoint(pobj.motype[0])
+        }
+      }
+    }
+  })
+}
+
+var addPointToMap = function (pobj, data, type) {
+  require([
+    "myMap/layer/PointLayer", //引用加载地图点模块
+    "myMap/layer/ForestPointLayer", //引用加载森林监测站模块
+    "myMap/layer/EarlyWarningPointLayer", //山洪/中小流域地图点
+    "myMap/layer/HpzhyhdPointLayer", //滑坡隐患点
+    "myMap/layer/TwoDTestPoint", //2D地图测试点
+  ], function (PointLayer, ForestPointLayer, EarlyWarningPointLayer, HpzhyhdPointLayer, TwoDTestPoint) {
+    if (pobj.motype.length > 1) {
+      var mapPoint = data.mapPointArr;
+      var mapClass = data.classBreakInfos;
+      var mapPArr = [];
+      var newMapPoint = [],
+        newMapClass = [];
+      for (var i = 0; i < mapPoint.length; i++) {
+        mapPArr.push(mapPoint[i].motype);
+      }
+      for (var i = 0; i < pobj.motype.length; i++) {
+        var val = pobj.motype[i].toString();
+        var start = mapPArr.indexOf(val);
+        var end = mapPArr.lastIndexOf(val);
+        if (start == -1 || end == -1) continue;
+        newMapPoint = [];
+        newMapClass = [];
+        newMapPoint.push(mapPoint.slice(start, parseInt(end + 1)));
+        newMapClass.push(mapClass.slice(start, parseInt(end + 1)));
+        var pointLayerObj = new PointLayer(newMapPoint[0], newMapClass[0], 'featurePoint' + pobj.motype[i]);
+        if (type != "mapDrag") {
+          addToMapPoint(pointLayerObj);
+        } else {
+          var obj = {
+            motype: [pobj.motype[i]],
+            sttype: pobj.sttype
+          }
+          addToMapPointByDrag(obj, pointLayerObj)
+        }
+      }
+    } else {
+      var pointLayerObj;
+      if (pobj.motype[0] == "sljcd") {
+        sljcdGloable = data.mapPointArr;
+        //森林监测站
+        pointLayerObj = new ForestPointLayer(data.mapPointArr, data.classBreakInfos, 'featurePoint' + pobj.motype[0]);
+      } else if (pobj.motype[0] == "13" || pobj.motype[0] == "13top") {
+        //山洪/中小流域
+        earlyWarningGloable = data.mapPointArr;
+        var layerPointId = pobj.motype[0];
+        if (currentParams.indexOf(layerPointId) == -1) currentParams.push(layerPointId);
+        pointLayerObj = new EarlyWarningPointLayer(data.mapPointArr, data.classBreakInfos, 'featurePoint' + pobj.motype[0]);
+        // pointLayerObj = new TwoDTestPoint(data.mapPointArr, data.classBreakInfos, data.uniqueValuesInfos, 'featurePoint' + pobj.motype[0]);
+      } else if (pobj.motype[0] == "hpzhyhd" || pobj.motype[0] == "hpzhd") {
+        //滑坡隐患点 ,滑坡灾害点
+        pointLayerObj = new HpzhyhdPointLayer(data.mapPointArr, data.classBreakInfos, 'featurePoint' + pobj.motype[0])
+      } else {
+        var layerPointId = pobj.motype[0] + pobj.sttype || "";
+        if (currentParams.indexOf(layerPointId) == -1) currentParams.push(layerPointId);
+        pointLayerObj = new PointLayer(data.mapPointArr, data.classBreakInfos, 'featurePoint' + pobj.motype[0] + pobj.sttype || "");
+      }
+
+      if (type != "mapDrag") {
+        gloableObjId = pointLayerObj.objId;
+        addToMapPoint(pointLayerObj);
+      } else {
+        addToMapPointByDrag(pobj, pointLayerObj);
+      }
+    }
+  })
+}
+
+
+//无数据后清除点
+var clearRemovePoint = function (info) {
+  if (map.findLayerById('featurePoint' + info)) {
+    map.findLayerById('featurePoint' + info).source.items = [];
+    map.findLayerById('featurePoint' + info).renderer.classBreakInfos = [];
+    map.findLayerById('featurePoint' + info).fields = [];
+    map.findLayerById('featurePoint' + info).labelingInfo = [];
+  }
+}
+
+//拖动地图渲染点
+var addToMapPointByDrag = function (pobj, pointLayerObj) {
+  var layerId = pobj.motype[0] + pobj.sttype;
+  if (map.findLayerById('featurePoint' + layerId)) {
+    map.findLayerById('featurePoint' + layerId).source.items = pointLayerObj.source;
+    map.findLayerById('featurePoint' + layerId).renderer.classBreakInfos = pointLayerObj.classBreakInfosArr;
+    map.findLayerById('featurePoint' + layerId).fields = pointLayerObj.fields;
+    map.findLayerById('featurePoint' + layerId).labelingInfo = [pointLayerObj.labelClass];
+  }
+}
+//默认添加点
+var addToMapPoint = function (pointLayerObj) {
+  map.add(pointLayerObj.pointLayer);
+}
+
+
+var addFetureNewPoint = function (pobj, pointLayerObj) {
+  var source = pointLayerObj.source;
+  require([
+    "esri/Graphic",
+  ], function (Graphic) {
+    var addFeatureArr = [];
+    for (var i = 0; i < source.length; i++) {
+      const addFeature = new Graphic({
+        geometry: source[i].geometry,
+        attributes: source[i].attributes
+      });
+      addFeatureArr[i] = addFeature;
+    }
+    // const addFeature = new Graphic({
+    //   geometry: source.geometry,
+    //   attributes: source.attributes
+    // });
+    const deleteFeature = {
+      objectId: gloableObjId
+    };
+    const promise = map.findLayerById('featurePoint04').applyEdits({
+      addFeatures: addFeatureArr,
+      deleteFeatures: [deleteFeature]
+    });
+  })
+}
+
+
+//获取用户区域
+var getUserRegion = function () {
+  if (userPrivilege == '000000000000000') {
+    require([
+      "esri/Camera",
+      "esri/geometry/Point",
+      "esri/widgets/Home",
+      "esri/Viewpoint"
+    ], function (Camera, Point, Home, Viewpoint) {
+      if (dimension === "3D" && isBigdataIndex == false) {
+        var userCamera = new Camera({
+          position: new Point({
+            x: chinaCenter[0], // lon
+            y: chinaCenter[1], // lat
+            z: 10000000, // elevation in meters
+          }),
+          heading: 0, // facing due south
+          tilt: 3 // bird's eye view
+        });
+        view.goTo(userCamera, {
+          duration: 500,
+          speedFactor: 1,
+        });
+      } else if (dimension === "3D" && isBigdataIndex) {
+        view.goTo(chinaCenter, {
+          duration: 500,
+          speedFactor: 1,
+        });
+        setTimeout(() => {
+          view.zoom = 2;
+        }, 2000);
+      } else {
+        view.goTo(chinaCenter, {
+          duration: 500,
+          speedFactor: 1,
+        });
+      }
+    })
+  } else {
+    ajaxCallJson({}, "/region/getUserExtent", function (data) {
+      var region = JSON.parse(data.data);
+      var adcdlist = region.data.adcdlist;
+      var wscdlist = region.data.wscdlist;
+      //行政区用户
+      if (adcdlist) {
+        var regionArea;
+        for (var i = 0; i < adcdlist.length; i++) {
+          var cgeom = JSON.parse(adcdlist[i].cgeom);
+          regionArea = cgeom.coordinates; //区域范围
+          gloableAdcd = adcdlist[i].adcd; //用户行政区编码
+          userCenter = adcdlist[0].cpoint.replace("POINT(", "").replace(")", "").split(" "); //范围中心点
+          //直辖市处理
+          if (adcdlist[0].adcd === "110000000000000" || adcdlist[0].adcd === "120000000000000" || adcdlist[0].adcd === "310000000000000" || adcdlist[0].adcd === "500000000000000") {
+            adcdlist[0].level = 2
+          }
+          userlevel = adcdlist[0].level; //0 国   1省  2 市   3县  4 镇
+          var temp = [];
+          for (var j = 0; j < regionArea.length; j++) {
+            temp.push(regionArea[j][0]);
+          }
+          addDistrictBorder(temp);
+          onLoadAdministrationBoundary();
+          temp = [];
+        }
+      } else {
+        //流域用户
+        isWscdUser = true;
+        var regionArea;
+        for (var i = 0; i < wscdlist.length; i++) {
+          var cgeom = JSON.parse(wscdlist[i].cgeom);
+          regionArea = cgeom.coordinates; //区域范围
+          userCenter = wscdlist[0].cpoint.replace("POINT(", "").replace(")", "").split(" "); //范围中心点
+          userlevel = wscdlist[0].level; //0 国   1省  2 市   3县  4 镇
+          var temp = [];
+          for (var j = 0; j < regionArea.length; j++) {
+            temp.push(regionArea[j][0]);
+          }
+          addDistrictBorder(temp);
+          temp = [];
+        }
+      }
+      if (adcdlist) {
+        flytoExtent(userlevel, regionArea, adcdlist[0].adcd);
+      } else {
+        flytoExtent(userlevel, regionArea);
+      }
+    })
+  }
+}
+//飞向范围区域
+var flytoExtent = function (level, userRegion, adcd) {
+  require([
+    "esri/geometry/Point",
+    "esri/Camera",
+    "esri/widgets/Home",
+    "esri/Viewpoint"
+  ], function (Point, Camera, Home, Viewpoint) {
+    var height = 500000;
+    if (!isWscdUser) {
+      if (level == 1) {
+        height = 1200000; //省
+      } else if (level == 2) {
+        height = 500000; //市
+      } else if (level == 3) {
+        userZoom = 12;
+        height = 150000; //县
+      } else if (level == 4) {
+        height = 150000; //镇
+        userZoom = 12;
+      }
+    } else {
+      height = 3200000;
+    }
+
+    userCamera = new Camera({
+      position: new Point({
+        x: userCenter[0], // lon
+        y: userCenter[1], // lat
+        z: height, // elevation in meters
+      }),
+      heading: 0, // facing due south
+      tilt: 0 // bird's eye view
+    });
+    var pt = new Point({
+      latitude: userCenter[1],
+      longitude: userCenter[0]
+    });
+    gloableUserRegion = userRegion;
+    gloable2DUserPoint = pt;
+    if (dimension === "3D") {
+      //内蒙古单独处理
+      // if (adcd == "150000000000000") {
+      //   view.goTo({ target: userRegion, zoom: 6 }, {
+      //     duration: 2000,
+      //     speedFactor: 0.3,
+      //   });
+      // } else {
+      //   view.goTo({ target: userRegion, zoom: 13}, {
+      //     duration: 2000,
+      //     speedFactor: 0.3,
+      //   });
+      // }
+      if (userZoom === "" || userZoom === "0") {
+        userZoom = 5;
+      }
+      view.goTo({ target: userRegion, zoom: userZoom }, {
+        duration: 2000,
+        speedFactor: 0.3,
+      });
+    } else {
+      var opts = {
+        duration: 2000  // Duration of animation will be 5 seconds
+      };
+      if (adcd == "150000000000000") {
+        view.goTo({
+          target: pt,
+          zoom: 6
+        }, opts);
+      } else {
+        view.goTo({
+          target: pt,
+          zoom: 5
+        }, opts);
+      }
+    }
+  })
+}
+
+var goInitView = function () {
+  if (userPrivilege == '000000000000000') {
+    require([
+      "esri/geometry/Point",
+      "esri/Camera",
+      "esri/widgets/Home",
+      "esri/Viewpoint"
+    ], function (Point, Camera, Home, Viewpoint) {
+      if (dimension === "3D") {
+        var userCamera = new Camera({
+          position: new Point({
+            x: chinaCenter[0], // lon
+            y: chinaCenter[1], // lat
+            z: 10000000, // elevation in meters
+          }),
+          heading: 0, // facing due south
+          tilt: 3 // bird's eye view
+        });
+        view.goTo(userCamera, {
+          duration: 500,
+          speedFactor: 1,
+        });
+      } else {
+        view.goTo(chinaCenter, {
+          duration: 500,
+          speedFactor: 1,
+        });
+      }
+    })
+    return;
+  }
+  if (dimension === "3D") {
+    require([
+      "esri/geometry/Point",
+      "esri/Camera",
+      "esri/widgets/Home",
+      "esri/Viewpoint"
+    ], function (Point, Camera, Home, Viewpoint) {
+      var userCamera = new Camera({
+        position: new Point({
+          x: gloable2DUserPoint.longitude, // lon
+          y: gloable2DUserPoint.latitude, // lat
+          z: 10000000, // elevation in meters
+        }),
+        heading: 0, // facing due south
+        tilt: 0 // bird's eye view
+      });
+      view.goTo(userCamera, { duration: 100, zoom: userZoom || 5 }).then(function () {
+        view.goTo(gloableUserRegion, {
+          duration: 1000,
+          speedFactor: 0.5,
+          zoom: userZoom || 5
+        })
+      });
+    })
+  } else {
+    var opts = {
+      duration: 2000  // Duration of animation will be 5 seconds
+    };
+    view.goTo({
+      target: gloable2DUserPoint,
+      zoom: userZoom || 5
+    }, opts);
+  }
+}
+
+
+//飞向坐标点，高亮显示
+var goToGraphisc = function (lgtd) {
+  view.goTo({
+    center: lgtd,
+    zoom: 16,
+    heading: 0,
+    tilt: 0
+  }).then(() => {
+    // highlight
+
+  })
+};
+
+function shiftCamera(deg) {
+  var camera = view.camera.clone();
+  camera.position.longitude = camera.position.longitude - deg;
+  return camera;
+}
+
+//添加行政区边界范围
+var addDistrictBorder = function (wktArr) {
+  require([
+    "esri/Graphic"
+  ], function (Graphic) {
+    var polygon = {
+      type: "polygon", // autocasts as new Polygon()
+      rings: wktArr,
+    };
+    var fillSymbol = {
+      type: "simple-line", // autocasts as new SimpleFillSymbol()
+      color: userAreaColor,
+      width: "3px"
+    };
+    districtBorderPolygonGraphic = new Graphic({
+      geometry: polygon,
+      symbol: fillSymbol,
+    });
+  })
+  graphicsLayer.add(districtBorderPolygonGraphic);
+}
+
+var flyToArea = function (wktArr) {
+  require([
+    "esri/Graphic"
+  ], function (Graphic) {
+    var polygon = {
+      type: "polygon", // autocasts as new Polygon()
+      rings: wktArr,
+    };
+    var fillSymbol = {
+      type: "simple-line", // autocasts as new SimpleFillSymbol()
+      color: userAreaColor,
+      width: "3px"
+    };
+    districtBorderPolygonGraphic = new Graphic({
+      geometry: polygon,
+      symbol: fillSymbol,
+    });
+  })
+  view.goTo({
+    center: districtBorderPolygonGraphic,
+    // zoom: 16,
+    heading: 0,
+    tilt: 0
+  })
+}
+
+//小地图调用方法
+var miniMapToMap = function (miniGraphic) {
+  view.goTo({
+    center: miniGraphic,
+    tilt: 0,
+    heading: 0,
+  })
+}
+
+var removeMapPointByLayer = function (layerArr) {
+  map.removeMany(layerArr)
+}
+
+//删除地图点
+var toRemoveMapPoint = function (featurePoinntId) {
+  if (featurePoinntId) {
+    map.remove(map.findLayerById(featurePoinntId));
+  } else {
+    return;
+  }
+}
+
+//删除地图参数类型
+var removeMapArrParamsByType = function (typeid) {
+  if (currentLayerParamArr.length > 0)
+    for (var i = 0; i < currentLayerParamArr.length; i++) {
+      var index = currentLayerParamArr[i];
+      if (typeid == index) {
+        removeArr(currentLayerParamArr, index);
+      }
+    }
+}
+//根据站点类型id删除对应的地图上的点
+var toRemoveMapPointByTypeId = function (typeid) {
+  typeid.map(function (ele) {
+    map.remove(map.findLayerById('featurePoint' + ele));
+  })
+}
+//删除地图点(多图情况)
+var toRemoveMapPointMany = function (mapidArr) {
+  if (mapidArr.length >= 0) {
+    for (var i = 0; i < mapidArr.length; i++) {
+      for (var j = 0; j < map.allLayers.items.length; j++) {
+        if (map.findLayerById('featurePoint' + mapidArr[i])) {
+          map.remove(map.findLayerById('featurePoint' + mapidArr[i]));
+        }
+      }
+    }
+  }
+}
+
+
+var clickTypePoint = function (pointObj, mapPoint) {
+  if (pointObj.type == '01') {
+    clickReservoirMapPoint(pointObj, mapPoint); //水库水电站实时信息
+  } else if (pointObj.type == '03') { //防洪城镇
+    clickTownMapPoint(pointObj, mapPoint);
+  } else if (pointObj.type == '04') { //雨量站
+    clickRainStationMapPoint(pointObj, mapPoint)
+  } else if (pointObj.type == '05') { //气象站
+    clickRainStationMapPoint(pointObj, mapPoint)
+  } else if (pointObj.type == '16') { //城市易涝点
+    clickEasyMapPoint(pointObj, mapPoint)
+  } else if (pointObj.type == '14') { //山洪小流域
+    clickWatershedMapPoint(pointObj, mapPoint)
+  } else if (pointObj.type == '15') { //重点河道（水文站）
+    clickImportantMapPoint(pointObj, mapPoint);
+  } else if (pointObj.type == '30') { //土壤墒情站
+    clickSoilMoistureStation(pointObj, mapPoint)
+  } else if (pointObj.type == 'hpzhd' || pointObj.type == "hpzhyhd") { //滑坡灾害点
+    clickHpzhdStation(pointObj, mapPoint)
+  } else if (pointObj.id.indexOf('sljcd') != -1) { //森林监测点
+    if (sljcdGloable && sljcdGloable.length > 0) {
+      for (var i = 0; i < sljcdGloable.length; i++) {
+        if (sljcdGloable[i].id == pointObj.id) {
+          var obj = {};
+          obj.mapPoint = mapPoint;
+          obj.monm = '发生火点行政区：' + sljcdGloable[i].name;
+          openSljcdPouup(sljcdGloable[i], obj);
+          break;
+        }
+      }
+    }
+  } else if (pointObj.id.indexOf('early') != -1) { //山洪/中小流域地图点
+    if (earlyWarningGloable && earlyWarningGloable.length > 0) {
+      for (var i = 0; i < earlyWarningGloable.length; i++) {
+        if (earlyWarningGloable[i].id == pointObj.id) {
+          var obj = {};
+          // obj.mapPoint = mapPoint;
+          obj.mapPoint = { latitude: mapPoint.latitude, longitude: mapPoint.longitude };
+          obj.monm = earlyWarningGloable[i].mname;
+          openEarlyWarningPopup(earlyWarningGloable[i], obj);
+          break;
+        }
+      }
+    }
+  }
+}
+
+
+// 滑坡单击
+var clickHpzhdStation = function (obj, type, mapPoint) {
+  var method = 'getDangerPointByID',
+    name = "隐患点";
+  if (obj.motype == 'hpzhd') {
+    method = 'getHazardPointByID';
+    name = "灾害点";
+  } else if (obj.motype == 'hpzhyhd') {
+    method = 'getDangerPointByID';
+    name = "隐患点";
+  }
+  let id = obj.id;
+  let body = {
+    interface: "com.ec.ws.service.def.xyyj.LandslideService",
+    method: method,
+    args: [id]
+  };
+  ajaxCallJson(body, "/rpc", ({
+    data
+  }) => {
+    if (data) {
+      var html = '';
+      html += '<div id="popup" class="pointlayer-popup">';
+      if (data.pointLevel) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">' + name + '级别</div>' +
+          '<div class="popup-item-vlaue popup-item">' + data.pointLevel + '</div>' +
+          '</div>';
+      }
+      if (data.pointType) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">' + name + '类型</div>' +
+          '<div class="popup-item-vlaue popup-item">' + data.pointType + '</div>' +
+          '</div>';
+      }
+      if (data.region) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">位置</div>' +
+          '<div class="popup-item-vlaue popup-item">' + data.region + data.county + data.townships + '</div>' +
+          '</div>';
+      }
+      var infoObj = {
+        monm: data.pointLocation,
+        mapPoint: mapPoint
+      }
+      showPopup(html, infoObj);
+    }
+  });
+}
+
+var openEarlyWarningPopup = function (data, obj) {
+  var html = '';
+  html += '<div id="popup" class="pointlayer-popup">';
+  if (data.levelname) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">预警级别</div>' +
+      '<div class="popup-item-vlaue popup-item">' + data.levelname + '</div>' +
+      '</div>';
+  }
+  if (data.rp) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">重现期</div>' +
+      '<div class="popup-item-vlaue popup-item">' + data.rp + '年一遇' + '</div>' +
+      '</div>';
+  }
+  if (data.drna) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">面积</div>' +
+      '<div class="popup-item-vlaue popup-item">' + data.drna + '</div>' +
+      '</div>';
+  }
+  if (data.warntime) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">发生时间</div>' +
+      '<div class="popup-item-vlaue popup-item">' + data.warntime + '</div>' +
+      '</div>';
+  }
+  if (data.maxflow) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">最大流量</div>' +
+      '<div class="popup-item-vlaue popup-item">' + data.maxflow + '</div>' +
+      '</div>';
+  }
+  showPopup(html, obj);
+}
+
+var openSljcdPouup = function (data, obj) {
+  var html = '';
+  html += '<div id="popup" class="pointlayer-popup">' +
+    '<div class="pointlayer-popup-item">' +
+    '<div class="popup-item-name popup-item">经纬度</div>' +
+    '<div class="popup-item-vlaue popup-item">' + data.lgtd + "，" + data.lttd + '</div>' +
+    '</div>';
+  if (data.vollage) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">距离火点最近村</div>' +
+      '<div class="popup-item-vlaue popup-item">' + data.vollage + '</div>' +
+      '</div>';
+  }
+
+  html += '<div class="pointlayer-popup-item">' +
+    '<div class="popup-item-name popup-item">火点与最近村的距离</div>' +
+    '<div class="popup-item-vlaue popup-item">' + data.neardist + 'km' + '（方位角:' + data.nearaz + '）' + '</div>' +
+    '</div>' +
+    '<div class="pointlayer-popup-item">' +
+    '<div class="popup-item-name popup-item">着火点温度值和阈值</div>' +
+    '<div class="popup-item-vlaue popup-item">' + data.t + '，' + data.t0 + '</div>' +
+    '</div>' +
+    '<div class="pointlayer-popup-item">' +
+    '<div class="popup-item-name popup-item">本次高出阈值的温度</div>' +
+    '<div class="popup-item-vlaue popup-item">' + data.hight + '</div>' +
+    '</div>';
+  if (data.dt10m) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">10分钟变温</div>' +
+      '<div class="popup-item-vlaue popup-item">' + data.dt10m + '</div>' +
+      '</div>';
+  }
+  if (data.tm) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">数据更新时间</div>' +
+      '<div class="popup-item-vlaue popup-item">' + data.tm + '</div>' +
+      '</div>';
+  }
+  showPopup(html, obj);
+}
+
+//重点河道（水文站）
+var clickImportantMapPoint = function (pointObj, mapPoint) {
+  var parm = {
+    mocd: pointObj.mocd,
+    time: today + ' ' + '00:00:00'
+  };
+  ajaxCallJson(parm, '/base/getRealRiverData', function (data) {
+    if (data.flag) {
+      var obj = {
+        stcd: data.data.stcd ? data.data.stcd : '-', //站点编码
+        monm: data.data.monm ? data.data.monm : '-', //名称
+        drp: data.data.drp ? data.data.drp : '-', //日雨量(mm)
+        z: data.data.z ? data.data.z : '-', //水位(m)
+        q: data.data.q ? data.data.q : '-', //流量(m³/s)
+        tm: data.data.tm ? moment(parseInt(data.data.tm)).format('YYYY-MM-DD HH:mm:ss') : '-', //时间
+        warnnm: data.data.warnnm ? data.data.warnnm : '-', //预警名称
+        floodLevel: data.data.floodLevel ? data.data.floodLevel : '-', //top点洪水等级编码
+        floodName: data.data.floodName ? data.data.floodName : '-', //洪水等级
+        mapPoint: mapPoint
+      }
+      var html = '';
+      html += '<div id="popup" class="pointlayer-popup">' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">站点编码</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.stcd + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">洪水等级</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.floodName + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">水位(m)</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.z + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">流量(m³/s)</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.q + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">时间</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.tm + '</div>' +
+        '</div>';
+      showPopup(html, obj);
+    }
+  })
+}
+
+//雨量站和气象站
+var clickRainStationMapPoint = function (pointObj, mapPoint) {
+  var parm = {
+    mocd: pointObj.mocd
+  };
+  parm.ymdDate = moment(today).format('YYYY-MM-DD') + " 08:00:00";
+  ajaxCallJson(parm, '/base/getRealRainStationDataByDate', function (data) {
+    if (data.flag) {
+      var obj = {
+        stcd: data.data.stcd ? data.data.stcd : '-', //站点编码
+        monm: data.data.monm ? data.data.monm : '-', //名称
+        curdaydrp: data.data.curdaydrp ? data.data.curdaydrp : '-', //累积雨量(mm)
+        startTime: data.data.startTime, //开始时间
+        tm: data.data.tm, //结束时间
+        mocd: data.data.mocd, //mocd
+        mapPoint: mapPoint
+      }
+      var html = '';
+      html += '<div id="popup" class="pointlayer-popup">' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">站点编码</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.stcd + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">累积雨量(mm)</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.curdaydrp + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">开始时间</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.startTime + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">结束时间</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.tm + '</div>' +
+        '</div>';
+      showPopup(html, obj);
+    }
+  })
+}
+
+//土壤墒情站实时数据
+var clickSoilMoistureStation = function (pointObj, mapPoint) {
+  var parm = {
+    mocd: pointObj.stcd,
+    time: today + ' ' + '00:00:00'
+  };
+  // parm.ymdDate = moment(SYSTEM_TIME).format('YYYY-MM-DD') + " 08:00:00";
+  ajaxCallJson(parm, '/base/getStSoilR', function (data) {
+    if (data.flag) {
+      var obj = {
+        stcd: data.data.stcd, //站点编码
+        monm: pointObj.name, //名称
+        vtavslm: data.data.vtavslm, //垂线平均含水量
+        srlslm: data.data.vtavslm, //表层含水量
+        slm10: data.data.slm10, //10cm深度含水量
+        slm20: data.data.slm20, //20cm深度含水量
+        slm30: data.data.slm30, //30cm深度含水量
+        slm40: data.data.slm40, //40cm深度含水量
+        slm50: data.data.slm50, //50cm深度含水量
+        slm60: data.data.slm60, //60cm深度含水量
+        slm70: data.data.slm70, //70cm深度含水量
+        slm80: data.data.slm80, //80cm深度含水量
+        slm90: data.data.slm90, //90cm深度含水量
+        slm100: data.data.slm100, //100cm深度含水量
+        slm110: data.data.slm110, //110cm深度含水量
+        crpty: data.data.crpty, //作物种类
+        crpgrwprd: data.data.crpgrwprd, //作物生长期
+        hitrsn: data.data.hitrsn, //作物水分状态
+        slmmmt: data.data.slmmmt, //土壤含水量测法
+        tm: data.data.tm, //时间
+        mapPoint: mapPoint
+      }
+      var html = '';
+      html += '<div id="popup" class="pointlayer-popup">';
+      if (obj.stcd) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">站点编码</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.stcd + '</div>' +
+          '</div>';
+      }
+      if (obj.vtavslm) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">垂线平均含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.vtavslm + '</div>' +
+          '</div>';
+      }
+      if (obj.srlslm) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">表层含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.srlslm + '</div>' +
+          '</div>';
+      }
+      if (obj.slm10) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">10cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm10 + '</div>' +
+          '</div>';
+      }
+      if (obj.slm20) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">20cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm20 + '</div>' +
+          '</div>';
+      }
+      if (obj.slm30) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">30cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm30 + '</div>' +
+          '</div>';
+      }
+      if (obj.slm40) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">40cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm40 + '</div>' +
+          '</div>';
+      }
+      if (obj.slm50) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">50cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm50 + '</div>' +
+          '</div>';
+      }
+      if (obj.slm60) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">60cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm60 + '</div>' +
+          '</div>';
+      }
+
+      if (obj.slm70) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">70cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm70 + '</div>' +
+          '</div>';
+      }
+      if (obj.slm80) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">80cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm80 + '</div>' +
+          '</div>';
+      }
+      if (obj.slm90) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">90cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm90 + '</div>' +
+          '</div>';
+      }
+
+      if (obj.slm100) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">100cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm100 + '</div>' +
+          '</div>';
+      }
+      if (obj.slm110) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">110cm深度含水量(%)</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slm110 + '</div>' +
+          '</div>';
+      }
+      if (obj.crpty) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">作物种类</div>' +
+          '<div class="popup-item-vlaue popup-item">' + getCrpty(data) + '</div>' +
+          '</div>';
+      }
+      if (obj.crpgrwprd) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">作物生长期</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.crpgrwprd + '</div>' +
+          '</div>';
+      }
+      if (obj.hitrsn) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">作物水分状态</div>' +
+          '<div class="popup-item-vlaue popup-item">' + getHitrsn(data) + '</div>' +
+          '</div>';
+      }
+      if (obj.slmmmt) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">土壤含水量测法</div>' +
+          '<div class="popup-item-vlaue popup-item">' + obj.slmmmt + '</div>' +
+          '</div>';
+      }
+      if (obj.tm) {
+        html += '<div class="pointlayer-popup-item">' +
+          '<div class="popup-item-name popup-item">时间</div>' +
+          '<div class="popup-item-vlaue popup-item">' + moment(obj.tm).format('YYYY-MM-DD HH:mm:ss') + '</div>' +
+          '</div>';
+      }
+      showPopup(html, obj);
+    }
+  })
+}
+
+var getHitrsn = function (data) {
+  var hitrsn = data.data.hitrsn;
+  var name;
+  if (!hitrsn) return '-';
+  if (hitrsn == 1) {
+    name = "涝";
+  } else if (hitrsn == 2) {
+    name = "渍";
+  } else if (hitrsn == 3) {
+    name = "正常";
+  } else if (hitrsn == 4) {
+    name = "缺水";
+  } else if (hitrsn == 5) {
+    name = "萎蔫";
+  } else if (hitrsn == 6) {
+    name = "发黄";
+  } else if (hitrsn == 7) {
+    name = "枯死";
+  } else if (hitrsn == 8) {
+    name = "其它";
+  }
+  return name;
+}
+
+var getCrpty = function (data) {
+  var crpty = data.data.crpty;
+  var name;
+  if (!crpty) return '-';
+  if (crpty == 1) {
+    name = "小麦";
+  } else if (crpty == 2) {
+    name = "玉米";
+  } else if (crpty == 3) {
+    name = "棉花";
+  } else if (crpty == 4) {
+    name = "谷子";
+  } else if (crpty == 5) {
+    name = "大豆";
+  } else if (crpty == 6) {
+    name = "油菜";
+  } else if (crpty == 7) {
+    name = "烟草";
+  } else if (crpty == 0) {
+    name = "白地";
+  }
+  return name;
+}
+
+
+//易涝点实时数据
+var clickEasyMapPoint = function (pointObj, mapPoint) {
+  var parm = {
+    mocd: pointObj.mocd,
+    time: today + ' ' + '00:00:00'
+  };
+  ajaxCallJson(parm, '/base/getRealWaterloggedAreaData', function (data) {
+    if (data.flag) {
+      var obj = {
+        stcd: data.data.stcd ? data.data.stcd : '-', //站点编码
+        monm: data.data.monm ? data.data.monm : '-', //名称
+        position: data.data.position ? data.data.position : '-', //位置
+        drp: data.data.drp ? data.data.drp : '-', //日雨量(mm)
+        depth: data.data.depth ? data.data.depth : '-', //水深(m)
+        tm: data.data.tm ? data.data.tm : '-', //时间
+        warnnm: data.data.warnnm ? data.data.warnnm : '-', //预警名称
+        mapPoint: mapPoint
+      }
+      var html = '';
+      html += '<div id="popup" class="pointlayer-popup">' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">站点编码</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.stcd + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">位置</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.position + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">日雨量(mm)</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.drp + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">水深(m)</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.depth + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">时间</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.tm + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">预警名称</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.warnnm + '</div>' +
+        '</div>';
+      showPopup(html, obj);
+    }
+  })
+}
+
+
+//山洪小流域实时数据（沿河村落）
+var clickWatershedMapPoint = function (pointObj, mapPoint) {
+  var parm = {
+    mocd: pointObj.mocd,
+    time: today + ' ' + '00:00:00'
+  };
+  ajaxCallJson(parm, '/base/getRealSmallWatershedData', function (data) {
+    if (data.flag) {
+      var obj = {
+        monm: data.data.monm ? data.data.monm : '-', //名称
+        drp: data.data.drp1d ? data.data.drp1d : '-', //日雨量(mm)
+        startTime: data.data.startTime ? data.data.startTime : '-', //开始时间
+        tm: data.data.tm ? data.data.tm : '-', //结束时间
+        // warnnm: data.data.warnnm ? data.data.warnnm : '-', //预警名称
+        stcd: pointObj.stcd, //编码
+        floodLevel: data.data.floodLevel ? data.data.floodLevel : '-', //top点洪水等级编码
+        floodName: data.data.floodName ? data.data.floodName : '-', //洪水等级
+        mapPoint: mapPoint
+      }
+      var html = '';
+      html += '<div id="popup" class="pointlayer-popup">' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">编码</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.stcd + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">洪水等级</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.floodName + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">日雨量(mm)</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.drp + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">开始时间</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.startTime + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">结束时间</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.tm + '</div>' +
+        '</div>';
+      showPopup(html, obj);
+    }
+  })
+}
+
+//重点城镇实时数据
+var clickTownMapPoint = function (pointObj, mapPoint) {
+  var parm = {
+    mocd: pointObj.mocd
+  };
+  ajaxCallJson(parm, '/base/getRealCityTownData', function (data) {
+    if (data.flag) {
+      var obj = {
+        monm: data.data.monm ? data.data.monm : '-', //名称
+        drp: data.data.drp ? data.data.drp : '-', //日雨量(mm)
+        tm: data.data.tm ? moment(parseInt(data.data.tm * 1000)).format('YYYY-MM-DD HH:mm:ss') : '-', //时间
+        warnnm: data.data.warnnm ? data.data.warnnm : '-', //预警名称
+        mapPoint: mapPoint
+      }
+      var html = '';
+      html += '<div id="popup" class="pointlayer-popup">' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">日雨量(mm)</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.drp + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">时间</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.tm + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">预警名称</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.warnnm + '</div>' +
+        '</div>';
+      showPopup(html, obj);
+    }
+  })
+}
+
+//水库实时数据
+var clickReservoirMapPoint = function (pointObj, mapPoint) {
+  var parm = {
+    mocd: pointObj.mocd,
+    time: today + ' ' + '00:00:00'
+  };
+  ajaxCallJson(parm, '/base/getRealRsvrData', function (data) {
+    if (data.flag) {
+      var obj = {
+        stcd: data.data.stcd ? data.data.stcd : '-', //站点编码
+        drp: data.data.drp ? data.data.drp : '-', //日雨量(mm)
+        inq: data.data.inq ? data.data.inq : '-', //入库流量
+        monm: data.data.monm ? data.data.monm : '-', //名称
+        otq: data.data.otq ? data.data.otq : '-', //出库流量
+        rz: data.data.rz ? data.data.rz : '-', //库水位(m)
+        tm: data.data.tm ? moment(parseInt(data.data.tm)).format('YYYY-MM-DD HH:mm:ss') : '-', //时间
+        w: data.data.w ? data.data.w : '-', //库容(万/m³)
+        warnnm: data.data.warnnm ? data.data.warnnm : '-', //预警名称
+        floodLevel: data.data.floodLevel ? data.data.floodLevel : '-', //top点洪水等级编码
+        floodName: data.data.floodName ? data.data.floodName : '-', //洪水等级
+        mapPoint: mapPoint
+      }
+      var html = '';
+      html += '<div id="popup" class="pointlayer-popup">' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">站点编码</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.stcd + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">洪水等级</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.floodName + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">库水位(m)</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.rz + '</div>' +
+        '</div>' +
+        '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">库容(万m³)</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.w + '</div>' +
+        '</div>';
+      html += '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">时间</div>' +
+        '<div class="popup-item-vlaue popup-item">' + obj.tm + '</div>' +
+        '</div>' +
+        '</div>';
+      showPopup(html, obj);
+    }
+  })
+}
+
+
+var showPopup = function (html, obj) {
+  view.popup.dockOptions = {
+    buttonEnabled: false,
+    breakpoint: false,
+  };
+  view.popup.open({
+    title: obj.monm,
+    location: obj.mapPoint,
+    content: html,
+    actions: [],
+  });
+}
+
+
+var featureLayerXzqh
+
+var addLayerHighLight = function (featureLayerXzqh) {
+  var highlight = null;
+  view.whenLayerView(featureLayerXzqh).then(function (layerView) {
+    view.on("click", function (event) {
+      view.hitTest(event)
+        .then(function (response) {
+
+          // remove the previous highlight
+          if (highlight) {
+            highlight.remove();
+            highlight = null;
+          }
+
+          // if a feature is returned, highlight it
+          // and display its attributes in the popup
+          // if no features are returned, then close the popup
+          var id = null;
+          console.log("找到没")
+          console.log(response.results[0].graphic)
+          if (response.results.length) {
+            var feature = response.results.filter(function (
+              result) {
+              return result.graphic.layer === featureLayerXzqh;
+            })[0].graphic;
+            console.log("下来没---------------------------------------")
+            // feature.popupTemplate = layer.popupTemplate;
+            id = feature.attributes.OBJECTID;
+            highlight = layerView.highlight([id]);
+          }
+        });
+    });
+  });
+}
+
+
+function maintainFixedExtent(view) {
+  var fixedExtent = view.extent.clone();
+  // keep a fixed extent in the view
+  // when the view size changes
+  view.on("resize", function () {
+    view.extent = fixedExtent;
+  });
+  return view;
+}
+
+
+
+function addBaseMapByFeatureLayer(_layers) {
+  require([
+    "myMap/layer/QiangXianLayer",
+    "myMap/layer/FangHongLayer",
+    "myMap/layer/KangHanLayer",
+    "myMap/layer/QiShiYeLayer",
+  ], function (QiangXianLayer, FangHongLayer, KangHanLayer, QiShiYeLayer) {
+    var baseLayer;
+    if (_layers.params == 12) {
+      baseLayer = new FangHongLayer(_layers.id, _layers.url);
+    } else if (_layers.params == 13) {
+      baseLayer = new KangHanLayer(_layers.id, _layers.url);
+    } else if (_layers.params == 14) {
+      baseLayer = new QiangXianLayer(_layers.id, _layers.url);
+    } else if (_layers.params == 15) {
+      baseLayer = new QiShiYeLayer(_layers.id, _layers.url);
+    }
+    map.add(baseLayer);
+  })
+}
+
+function clickQxdwStation(attributes, mapPoint) {
+  var obj = {
+    qxd_nm: attributes.qxd_nm ? attributes.qxd_nm.trim() : "",
+    qxd_szd: attributes.qxd_szd ? attributes.qxd_szd.trim() : "",
+    ADNM: attributes.ADNM ? attributes.ADNM.trim() : "",
+    qxzy: attributes.qxzy ? attributes.qxzy.trim() : "",
+    dwxz: attributes.dwxz ? attributes.dwxz.trim() : "",
+    wjjx: attributes.wjjx ? attributes.wjjx.trim() : "",
+    ttjx: attributes.ttjx ? attributes.ttjx.trim() : "",
+    dzsb: attributes.dzsb ? attributes.dzsb.trim() : "",
+    yscl: attributes.yscl ? attributes.yscl.trim() : "",
+    qssb: attributes.qssb ? attributes.qssb.trim() : "",
+    pnsb: attributes.pnsb ? attributes.pnsb.trim() : "",
+    cfz: attributes.cfz ? attributes.cfz.trim() : "",
+    jdcz: attributes.jdcz ? attributes.jdcz.trim() : "",
+    zzc: attributes.zzc ? attributes.zzc.trim() : "",
+    sbjz: attributes.sbjz ? attributes.sbjz.trim() : "",
+    beizhu: attributes.beizhu ? attributes.beizhu.trim() : "",
+    qita: attributes.qita ? attributes.qita.trim() : "",
+  }
+  var html = '';
+  html += '<div id="popup" class="pointlayer-popup">';
+  if (obj.qxd_nm) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">抢险队名称</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.qxd_nm + '</div>' +
+      '</div>';
+  }
+  if (obj.qxd_szd) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">抢险队所在地</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.qxd_szd + '</div>' +
+      '</div>';
+  }
+  if (obj.ADNM) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">所属区县</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.ADNM + '</div>' +
+      '</div>';
+  }
+  if (obj.qxzy) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">抢险专业</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.qxzy + '</div>' +
+      '</div>';
+  }
+  if (obj.dwxz) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">单位性质</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.dwxz + '</div>' +
+      '</div>';
+  }
+  if (obj.wjjx) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">挖掘机械</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.wjjx + '</div>' +
+      '</div>';
+  }
+  if (obj.ttjx) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">推土机械</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.ttjx + '</div>' +
+      '</div>';
+  }
+  if (obj.dzsb) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">吊装设备</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.dzsb + '</div>' +
+      '</div>';
+  }
+  if (obj.yscl) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">运输车辆</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.yscl + '</div>' +
+      '</div>';
+  }
+  if (obj.qssb) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">潜水设备</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.qssb + '</div>' +
+      '</div>';
+  }
+  if (obj.pnsb) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">排涝设备</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.pnsb + '</div>' +
+      '</div>';
+  }
+  if (obj.cfz) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">冲锋舟</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.cfz + '</div>' +
+      '</div>';
+  }
+  if (obj.jdcz) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">机动船只</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.jdcz + '</div>' +
+      '</div>';
+  }
+  if (obj.zzc) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">总资产</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.zzc + '</div>' +
+      '</div>';
+  }
+  if (obj.sbjz) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">设备价值</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.sbjz + '</div>' +
+      '</div>';
+  }
+  if (obj.beizhu) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">备注</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.beizhu + '</div>' +
+      '</div>';
+  }
+  if (obj.qita) {
+    html += '<div class="pointlayer-popup-item">' +
+      '<div class="popup-item-name popup-item">其它</div>' +
+      '<div class="popup-item-vlaue popup-item">' + obj.qita + '</div>' +
+      '</div>';
+  }
+  var objTemp = {
+    monm: obj.qxd_nm,
+    mapPoint: mapPoint,
+  }
+  showPopup(html, objTemp);
+}
+
+function clickFhwzStation(attributes, mapPoint) {
+  var arr = [
+    { name: attributes.adnm ? attributes.adnm.trim() : "", label: "名称" },
+    { name: attributes.adcd ? attributes.adcd.trim() : "", label: "编码" },
+    { name: attributes.dtyear ? attributes.dtyear : "", label: "年" },
+    { name: attributes.dqbm ? attributes.dqbm.trim() : "", label: "地区编码" },
+    { name: attributes.xiang_mu ? attributes.xiang_mu.trim() : "", label: "项目" },
+    { name: attributes.Cao_Dai ? attributes.Cao_Dai.trim() : "", label: "草袋" },
+    { name: attributes.ma_dai ? attributes.ma_dai.trim() : "", label: "麻袋" },
+    { name: attributes.bzd ? attributes.bzd.trim() : "", label: "编织袋" },
+    { name: attributes.bzb ? attributes.bzb.trim() : "", label: "编织布" },
+    { name: attributes.wfb ? attributes.wfb.trim() : "", label: "无纺布" },
+    { name: attributes.pzcl ? attributes.pzcl.trim() : "", label: "膨胀材料" },
+    { name: attributes.xjzt ? attributes.xjzt.trim() : "", label: "橡胶子堤" },
+    { name: attributes.qswp ? attributes.qswp.trim() : "", label: "铅丝网片" },
+    { name: attributes.qian_si ? attributes.qian_si.trim() : "", label: "铅丝" },
+    { name: attributes.zhuang_mu ? attributes.zhuang_mu.trim() : "", label: "桩木" },
+    { name: attributes.kuai_shi ? attributes.kuai_shi.trim() : "", label: "块石" },
+    { name: attributes.ssl ? attributes.ssl.trim() : "", label: "砂石料" },
+    { name: attributes.xpz ? attributes.xpz.trim() : "", label: "橡皮舟" },
+    { name: attributes.cfz ? attributes.cfz.trim() : "", label: "冲锋舟" },
+    { name: attributes.jdc ? attributes.jdc.trim() : "", label: "机动船" },
+    { name: attributes.jsy ? attributes.jsy.trim() : "", label: "救生衣" },
+    { name: attributes.jsq ? attributes.jsq.trim() : "", label: "救生圈" },
+    { name: attributes.qita ? attributes.qita.trim() : "", label: "其他" },
+    { name: attributes.wzjz ? attributes.wzjz.trim() : "", label: "物资价值" },
+    { name: attributes.beizhu ? attributes.beizhu.trim() : "", label: "备注" }
+  ];
+
+  var html = '';
+  html += '<div id="popup" class="pointlayer-popup">';
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].name) {
+      html += '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">' + arr[i].label + '</div>' +
+        '<div class="popup-item-vlaue popup-item">' + arr[i].name + '</div>' +
+        '</div>';
+    }
+  }
+  html += '</div>';
+
+  var objTemp = {
+    monm: arr[0].name,
+    mapPoint: mapPoint,
+  }
+  showPopup(html, objTemp);
+}
+
+function clickKhwzStation(attributes, mapPoint) {
+  var arr = [
+    { name: attributes.adnm ? attributes.adnm.trim() : "", label: "名称" },
+    { name: attributes.adcd ? attributes.adcd.trim() : "", label: "编码" },
+    { name: attributes.dtyear ? attributes.dtyear : "", label: "年" },
+    { name: attributes.dqbm ? attributes.dqbm.trim() : "", label: "地区编码" },
+    { name: attributes.xiang_mu ? attributes.xiang_mu.trim() : "", label: "项目" },
+    { name: attributes.wjj ? attributes.wjj.trim() : "", label: "挖掘机" },
+    { name: attributes.ttj ? attributes.ttj.trim() : "", label: "推土机" },
+    { name: attributes.djj ? attributes.djj.trim() : "", label: "打井机" },
+    { name: attributes.xjj ? attributes.xjj.trim() : "", label: "洗井机" },
+    { name: attributes.gdsb ? attributes.gdsb.trim() : "", label: "固定水泵" },
+    { name: attributes.ydsb ? attributes.ydsb.trim() : "", label: "移动水泵" },
+    { name: attributes.fdjz ? attributes.fdjz.trim() : "", label: "发电机组" },
+    { name: attributes.fdj ? attributes.fdj.trim() : "", label: "电动机" },
+    { name: attributes.dian_lan ? attributes.dian_lan.trim() : "", label: "电缆" },
+    { name: attributes.lsc ? attributes.lsc.trim() : "", label: "蓄水罐" },
+    { name: attributes.jssb ? attributes.jssb.trim() : "", label: "净水设备" },
+    { name: attributes.zssb ? attributes.zssb.trim() : "", label: "找水设备" },
+    { name: attributes.jpspg ? attributes.jpspg.trim() : "", label: "绞盘式喷灌" },
+    { name: attributes.pgjz ? attributes.pgjz.trim() : "", label: "喷灌机组" },
+    { name: attributes.dgsb ? attributes.dgsb.trim() : "", label: "滴灌设备" },
+    { name: attributes.ssrg ? attributes.ssrg.trim() : "", label: "输水软管" },
+    { name: attributes.qita ? attributes.qita.trim() : "", label: "其他" },
+    { name: attributes.wzjz ? attributes.wzjz.trim() : "", label: "物资价值" },
+    { name: attributes.beizhu ? attributes.beizhu.trim() : "", label: "备注" }
+  ];
+
+  var html = '';
+  html += '<div id="popup" class="pointlayer-popup">';
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].name) {
+      html += '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">' + arr[i].label + '</div>' +
+        '<div class="popup-item-vlaue popup-item">' + arr[i].name + '</div>' +
+        '</div>';
+    }
+  }
+  html += '</div>';
+
+  var objTemp = {
+    monm: arr[0].name,
+    mapPoint: mapPoint,
+  }
+  showPopup(html, objTemp);
+}
+
+function clickQsydwStation(attributes, mapPoint) {
+  var arr = [
+    { name: attributes.name ? attributes.name.trim() : "", label: "名称" },
+    { name: attributes.adnm ? attributes.adnm.trim() : "", label: "所在县" },
+  ];
+
+  var html = '';
+  html += '<div id="popup" class="pointlayer-popup">';
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].name) {
+      html += '<div class="pointlayer-popup-item">' +
+        '<div class="popup-item-name popup-item">' + arr[i].label + '</div>' +
+        '<div class="popup-item-vlaue popup-item">' + arr[i].name + '</div>' +
+        '</div>';
+    }
+  }
+  html += '</div>';
+
+  var objTemp = {
+    monm: arr[0].name,
+    mapPoint: mapPoint,
+  }
+  showPopup(html, objTemp);
+}
+
+
+function addPointMarkerToMap(mapObj) {
+  require([
+    "myMap/layer/PointLayer", //引用加载地图点模块
+    "myMap/layer/EmptyPointLayer", //引用加载地图点模块
+  ], function (PointLayer, EmptyPointLayer) {
+
+    var classBreakInfos = {
+      maxValue: 0,
+      minValue: 0,
+      symbol: {
+        height: "25px",
+        type: "picture-marker",
+        url: "/images/main/spacetool/mapMarker.png",
+        width: "25px",
+      }
+    }
+    var txt = "标记点" + '(' + Date.parse(new Date()) + ')';
+
+    var mapPointArr = [{
+      adcd: "",
+      addr: "",
+      adnm: "",
+      exparams: {
+        createtime: "",
+        detail: [],
+        mocd: "",
+        monm: "",
+      },
+      lgtd: mapObj.mapPoint.longitude,
+      lttd: mapObj.mapPoint.latitude,
+      mocd: "",
+      monm: "标记点",
+      motype: "",
+      oecd: "",
+      stcd: "",
+      topoid: "123",
+      typeId: "",
+      wlevel: 0,
+      wscd: "",
+    }]
+
+    var pointLayerObj = new PointLayer(mapPointArr, classBreakInfos, txt);
+    map.add(pointLayerObj.pointLayer);
+
+    var html = `<div class="mapMarker-content-box">/
+    <div class="mapMarker-content-icon">
+      <img src="/images/main/spacetool/mapMarker.png" height="20px" width="20px" style="object-fit: contain">
+    </div>
+    <div class="mapMarker-content-item" style="padding-left:40px">标记点<span class="mapMarker-content-name" style="display:none">${txt}</span></div>
+    <div class="mapMarker-content-item" >${mapObj.mapPoint.longitude}</div>
+    <div class="mapMarker-content-item" style="position: relative;">${mapObj.mapPoint.latitude}<span
+        style="position: absolute;right:5px;cursor:pointer" title="清除该标记点" onclick="clearThisMapMarker(this)"><i class="fa fa-close"></i></span></div>
+    </div>`;
+    $(".mapMarker-content").append(html);
+  })
+}
+
+function clearThisMapMarker(e) {
+  var name = $(e).parent().parent().find('.mapMarker-content-name').text().trim();
+  $(e).parent().parent().remove();
+  map.remove(map.findLayerById(name));
+}
+
+function clearAllMapMarker(e) {
+  $(e).parent().parent().hide();
+  // $("#addPointMarker").trigger('click');
+  mapMarkerFunc = false;
+  $("#addPointMarker").css({
+    "background": "#fff"
+  });
+  var arr = $(".mapMarker-content-name").text().split(')');
+  var arrNew = [];
+  if (arr.length > 0) {
+    arr.map(function (e, i) {
+      if (e == "") arr.splice(i, 1);
+    });
+
+    for (var i = 0; i < arr.length; i++) {
+      arrNew.push(arr[i] + ')');
+    }
+
+    for (var i = 0; i < arrNew.length; i++) {
+      map.remove(map.findLayerById(arrNew[i]));
+    }
+    $(".mapMarker-content").empty();
+  }
+
+}
+function onLoadAdministrationBoundary() {
+  let param = {
+    adcd: userPrivilege,
+  };
+  ajaxCallJson(param, "/getPoint/findMiniMapByParent", function (_data) {
+    var geoData = JSON.parse(_data.data);
+    if (geoData.resflag) {
+      for (var j = 0; j < geoData.data.length; j++) {
+        for (var i = 0; i < geoData.data[j].subdata.length; i++) {
+          addAdministrationBoundary(geoData.data[j].subdata[i].geometry.coordinates[0]);
+        }
+      }
+    }
+  })
+}
+
+//添加行政区边界范围
+var addAdministrationBoundary = function (wktArr) {
+  console.info(wktArr);
+  require([
+    "esri/Graphic"
+  ], function (Graphic) {
+    var polygon = {
+      type: "polygon", // autocasts as new Polygon()
+      rings: wktArr,
+    };
+    var fillSymbol = {
+      type: "simple-line", // autocasts as new SimpleFillSymbol()
+      color: "[255, 255, 255, 1]",
+      width: "1.5px"
+    };
+    districtBorderPolygonGraphic = new Graphic({
+      geometry: polygon,
+      symbol: fillSymbol,
+    });
+  })
+  graphicsLayer.add(districtBorderPolygonGraphic);
+}
