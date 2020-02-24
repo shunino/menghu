@@ -17,6 +17,10 @@ import DatasDetail1 from '@/pages/datasDetail1'
 import GardenDetail from '@/pages/gardenDetail'
 import ShowDetail from '@/pages/showDetail'
 
+import Vdata1 from '@/pages/vdata1'
+import Vdata2 from '@/pages/vdata2'
+import Vdata3 from '@/pages/vdata3'
+
 Vue.use(Router)
 
 const router = new Router({
@@ -25,6 +29,21 @@ const router = new Router({
       path: '/',
       name: 'Home',
       component: Home
+    },
+    {
+      path: '/Vdata1',
+      name: 'Vdata1',
+      component: Vdata1
+    },
+    {
+      path: '/Vdata2',
+      name: 'Vdata2',
+      component: Vdata2
+    },
+    {
+      path: '/Vdata3',
+      name: 'Vdata3',
+      component: Vdata3
     },
     {
       path: '/personal',

@@ -5,18 +5,23 @@
 <!--    height: 100%;-->
 <!--    width: 100%;-->
 <!--    z-index: -1;" src="../static/1.jpg" />-->
-    <div style="width: 100%;display: flex;justify-content: center;background: #F9F9F9;">
-      <div style="width: 1245px;background: white;display: flex;justify-content: center;flex-direction: column;">
-        <top></top>
+    <div v-if="!vdata">
+      <div style="width: 100%;display: flex;justify-content: center;background: #F9F9F9;">
+        <div style="width: 1245px;background: white;display: flex;justify-content: center;flex-direction: column;">
+          <top></top>
+        </div>
       </div>
-    </div>
-    <myhead></myhead>
-    <div style="width: 100%;display: flex;justify-content: center;background: gainsboro;padding-bottom: 20px;">
-      <div style="width: 1245px;background: white;display: flex;justify-content: center;flex-direction: column;padding-bottom: 20px;">
-        <router-view/>
+      <myhead></myhead>
+      <div style="width: 100%;display: flex;justify-content: center;background: gainsboro;padding-bottom: 20px;">
+        <div style="width: 1245px;background: white;display: flex;justify-content: center;flex-direction: column;padding-bottom: 20px;">
+          <router-view/>
+        </div>
       </div>
+      <myfooter></myfooter>
     </div>
-    <myfooter></myfooter>
+    <div v-if="vdata" style="width:100%;height: 100%;">
+      <router-view/>
+    </div>
   </div>
 </template>
 
@@ -46,7 +51,13 @@ export default {
     'top':Top,
     'myfooter': Footer,
   },
+  data () {
+    return {
+      vdata: true,
+    }
+  },
   mounted () {
+
   }
 }
 </script>
