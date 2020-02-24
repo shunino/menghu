@@ -89,11 +89,23 @@
         for(let i in this.mydata){
           let marker = new AMap.Marker({
             position: new AMap.LngLat(this.mydata[i].lon,this.mydata[i].lat),   // 经纬度对象，也可以是经纬度构成的一维数组[116.39, 39.9]
-            title: this.mydata[i].name
+            title: this.mydata[i].name,
+            extData:this.mydata[i].id,
+            clickable: true
           });
-          marlist.push(marker)
+          marlist.push(marker);
+          let self = this;
+          AMap.event.addListener(marker, 'click', function(e) {
+            console.log(marker);
+            let id = marker.w.extData;
+            console.log(id);
+            self.goto(id)
+          });
         }
         this.map.add(marlist);
+      },
+      goto(id){
+        this.$router.push({path:'/gardenDetail',query:{id:id}});
       },
       addMaker(){
         let text = [{
