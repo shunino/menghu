@@ -7,12 +7,12 @@
           >
             中国水土保持生态网
           </a>
-          <a
+         <!--  <a
             href="https://www.bidcenter.com.cn/newssearchyz-63334594.html"
             target="_blank"
           >
             贵州水土保持监测站
-          </a>
+          </a> -->
           <a
             href="http://www.gzmwr.gov.cn/slxw/dfdt/201804/t20180404_3108351.html"
             target="_blank"
@@ -63,7 +63,7 @@
     flex-direction: row;
     justify-content: center;
     color: #00A8FF;
-    width: 420px;
+    width: 236px;
     justify-content: space-around;
   }
   .footer-left span{
