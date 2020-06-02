@@ -1,86 +1,7 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <h2>Essential Links</h2>
-    <ul>
-      <li>
-        <a
-          href="https://vuejs.org"
-          target="_blank"
-        >
-          Core Docs
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://forum.vuejs.org"
-          target="_blank"
-        >
-          Forum
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://chat.vuejs.org"
-          target="_blank"
-        >
-          Community Chat
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://twitter.com/vuejs"
-          target="_blank"
-        >
-          Twitter
-        </a>
-      </li>
-      <br>
-      <li>
-        <a
-          href="http://vuejs-templates.github.io/webpack/"
-          target="_blank"
-        >
-          Docs for This Template
-        </a>
-      </li>
-    </ul>
-    <h2>Ecosystem</h2>
-    <ul>
-      <li>
-        <a
-          href="http://router.vuejs.org/"
-          target="_blank"
-        >
-          vue-router
-        </a>
-      </li>
-      <li>
-        <a
-          href="http://vuex.vuejs.org/"
-          target="_blank"
-        >
-          vuex
-        </a>
-      </li>
-      <li>
-        <a
-          href="http://vue-loader.vuejs.org/"
-          target="_blank"
-        >
-          vue-loader
-        </a>
-      </li>
-      <li>
-        <a
-          href="https://github.com/vuejs/awesome-vue"
-          target="_blank"
-        >
-          awesome-vue
-        </a>
-      </li>
-    </ul>
-  </div>
+ <div :id="myid" style="width:100%;height: 100%;">
+
+ </div>
 </template>
 
 <script>
@@ -90,24 +11,101 @@ export default {
     return {
       msg: 'Welcome to Your Vue.js App'
     }
+  },
+  props: ['myid','mydata'],
+  mounted () {
+    //debugger;
+    if(this.mydata){
+      this.loadChart();
+    }
+  },
+  watch:{
+    mydata:{
+        handler(newValue, oldValue) {
+　　　　　　this.loadChart();
+　　　　},
+　　　　deep: true
+    }
+  },
+  methods: {
+    loadChart () {
+      // 基于准备好的dom，初始化echarts实例
+      var myChart = this.$echarts.init(document.getElementById(this.myid))
+      let data = this.mydata
+      // 指定图表的配置项和数据
+      let option = {
+          tooltip: {
+              trigger: 'item',
+              formatter: '{a} <br/>{b}: {c} ({d}%)'
+          },
+          legend: {
+              orient: 'vertical',
+              data: ['地方投资', '中央投资'],
+              x: '40%',
+              y: '30',
+              right:'5%',
+              icon:"circle",
+              formatter:function(name){
+                  let target;
+                  for(let i=0;i<data.length;i++){
+                      if(data[i].name===name){
+                          target=data[i].value
+                      }
+                  }
+                  // let arr=["{a|"+target+"}","{b|"+name+"}"]
+                  // return arr.join("\n")
+                  return name+' '+target;
+
+              },
+              textStyle: { //图例文字的样式
+                  color: '#92A1B3',
+                  fontSize: 12
+              },
+          },
+          color : [ '#FB2872', '#42C7DC'],
+          series: [
+              {
+                  name: '访问来源',
+                  type: 'pie',
+                  radius: ['50%', '70%'],
+                  center : [ '20%', '50%' ],
+                  avoidLabelOverlap: false,
+                  label: {
+                      normal: {
+                          show: false,
+                          position: 'center'
+                      },
+                      emphasis: {
+                          show: true,
+                          textStyle: {
+                              fontSize: '10',
+                              fontWeight: 'bold'
+                          }
+                      }
+                  },
+                  labelLine: {
+                      normal: {
+                          show: false
+                      }
+                  },
+                  data: data
+              }
+          ]
+      };
+
+
+      // 使用刚指定的配置项和数据显示图表。
+      myChart.setOption(option);
+      window.addEventListener('resize', function(){
+          myChart.resize();
+        });
+     // myChart.resize();
+    }
   }
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h1, h2 {
-  font-weight: normal;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
+
 </style>

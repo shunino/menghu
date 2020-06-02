@@ -105,6 +105,7 @@
      // $('.head-left').find('span').removeClass('cur');
       //$('#intro').addClass('cur');
       this.getDetail(this.$route.query.id);
+            $('#mysearch').hide();
     },
     methods:{
       getDetail(id){

@@ -1,96 +1,172 @@
 <template>
-    <div class="mydemo">
-      <div class="demo-head">
-          <span class="ml10">{{title}}</span>
-        <span v-if="detail=='1'" style="cursor: pointer;" @click="more(title,type)" class="mr10">更多</span>
-        <span v-if="detail!='1'" style="cursor: pointer;" @click="$commonGo('/show')" class="mr10">返回</span>
-      </div>
-      <div v-if="detail=='1'" class="demo-content">
-          <div @click="goto(i.id)"  v-for="(i,key) in mydata" v-if="key<3" class="demo-list">
-            <el-image
-              style="width: 100%; height: 200px"
-              :src="$URL+'/file/'+i.cover"
-              :preview-src-list="[$URL+'/file/'+i.cover]"
-              >
-            </el-image>
-            <div class="center mt10">{{i.name}}</div>
-          </div>
-      </div>
+ <div :id="myid" style="width:100%;height: 100%;">
 
-      <div v-if="detail!='1'" class="demo-content">
-        <div @click="goto(i.id)"  v-for="i in mydata" class="demo-list">
-          <el-image
-            style="width: 100%; height: 200px"
-            :src="$URL+'/file/'+i.cover"
-            :preview-src-list="[$URL+'/file/'+i.cover]"
-          >
-          </el-image>
-          <div class="center mt10">{{i.name}}</div>
-        </div>
-      </div>
-
-    </div>
+ </div>
 </template>
 
 <script>
-  export default {
-    name: 'demo',
-    data () {
-      return {
-        msg: 'Welcome to Your Vue.js App',
-        yydata:[]
+export default {
+  name: 'HelloWorld',
+  data () {
+    return {
+      msg: 'Welcome to Your Vue.js App'
+    }
+  },
+  props: ['myid','mydata'],
+  watch:{
+    mydata:{
+        handler(newValue, oldValue) {
+　　　　　　this.loadChart();
+　　　　},
+　　　　deep: true
+    }
+  },
+  mounted () {
+    if(this.mydata.length!=0){
+      this.loadChart();
+    }
+  },
+  methods: {
+    loadChart () {
+      // 基于准备好的dom，初始化echarts实例
+      var myChart = this.$echarts.init(document.getElementById(this.myid))
+      let arr = this.mydata;
+      let name = [];
+      let cdata = [];
+      for(let i in arr){
+        if(arr[i].cityName.length>3) arr[i].cityName=arr[i].cityName[0] + arr[i].cityName[1] + arr[i].cityName[2];
+        name.push(arr[i].cityName);
+        cdata.push(arr[i].totalScore);
       }
-    },
-    props:['title','mydata','detail','type'],
-    mounted () {
-      //debugger;
-      this.yydata = this.mydata;
-      console.log(this.mydata);
-    },
-    methods:{
-      goto(id){
-        if(this.title=='生态文明示范专题'){
-          this.$router.push({path:'/gardenDetail',query:{id:id}});
-        }
-      },
-      more(title,type){
-        if(type!='5'){
-          this.$router.push({path:'/showDetail',query:{title:title,type:type}});
-        } else {
-          this.$router.push({path:'/garden',query:{title:title}});
-        }
-      }
+      // 指定图表的配置项和数据
+       let option = {
+          //  backgroundColor: '#00265f',
+            title: {
+                text: '得分',
+                x:'center',
+                y:'top',
+                textStyle:{
+                            color:'#0DB9F2',        //颜色
+                            fontStyle:'normal',     //风格
+                            fontWeight:'bold',    //粗细
+                            fontFamily:'Microsoft yahei',   //字体
+                            fontSize:16,     //大小
+                            align:'right'   //水平对齐
+                        },
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            grid: {
+                left: '0%',
+            top:'10px',
+                right: '0%',
+                bottom: '4%',
+               containLabel: true
+            },
+            xAxis: [{
+                type: 'category',
+                  data: name,
+                axisLine: {
+                    show: true,
+                 lineStyle: {
+                        color: "rgba(255,255,255,.1)",
+                        width: 1,
+                        type: "solid"
+                    },
+                },
+                
+                axisTick: {
+                    show: false,
+                },
+            axisLabel:  {
+                        interval: 0,
+                       // rotate:50,
+                        show: true,
+                        splitNumber: 15,
+                        textStyle: {
+                  color: "rgba(255,255,255,.6)",
+                            fontSize: '12',
+                        },
+                    },
+            }],
+            grid:{
+              top:"60px",
+                              left:"12px",
+                              right:"15px",
+                              bottom:"50px"
+
+            },
+            yAxis: [{
+                type: 'value',
+                axisLabel: {
+                   //formatter: '{value} %'
+              show:false,
+               textStyle: {
+                  color: "rgba(255,255,255,.6)",
+                            fontSize: '12',
+                        },
+                },
+                axisTick: {
+                    show: false,
+                },
+                axisLine: {
+                    show: false,
+                    lineStyle: {
+                        color: "rgba(255,255,255,.1 )",
+                        width: 1,
+                        type: "solid"
+                    },
+                },
+                splitLine: {
+                    lineStyle: {
+                       color: "rgba(255,255,255,.1)",
+                    },
+                    show:false
+                }
+            }],
+            series: [
+            {
+                type: 'bar',
+                data: cdata,
+                barWidth:'50%', //柱子宽度
+               // barGap: 1, //柱子之间间距
+                itemStyle: {
+                    normal: {
+                        label: {
+                                   show: true,    //开启显示
+                                   position: 'top', //在上方显示
+                                   textStyle: {     //数值样式
+                                       color: '#2F89CF',
+                                       fontSize: 16
+                                   }
+                               },
+                        color:'#2f89cf',
+                        opacity: 1,
+                        barBorderRadius: 5,
+                    } 
+                }
+            }
+            
+          ]
+        };
+
+
+      // 使用刚指定的配置项和数据显示图表。
+      myChart.setOption(option);
+      window.addEventListener('resize', function(){
+          myChart.resize();
+        });
+     // myChart.resize();
     }
   }
+}
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-  .mydemo{
-    width: 100%;
-  }
-  .demo-head{
-    width:100%;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-weight: bold;
-    background: #E6EEFB;
-    border-left: 3px solid #416EFF;
-  }
-  .demo-content{
-    display: flex;
-    width: 99.8%;
-    flex-direction: row;
-    flex-wrap: wrap;
-    padding-bottom: 30px;
-  }
-  .demo-list{
-    display: flex;
-    flex-direction: column;
-    width: 32%;
-    margin-top: 20px;
-    margin-left: 1%;
-  }
+
 </style>

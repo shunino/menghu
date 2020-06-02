@@ -1,24 +1,57 @@
+<style scoped>
+  .mylist{
+    height: 100%;
+    color: gray;
+  }
+  .list-head{
+    width:100%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    color: black;
+    border-bottom: 2px solid #A5A5A5;
+    justify-content: space-between;
+  }
+  .list-content{
+    display: flex;
+    width: 100%;
+  }
+  .list-content .list-img{
+    width: 30%;
+  }
+  .list-content .list-ul{
+    width: 68%;
+    margin-left: 2%;
+  }
+</style>
 <template>
     <div class="mylist">
       <div class="list-head mb10">
-        <span  class="ml10 xin">新闻动态</span>
-        <span @click="$commonGo('/news')" class="mya">更多新闻>></span>
+        <span  class="xin">新闻动态</span>
+        <span @click="$commonGo('/news')" class="mya">查看更多<span class="ml10 el-icon-circle-plus-outline
+"></span></span>
       </div>
       <div class="list-content">
+        <div class="list-img">
+          <carousel style="width: 100%;height: 100%;"></carousel>
+        </div>
         <ul class="list-ul" style="overflow:auto">
           <li v-for="i in tableData" class="list-li" @click="goto(i.id)">
+            <span class="span4" :title="i.title"><img src="../../assets/vnew/san.png" /> {{i.title}}</span>
             <span class="span1">{{i.createtime}}</span>
-            <span class="span4 ml10">{{i.title}}</span>
           </li>
         </ul>
-<!--        <div class="fr pointer" @click="$commonGo('/news')">更多新闻</div>-->
       </div>
     </div>
 </template>
 
 <script>
+  import Carousel from '@/components/home/carousel'
   export default {
     name: 'list',
+    components: {
+      'carousel': Carousel,
+    },
     data () {
       return {
         msg: 'Welcome to Your Vue.js App',
@@ -58,6 +91,9 @@
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+  .licon{
+
+  }
   .mylist{
     height: 100%;
     color: gray;
@@ -68,7 +104,7 @@
     display: flex;
     align-items: center;
     color: black;
-    border-bottom: 3px solid #426EFF;
+    border-bottom: 2px solid #A5A5A5;
     justify-content: space-between;
   }
   .list-head .xin{
@@ -84,6 +120,7 @@
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
+    justify-content: space-between;
   }
   .list-li .span1{
   }
@@ -92,7 +129,6 @@
   .list-li .span3{
   }
   .list-li .span4{
-    margin-left: 30px;
     text-overflow: ellipsis;
     overflow: hidden;
   }

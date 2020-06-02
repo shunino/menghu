@@ -1,13 +1,18 @@
 <!-- Add "scoped" attribute to limit CSS to this component only -->
+<style type="text/css">
+  .ql-align-center{
+    text-align: center;
+  }
+</style>
 <style scoped>
   .new-detail{
     width: 70%;
   }
   .detail-head{
-    height: 30px;
-    line-height: 30px;
+    height: 45px;
+    line-height: 45px;
     border-bottom: 1px dashed gray;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
   }
 
@@ -16,6 +21,7 @@
     margin-top: 10px;
     font-size: 16px;
     text-indent: 20px;
+        line-height: 35px;
   }
 
   /*.detail-content p{*/
@@ -105,6 +111,7 @@
       let win =  window.innerHeight;
       let he = win - 260 +'px';
       this.myheight = he;
+            $('#mysearch').hide();
       console.log('rrr');
       console.log(this.$route.query);
       if(this.$route.query.id){

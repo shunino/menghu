@@ -31,24 +31,23 @@
             <el-form-item label="来源">
               <el-input v-model="form.sources"></el-input>
             </el-form-item>
+            <el-form-item label="新闻封面" style="margin-top: 60px;" prop="newsimg">
+              <el-upload
+                class="avatar-uploader"
+                :action="$URL+'/upload'"
+                :show-file-list="false"
+                :on-success="handleAvatarSuccess"
+                :before-upload="beforeAvatarUpload">
+                <img v-if="dialogImageUrl" :src="dialogImageUrl" class="avatar">
+                <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+              </el-upload>
+            </el-form-item>
             <el-form-item  label="新闻详情">
                 <richtxt ref="myrich" @toClick="getContent" ></richtxt>
             </el-form-item>
-<!--            <el-form-item label="图片" style="margin-top: 60px;">-->
-<!--              <el-upload-->
-<!--                action="http://222.85.224.95:9090/upload"-->
-<!--                list-type="picture-card"-->
-<!--                :on-preview="handlePictureCardPreview"-->
-<!--                :on-remove="handleRemove">-->
-<!--                <i class="el-icon-plus"></i>-->
-<!--              </el-upload>-->
-<!--              <el-dialog :visible.sync="dialogVisible" size="tiny">-->
-<!--                <img width="100%" :src="dialogImageUrl" alt="">-->
-<!--              </el-dialog>-->
-<!--            </el-form-item>-->
-
+            
             <el-form-item>
-              <el-button type="primary" @click="onSubmit">新增</el-button>
+              <el-button type="primary" @click="onSubmit">确定</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -87,7 +86,6 @@
                 <el-button
                   size="mini"
                   type="primary"
-                  style="display: none"
                   @click="handleEdit(scope.row)">修改</el-button>
               </template>
             </el-table-column>
@@ -120,12 +118,14 @@
         pageno: 1,
         tableData: [],
         activeName: 'first',
+        dialogImageUrl:'',
         form: {
           title: '',
           contents: '',
           contenttype: '2',
           author: '',
           sources: '',
+          newsimg:'',
           userid:this.$userId,
           token:this.$token,
           id:null
@@ -134,20 +134,31 @@
           title: [
             { required: true, message: '请输入标题名', trigger: 'blur' },
           ],
-          author: [
-            { required: true, message: '请输入作者名', trigger: 'blur' },
-          ],
+          // author: [
+          //   { required: true, message: '请输入作者名', trigger: 'blur' },
+          // ],
+          // newsimg: [
+          //   { required: true, message: '请上次封面', trigger: 'blur' },
+          // ],
         },
       };
     },
     created(){
     },
     methods: {
+      handleAvatarSuccess(res, file) {
+        //debugger;
+        this.form.newsimg = res.data.fileid;
+        this.dialogImageUrl = URL.createObjectURL(file.raw);
+      },
+      beforeAvatarUpload(file) {
+      },
       getContent(html) {
        this.form.contents = html;
       },
       onSubmit() {
         let self = this;
+        this.form.contents =  this.$refs.myrich.getContent();
         this.$refs['form'].validate((valid) => {
           if (valid) {
             self.$http.post('api/resshare/maintain/addOrUpdateNews',{ "news":self.form,token:this.$token}).then(res => {
@@ -162,9 +173,16 @@
               this.form.title = '';
               this.form.author = '';
               this.form.sources = '';
+              this.form.id = null;
+              this.form.newsimg = '';
+              this.dialogImageUrl = '';
               this.$refs.myrich.clearContent();
               console.log(res);
             }).catch(err => {
+              this.$message({
+                type: 'error',
+                message: '权限已经到期！请重新登录'
+              });
               console.log(err)
             })
           }
@@ -209,6 +227,8 @@
           this.form.author = row.author;
           this.form.sources = row.sources;
           this.form.id = row.id;
+          this.form.newsimg = row.newsimg;
+          this.dialogImageUrl = this.$URL+'/file/'+row.newsimg;
           this.$refs.myrich.init(row.contents);
           this.activeName='first';
       },

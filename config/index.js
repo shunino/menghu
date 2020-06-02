@@ -18,7 +18,15 @@ module.exports = {
         pathRewrite: {
           '^/api': ''
         }
-      }
+      },
+      '/ips': {
+        target: 'http://10.10.0.222:9092',
+        changeOrigin: true,
+        ws: true,
+        pathRewrite: {
+          '^/ips': ''
+        }
+      },
     },
 
     // Various Dev Server settings

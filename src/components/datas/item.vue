@@ -1,13 +1,13 @@
 <template>
   <div class="data-item">
-      <div class="img-box">
+      <div class="img-box" @click="goto(mydata.id)">
         <img style="width:270px;height:270px;" :src="$URL+'/file/'+mydata.cover">
       </div>
-    <div class="title mt10 ml10">
+    <div class="title mt10 ml10" :title="mydata.name">
       {{mydata.name}}
     </div>
     <div class="num mt10 ml10">
-      数据量 {{mydata.filesize}}
+      数据量 约{{mydata.filesize}}
     </div>
     <div class="school mt10 ml10">
       {{mydata.location}}
@@ -36,6 +36,13 @@
         this.$router.push({path:'/DatasDetail1',query:{id:id}});
       },
       restore(id){
+        if(this.$userId==""){
+          this.$message({
+            message: '请先登录！',
+            type: 'error'
+          });
+          return;
+        }
         this.$http.post('api/resshare/datacenter/collect',{id:id,userid:this.$userId,token:this.$token}).then(res => {
           this.$message({
             message: '收藏成功！' ,
@@ -73,6 +80,8 @@
   }
   .data-item .title{
     color: #00A8FF;
+    height: 17px;
+    overflow: hidden;
   }
   .data-item .num{
 

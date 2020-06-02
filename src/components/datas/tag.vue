@@ -86,19 +86,38 @@
         msg: 'Welcome to Your Vue.js App',
         data1:[],
         data2:[],
-        temp:{}
+        temp:{},
+        mysearch:{
+          searchWrap:{
+            status:2
+          },
+          countperpage: 6,
+          pageno: 1,
+        },
+        mydata:[]
       }
     },
-    props:['mydata'],
     mounted () {
       this.data1 = ['土地利用','水土流失预测','遥感影像'];
       this.data2 = ['安顺','贵阳','遵义'];
-      let self = this;
-      setTimeout(function () {
-        self.getData();
-      },1000);
+     // let self = this;
+      //setTimeout(function () {
+        this.getList();
+     // },1000);
     },
     methods:{
+      getList() {
+        this.$http.post('api/resshare/datacenter/list',this.mysearch).then(res => {
+          this.mydata = res.data.data.data;
+          for(let i in this.mydata ){
+            this.mydata[i].createtime = this.mydata[i].createtime.split('T')[0];
+          }
+          console.log(res);
+          this.getData();
+        }).catch(err => {
+          console.log(err)
+        })
+      },
       more(type){
         if(type==1){
           $('.data-tag').css({'height':'auto'});

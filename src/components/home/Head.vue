@@ -1,5 +1,5 @@
 <template>
-  <div style="width: 100%;display: flex;justify-content: center;background: #0C275E;">
+  <div style="width: 100%;display: flex;justify-content: center;background:linear-gradient(90deg,rgba(4,68,155,1),rgba(16,92,196,1));">
         <div class="myhead">
               <div class="head-left">
                 <span id="home" class="cur">
@@ -24,7 +24,7 @@
                   <router-link to="/intro">平台简介</router-link>
                 </span>
               </div>
-              <div class="head-left" v-show="hasLogin">
+              <!-- <div class="head-left" v-show="hasLogin">
                 <span style="justify-content: flex-end;margin-right: 5px;color: #00A8FF;">
                   Hi！{{user}}
                 </span>
@@ -45,7 +45,7 @@
                   <span @click="toRegister">
                     注册
                   </span>
-              </div>
+              </div> -->
           <el-dialog
             title="登录"
             :visible.sync="dialogVisible"
@@ -83,7 +83,7 @@
                 <el-form-item label="邮件地址" prop="email">
                   <el-input v-model="ruleForm2.email"></el-input>
                 </el-form-item>
-                <el-form-item label="职业">
+               <!--  <el-form-item label="职业">
                   <el-input v-model="ruleForm2.profession"></el-input>
                 </el-form-item>
                 <el-form-item label="单位">
@@ -94,7 +94,7 @@
                 </el-form-item>
                 <el-form-item label="详细地址">
                   <el-input v-model="ruleForm2.address"></el-input>
-                </el-form-item>
+                </el-form-item> -->
                 <el-form-item label="密码" prop="password">
                   <el-input type="password" v-model="ruleForm2.password"></el-input>
                 </el-form-item>
@@ -264,11 +264,10 @@ export default {
       flex-direction: row;
       justify-content: space-between;
       align-items: center;
-      background: #0C275E;
-      width: 1245px;
+      width: 1400px;
       height: 55px;
       color:white;
-    font-size: 16px;
+    font-size: 18px;
   }
   .head-left{
     display: flex;
@@ -284,9 +283,16 @@ export default {
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    margin-right: 30px;
   }
   .head-left span.cur{
-    background: #416EFF;
+    background: #5C6FCC;
+    border-bottom: 2px solid #FF6511;
+    color: #FF6511;
+    height: 98%;
+  }
+  .head-left span.cur a{
+    color: #FF6511;
   }
   .head-left span a{
     width: 100%;

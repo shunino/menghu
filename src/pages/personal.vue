@@ -54,9 +54,9 @@
   <div class="commondiv">
     <div class="per-content">
         <div class="per-left">
-         <div class="per-avater">
+         <!-- <div class="per-avater">
            <img style="width:90%;height: 90%" src="../../static/ata.jpg">
-         </div>
+         </div> -->
           <div class="per-menu">
               <ul>
 <!--                <li style="display: none" v-show="isAdmin"  id="perHome" @click="changTab('perHome')">首页管理</li>-->
@@ -85,10 +85,10 @@
           </div>
         </div>
       <div class="per-center" >
-          <share @upload="changDetail" v-if="tabtype=='perShare'" class="perShare perCom"></share>
+          <share @upload="changDetail" @cshare="cshare" v-if="tabtype=='perShare'" class="perShare perCom"></share>
           <reposit v-if="tabtype=='perReposit'" class="perReposit perCom"></reposit>
           <down v-if="tabtype=='perDown'" class="perDown perCom"></down>
-          <intro v-if="tabtype=='perIntro'" class="perIntro perCom"></intro>
+          <intro @changeName="changeName" v-if="tabtype=='perIntro'" class="perIntro perCom"></intro>
           <garden v-if="tabtype=='perGarden'" class="perGarden perCom"></garden>
           <verForm v-if="tabtype=='perver'" class="perver perCom"></verForm>
           <!--  admin      -->
@@ -103,7 +103,7 @@
           <newsForm v-if="tabtype=='perNews'" class="perNews perCom"></newsForm>
           <popForm v-if="tabtype=='perPop'" class="perPop perCom"></popForm>
           <!-- 内部组件  -->
-          <shareForm @upload="changDetail" v-if="tabtype=='shareForm'"></shareForm>
+          <shareForm :shareData="shareData" @upload="changDetail" v-if="tabtype=='shareForm'"></shareForm>
       </div>
     </div>
   </div>
@@ -135,9 +135,11 @@ export default {
       tabtype:'perShare',
       isAdmin:true,
       isUser:true,
+      shareData:{}
     }
   },
   mounted(){
+          $('#mysearch').hide();
     var user = this.$getCookie('username');
     if(user=='admin'){
       this.isAdmin = true;
@@ -158,6 +160,13 @@ export default {
     $('#personal').addClass('cur');
   },
   methods: {
+    cshare(data){
+      this.shareData = data;
+      this.tabtype = 'shareForm';
+    },
+    changeName(name){
+      console.log(name);
+    },
     changTab1(tab) {
         $('.per-menu').find('ul .showdiv li').removeClass('cur');
         $('#'+tab).addClass('cur');
@@ -183,6 +192,7 @@ export default {
       }
     },
     changDetail(tab) {
+      this.shareData={};
       this.tabtype = tab;
       console.log(this.tabtype);
     },

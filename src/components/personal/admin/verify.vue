@@ -163,6 +163,10 @@
           this.dataUser = res.data.data;
           console.log(res);
         }).catch(err => {
+          this.$message({
+                type: 'error',
+                message: '权限已经到期！请重新登录'
+              });
           console.log(err)
         });
       },
@@ -180,6 +184,7 @@
             type: 'success',
             message: '操作成功！'
           });
+          this.getList();
           this.dialogVisible = false;
           console.log(res);
         }).catch(err => {

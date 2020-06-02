@@ -69,6 +69,7 @@
                 </span>
                 <span>
                     <el-button size="mini" round @click="handleDelete(i.id)">删除共享</el-button>
+                    <el-button size="mini" round @click="modify(i)">修改</el-button>
                   <el-button size="mini" round @click="goto(i.id)">查看</el-button>
                 </span>
               </div>
@@ -177,6 +178,9 @@
       },
       goto(id){
         this.$router.push({path:'/DatasDetail1',query:{id:id}});
+      },
+      modify(data){
+        this.$emit('cshare',data);
       }
     },
 

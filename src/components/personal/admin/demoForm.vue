@@ -43,7 +43,7 @@
     <el-tabs v-model="activeName" @tab-click="handleClick">
       <el-tab-pane label="专题上传" name="first" class="myfirst">
         <div>
-          <el-form ref="form" :model="form" :rules="rules" label-width="80px">
+          <el-form ref="form" :model="form" :rules="rules" label-width="108px">
 <!--            <el-form-item label="专题类别" prop="typeflag">-->
 <!--              <el-select v-model="form.typeflag" placeholder="请选择">-->
 <!--                <el-option label="大数据专题" value="1"></el-option>-->
@@ -53,6 +53,9 @@
 <!--            </el-form-item>-->
             <el-form-item label="专题名称" prop="name">
               <el-input v-model="form.name"></el-input>
+            </el-form-item>
+            <el-form-item label="数据摘要" prop="summary">
+              <el-input v-model="form.summary"></el-input>
             </el-form-item>
             <el-form-item label="图片上传" style="margin-top: 60px;" prop="cover">
               <el-upload
@@ -65,9 +68,38 @@
                 <i v-else class="el-icon-plus avatar-uploader-icon"></i>
               </el-upload>
             </el-form-item>
-
+            <el-form-item label="工具图片上传" style="margin-top: 60px;" prop="imageparams">
+              <el-upload
+                class="avatar-uploader"
+                :action="$URL+'/upload'"
+                :show-file-list="false"
+                :on-success="handleAvatarSuccess1"
+                :before-upload="beforeAvatarUpload">
+                <img v-if="dialogImageUrl1" :src="dialogImageUrl1" class="avatar">
+                <i v-else class="el-icon-plus avatar-uploader-icon"></i>
+              </el-upload>
+            </el-form-item>
+            <!-- <el-form-item label="图层类型" prop="mapservice">
+              <el-radio-group v-model="form.coverlayerflag">
+                  <el-radio  label="0" >完整</el-radio>
+                  <el-radio  label="1" >部分</el-radio>
+              </el-radio-group>
+            </el-form-item> -->
+            <el-form-item label="工具图片宽度" prop="imagewidth">
+              <el-input v-model="form.imagewidth"></el-input>
+            </el-form-item>
+            <el-form-item label="工具图片高度" prop="imageheight">
+              <el-input v-model="form.imageheight"></el-input>
+            </el-form-item>
+             
+            <el-form-item label="地图服务链接" prop="mapservice">
+              <el-input v-model="form.mapservice"></el-input>
+            </el-form-item>
+            <!--  <el-form-item label="工具栏" prop="imageparams">
+              <el-input v-model="form.imageparams"></el-input>
+            </el-form-item> -->
             <el-form-item>
-              <el-button type="primary" @click="onSubmit">新增</el-button>
+              <el-button type="primary" @click="onSubmit">确定</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -90,9 +122,13 @@
             <el-table-column label="操作">
               <template slot-scope="scope">
                 <el-button
+                size="mini"
+                type="danger"
+                @click="handleDelete(scope.row.id)">删除</el-button>
+                <el-button
                   size="mini"
-                  type="danger"
-                  @click="handleDelete(scope.row.id)">删除</el-button>
+                  type="primary"
+                  @click="handleEdit(scope.row)">修改</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -118,25 +154,49 @@
         total:1,
         pageno: 1,
         dialogImageUrl: '',
+        dialogImageUrl1: '',
         dialogVisible: false,
         activeName: 'first',
         tableData: [],
         form: {
+          coverlayerflag:'0',
           name: '',
           typeflag: '',
           cover: '',
+          imageparams:'',
+          summary:'',
+          mapservice:'',
           userid:this.$userId,
-          id:null
+          id:null,
+          imageheight:'',
+          imagewidth:''
         },
         rules:{
           name: [
             { required: true, message: '请输入名称', trigger: 'blur' },
+          ],
+          // summary: [
+          //   { required: true, message: '请输入数据摘要', trigger: 'blur' },
+          // ],
+          mapservice: [  
+            { required: true, message: '请输入服务链接', trigger: 'blur' },
           ],
           // typeflag: [
           //   { required: true, message: '请选择类型', trigger: 'blur' },
           // ],
           cover: [
             { required: true, message: '请上传图片', trigger: 'blur' },
+          ],
+          imageparams: [
+            { required: true, message: '请上传工具栏图片', trigger: 'blur' },
+          ],
+          imageheight: [
+            { required: true, message: '请上传工具栏图片高度', trigger: 'blur' },
+            // { type: 'number', message: '必须为数字'}
+          ],
+          imagewidth: [
+            { required: true, message: '请上传工具栏图片宽度', trigger: 'blur' },
+            // { type: 'number', message: '必须为数字'}
           ],
         },
       };
@@ -182,12 +242,23 @@
                   this.getList();
                 }
               });
-              this.form.name = '';
-             // this.form.typeflag = '';
+              this.form.name ='';
               this.form.cover = '';
+              this.form.imageparams = '';
+              this.form.summary = '';
+              this.form.mapservice = '';
+              this.form.imagewidth = '';
+              this.form.imageheight = '';
+              this.form.id = null;
               this.dialogImageUrl = '';
+              this.dialogImageUrl1 ='';
+              this.coverlayerflag  ='0';
               console.log(res);
             }).catch(err => {
+              this.$message({
+                type: 'error',
+                message: '权限已经到期！请重新登录'
+              });
               console.log(err)
             })
           }
@@ -229,12 +300,18 @@
         });
       },
       handleEdit(row){
-        // this.form.title = row.title;
-        // this.form.author = row.author;
-        // this.form.sources = row.sources;
-        // this.form.id = row.id;
-        // this.$refs.myrich.init(row.contents);
-        // this.activeName='first';
+        this.form.name = row.name;
+        this.form.cover = row.cover;
+        this.form.imageparams = row.imageparams;
+        this.form.summary = row.summary;
+        this.form.mapservice = row.mapservice;
+        this.form.imagewidth = row.imagewidth;
+        this.form.imageheight = row.imageheight;
+        this.form.coverlayerflag   = row.coverlayerflag+'';
+        this.form.id = row.id;
+        this.dialogImageUrl = this.$URL+'/file/'+row.cover;
+        this.dialogImageUrl1 =this.$URL+'/file/'+row.imageparams;
+        this.activeName='first';
       },
       handleClick(tab, event) {
         this.form.name = '';
@@ -256,6 +333,11 @@
         //debugger;
         this.form.cover = res.data.fileid;
         this.dialogImageUrl = URL.createObjectURL(file.raw);
+      },
+      handleAvatarSuccess1(res, file) {
+        //debugger;
+        this.form.imageparams = res.data.fileid;
+        this.dialogImageUrl1 = URL.createObjectURL(file.raw);
       },
       beforeAvatarUpload(file) {
       }

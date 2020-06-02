@@ -19,6 +19,13 @@
     font-size: 13px !important;
     color: gray;
   }
+  .wushu{
+    height: 700px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+  }
 </style>
 <template>
   <div class="commondiv">
@@ -36,11 +43,12 @@
         </div>
         <div class="da-center" >
           <div class="center-top">
-            <dataTag  @search="toSearch" :mydata="tableData"></dataTag>
+            <dataTag  @search="toSearch" ></dataTag>
           </div>
           <div class="center-bottom mt10">
             <dataItemHead @search="toSearch" :total="total"></dataItemHead>
             <div style="display: flex;flex-wrap: wrap;margin-left:-20px;">
+              <div v-if="tableData.length==0" class="wushu">暂时无数据！</div>
               <dataItem :mydata="i"  v-for="i in tableData"></dataItem>
             </div>
             <div class="block mt10">
@@ -49,6 +57,7 @@
                 @current-change="handleCurrentChange"
                 :current-page="mysearch.pageno"
                 layout="total, prev, pager, next, jumper"
+                page-size="6"
                 :total=total>
               </el-pagination>
             </div>
@@ -100,9 +109,13 @@
     mounted(){
       $('.head-left').find('span').removeClass('cur');
       $('#datas').addClass('cur');
-
+      $('#mysearch').hide();
       this.getList();
       this.getList1();
+      if(this.$route.query.key){
+          let kob = {themes:this.$route.query.key};
+          this.toSearch(kob);
+      }  
     },
     methods:{
       toSearch(con){
@@ -131,6 +144,7 @@
         this.$http.post('api/resshare/datacenter/listBySort',this.mysearch1).then(res => {
           this.tableData1 = res.data.data;
           for(let i in this.tableData1 ){
+            if(this.tableData1[i].name=="一个数据") this.tableData1[i].name = "贵州省水土保持规划（2012-2020年)";
             this.tableData1[i].createtime = this.tableData1[i].createtime.split('T')[0];
           }
           console.log(res);

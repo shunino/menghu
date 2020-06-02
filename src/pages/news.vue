@@ -34,6 +34,8 @@
     mounted(){
       $('.head-left').find('span').removeClass('cur');
       $('#news').addClass('cur');
+      $('#mysearch').hide();
+      
     },
     components: {
       'myhead': Head,

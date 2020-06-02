@@ -61,7 +61,7 @@
     <div class="new-detail">
       <div class="left">
         <div class="title" style="margin-top: 0px;">{{mydata.name}}</div>
-        <div class="attribute">数据贡献者：{{dataUser.username}}
+        <div class="attribute">数据贡献者：{{mydata.username}}
 <!--          ({{dataUser.company}})-->
         </div>
         <div>
@@ -69,7 +69,7 @@
         </div>
         <div class="ctxt">上传时间：{{mydata.createtime}}</div>
         <div class="ctxt">主题词：{{mydata.themes}} </div>
-        <div class="ctxt"><span>数据分类体系：	{{$STATE[mydata.type1].head}}</span> <span style="margin-left: 200px;">位置区别：{{mydata.location}}</span></div>
+        <div class="ctxt"><span>数据分类体系：	{{$STATE[mydata.type1-1].head}}</span> <span style="margin-left: 200px;">位置区别：{{mydata.location}}</span></div>
         <div class="ctxt" style="display: flex;">
           <div>数据描述：</div>
           <div style="width: 808px;margin-left: 10px;">{{mydata.datades}}</div>
@@ -198,15 +198,25 @@
         },
       }
     },
+    watch: {
+      '$route' (to, from) {
+        this.init();
+      },
+    },
     mounted(){
-      this.getDetail(this.$route.query.id);
-      this.getList1();
+    this.init();
     },
     methods:{
+      init(){
+         $('#mysearch').hide();
+        this.getDetail(this.$route.query.id);
+        this.getList1();
+      },
       getList1() {
         this.$http.post('api/resshare/datacenter/listBySort',this.mysearch1).then(res => {
           this.tableData1 = res.data.data;
           for(let i in this.tableData1 ){
+            if(this.tableData1[i].name=="一个数据") this.tableData1[i].name = "贵州省水土保持规划（2012-2020年)";
             this.tableData1[i].createtime = this.tableData1[i].createtime.split('T')[0];
           }
           console.log(res);
@@ -230,12 +240,28 @@
           this.mydata = res.data.data;
           this.mydata.createtime =  this.mydata.createtime.split('T')[0];
           this.tableData = this.mydata.filelist;
+           for(let i in this.tableData ){
+            let mysize = this.tableData[i].size;
+            let tsize;
+            if(mysize<1204) tsize = mysize+'字节';
+            else if((mysize/1024) < 1024) tsize = Math.ceil((mysize/1024)) +'KB';
+            else if((mysize/1024/1024) < 1024) tsize = Math.ceil((mysize/1024/1024))+'MB';
+            else if((mysize/1024/1024) > 1024) tsize = Math.ceil((mysize/1024/1024/1024)) +'GB';;
+            this.tableData[i].size = tsize;
+          }
           this.getUser(this.mydata.userid);
         }).catch(err => {
           console.log(err)
         })
       },
       down(id){
+        if(this.$userId==""){
+          this.$message({
+            message: '请先登录！',
+            type: 'error'
+          });
+          return;
+        }
         this.$http.post('api/resshare/datacenter/download',{id:this.$route.query.id,userid:this.$userId,token:this.$token}).then(res => {
           this.$down(id);
         }).catch(err => {

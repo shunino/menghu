@@ -110,6 +110,7 @@
       this.myheight = he;
       $('.head-left').find('span').removeClass('cur');
       $('#intro').addClass('cur');
+            $('#mysearch').hide();
     },
     methods:{
       changeTab(type){

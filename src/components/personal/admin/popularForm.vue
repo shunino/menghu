@@ -161,6 +161,10 @@
               this.$refs.myrich.clearContent();
               console.log(res);
             }).catch(err => {
+              this.$message({
+                type: 'error',
+                message: '权限已经到期！请重新登录'
+              });
               console.log(err)
             })
           }

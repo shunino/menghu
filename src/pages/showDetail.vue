@@ -25,6 +25,7 @@
       }
     },
     mounted(){
+            $('#mysearch').hide();
       let win =  window.innerHeight;
       let he = win - 260 +'px';
       this.myheight = he;

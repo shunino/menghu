@@ -6,21 +6,26 @@
 <!--    width: 100%;-->
 <!--    z-index: -1;" src="../static/1.jpg" />-->
     <div v-if="!vdata">
-      <div style="width: 100%;display: flex;justify-content: center;background: #F9F9F9;">
-        <div style="width: 1245px;background: white;display: flex;justify-content: center;flex-direction: column;">
+      <!-- <div style="width: 100%;display: flex;justify-content: center;background: #F9F9F9;">
+        <div style="width: 1245px;background: white;display: flex;justify-content: center;flex-direction: column;"> -->
           <top></top>
-        </div>
-      </div>
-      <myhead></myhead>
-      <div style="width: 100%;display: flex;justify-content: center;background: gainsboro;padding-bottom: 20px;">
-        <div style="width: 1245px;background: white;display: flex;justify-content: center;flex-direction: column;padding-bottom: 20px;">
-          <router-view/>
+       <!--  </div>
+      </div> -->
+      <myhead id="myhead"></myhead>
+      <search id="mysearch"></search>
+      <div id="mydiv" style="width: 100%;display: flex;justify-content: center;background: #F7F6FD;padding-bottom: 20px;">
+        <div style="width: 1400px;display: flex;justify-content: center;flex-direction: column;height:100%;">
+          
+            <router-view/>
+          
         </div>
       </div>
       <myfooter></myfooter>
     </div>
-    <div v-if="vdata" style="width:100%;height: 100%;">
-      <router-view/>
+    <div v-if="vdata" class="vdataDiv" >
+      
+        <router-view/>
+     
     </div>
   </div>
 </template>
@@ -28,6 +33,7 @@
 <script>
   import Head from '@/components/home/Head'
   import Top from '@/components/home/top'
+  import Search from '@/components/home/search'
   import Footer from '@/components/home/footer'
 
   $(function () {
@@ -50,18 +56,40 @@ export default {
     'myhead': Head,
     'top':Top,
     'myfooter': Footer,
+    'search':Search
   },
   data () {
     return {
-      vdata: true,
+      vdata: false,
     }
   },
-  mounted () {
+  updated () {
+　　　　if(this.$route.query.isdata){
+        this.vdata = true;
+      } else{
+       this.vdata = false;
+      }
 
+　　},
+  mounted () {
+    if(this.$route.query.isdata){
+        this.vdata = true;
+      } else{
+       this.vdata = false;
+      }
   }
 }
 </script>
 <style>
+  .vdataDiv{
+    min-height: 768px;
+      min-width: 1729px;
+      max-height: 1080px;
+      max-width: 1920px;
+      position: relative;
+      width: 100%;
+      height: 100%;
+  }
   .el-button--primary{
     background:#416EFF ;
     border-color:#416EFF ;
@@ -143,10 +171,10 @@ export default {
     color: #00A8FF;
   }
   .mya{
-    color: #00A8FF;
+    color:#7F7F7F;
+    cursor: pointer;
   }
   .myhead{
-    background: #0C275D;
     font-size: 20px;
   }
   .myborder{

@@ -1,13 +1,23 @@
+<style scoped>
+  .mypad{
+    padding-left: 15px;
+    padding-right: 15px;
+    background:white;
+  }
+</style>
 <template>
   <div class="commondiv">
     <div style="width: 95%;">
       <div class="mt20" style="display: flex;height: 300px;">
-        <carousel style="width: 50%"></carousel>
-        <mylist style="width: 48%;margin-left: 2%"></mylist>
+       <!--  <carousel style="width: 50%;background:white;"></carousel> -->
+        <mylist class="mypad" style="width: 70%;"></mylist>
+         <rank class="mypad" style="width:29%;margin-left: 1%;"></rank>
       </div>
 
       <div class="mt20 homeTwo" style="display: flex;">
-        <el-tabs v-model="activeName" style="width: 68%;margin-right: 2%">
+        <dlist :mydata="tableData1"  title="最新数据" class="mypad" style="width: 49.5%;"></dlist>
+         <dlist :mydata="tableData2" title="热门数据" class="mypad" style="width: 49.5%;margin-left: 1%;"></dlist>
+        <!-- <el-tabs v-model="activeName" style="width: 68%;margin-right: 2%">
           <el-tab-pane label="最新数据" name="first">
             <commonList :mydata="tableData1"></commonList>
           </el-tab-pane>
@@ -15,16 +25,42 @@
             <commonList :mydata="tableData2"></commonList>
           </el-tab-pane>
         </el-tabs>
-        <rank style="width:30%;"></rank>
+        <rank style="width:30%;"></rank> -->
       </div>
 
       <div class="mt20" style="display: flex;">
-        <demoList></demoList>
+        <demoList class="mypad"></demoList>
       </div>
     </div>
   </div>
 </template>
 <style>
+::-webkit-scrollbar {
+        width: 10px;     
+
+        height: 10px;
+
+    }
+
+::-webkit-scrollbar-thumb {
+
+        border-radius: 10px;
+
+         -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+
+        background: #A5A5A5;
+
+    }
+
+::-webkit-scrollbar-track {
+
+        -webkit-box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+
+        border-radius: 10px;
+
+        background: white;
+
+}
   .homeTwo .el-tabs{
     border: 1px solid #E4E7ED;
     padding-left: 10px;
@@ -37,6 +73,7 @@
   }
 </style>
 <script>
+import Dlist from '@/components/home/list'
 import Head from '@/components/home/Head'
 import Top from '@/components/home/top'
 import Carousel from '@/components/home/carousel'
@@ -56,6 +93,7 @@ import DataItem from '@/components/datas/item'
 import DataTag from '@/components/datas/tag'
 import DataClass from '@/components/datas/class'
 import DataItemHead from '@/components/datas/itemHead'
+import esriLoader from 'esri-loader'
 export default {
   name: 'Home',
   data () {
@@ -75,9 +113,23 @@ export default {
     }
   },
   mounted(){
+    // esriLoader.loadModules ([
+    //             "esri/Map",
+    //             "esri/views/MapView",
+    //             "esri/layers/MapImageLayer",
+                
+    //         ])
+    //         .then (([
+    //                    Map, MapView,MapImageLayer
+    //                 ]) => {
+           
+    //     }, reason => {
+    //         console.log (reason);
+    //     });
     $('.head-left').find('span').removeClass('cur');
     $('#home').addClass('cur');
-
+    $('#mysearch').show();
+    $('#myhead').show();
     this.getList1();
     this.getList2();
   },
@@ -97,6 +149,7 @@ export default {
       this.$http.post('api/resshare/datacenter/listBySort',this.mysearch2).then(res => {
         this.tableData2 = res.data.data;
         for(let i in this.tableData2 ){
+          if(this.tableData2[i].name=="一个数据") this.tableData2[i].name = "贵州省水土保持规划（2012-2020年)";
           this.tableData2[i].createtime = this.tableData2[i].createtime.split('T')[0];
         }
         console.log(res);
@@ -110,6 +163,7 @@ export default {
     // },
   },
   components: {
+    'dlist':Dlist,
     'myhead': Head,
     'carousel': Carousel,
     'rank': Rank,

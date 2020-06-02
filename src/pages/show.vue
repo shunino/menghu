@@ -33,6 +33,7 @@
       }
     },
     mounted(){
+            $('#mysearch').hide();
       $('.head-left').find('span').removeClass('cur');
       $('#show').addClass('cur');
       this.getList();
@@ -40,7 +41,7 @@
     },
     methods:{
       getGarden() {
-        let mysearch = {
+        let mysearch = {l
           countperpage: 3,
           pageno: 1,
         };

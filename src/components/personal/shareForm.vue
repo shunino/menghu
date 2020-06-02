@@ -84,7 +84,7 @@
               </el-upload>
             </el-form-item>
 
-            <el-form-item label="文件上传"  prop="filelist">
+            <el-form-item label="文件上传">
               <el-upload
                 class="upload-demo"
                 :action="$URL+'/upload'"
@@ -95,63 +95,18 @@
                 multiple
                 :limit="3"
                 :on-exceed="handleExceed"
-                :file-list="fileList">
+                :file-list="filelist">
                 <el-button size="small" type="primary">点击上传</el-button>
 <!--                <div slot="tip" class="el-upload__tip">只能上传jpg/png文件，且不超过500kb</div>-->
               </el-upload>
             </el-form-item>
 
             <el-form-item style="text-align: center;">
-              <el-button type="primary" @click="onSubmit">新增</el-button>
+              <el-button type="primary" @click="onSubmit">确定</el-button>
             </el-form-item>
           </el-form>
         </div>
       </el-tab-pane>
-<!--      <el-tab-pane style="display: none" label="共享目录" name="second" class="myfirst">-->
-<!--        <el-table-->
-
-<!--          :data="tableData"-->
-<!--          style="width: 100%;min-height: 700px;">-->
-<!--          <el-table-column-->
-<!--            label="数据名称"-->
-<!--            prop="name"-->
-<!--          >-->
-<!--          </el-table-column>-->
-<!--          <el-table-column-->
-<!--            label="文件大小"-->
-<!--            prop="size"-->
-<!--          >-->
-<!--          </el-table-column>-->
-<!--          <el-table-column-->
-<!--            label="位置区划"-->
-<!--            prop="location"-->
-<!--          >-->
-<!--          </el-table-column>-->
-<!--          <el-table-column label="操作">-->
-<!--            <template slot-scope="scope">-->
-<!--              <el-button-->
-<!--                size="mini"-->
-<!--                type="danger"-->
-<!--                @click="handleDelete(scope.row.id)">删除</el-button>-->
-
-<!--              <el-button-->
-<!--                size="mini"-->
-<!--                type="primary"-->
-<!--                style="display: none"-->
-<!--                @click="handleEdit(scope.row)">修改</el-button>-->
-<!--            </template>-->
-<!--          </el-table-column>-->
-<!--        </el-table>-->
-<!--        <div class="block mt10">-->
-<!--          <el-pagination-->
-<!--            @size-change="handleSizeChange"-->
-<!--            @current-change="handleCurrentChange"-->
-<!--            :current-page="pageno"-->
-<!--            layout="total, sizes, prev, pager, next, jumper"-->
-<!--            :total=total>-->
-<!--          </el-pagination>-->
-<!--        </div>-->
-<!--      </el-tab-pane>-->
     </el-tabs>
   </div>
 </template>
@@ -161,7 +116,7 @@
   export default {
     data() {
       return {
-        fileList:[],
+        filelist: [],
         selectedOptions: [],
         dialogImageUrl:'',
         options: [],
@@ -206,25 +161,61 @@
         },
       };
     },
-    props:['upload'],
+    props:['upload','shareData'],
+    watch: {
+      'shareData': {
+        handler(newName, oldName) {
+          if(newName.id){
+            this.init(newName);
+          } else {
+            this.form = {
+                name: '',
+                type1: '',
+                type2: '',
+                location: '',
+                datades: '',
+                cover: '',
+                filelist: [],
+                userid:this.$userId,
+                token:this.$token,
+                id:null,
+                themes1:[],
+            };
+            this.selectedOptions = [];
+            this.dialogImageUrl ='';
+          }
+        },
+        deep: true,
+        immediate: true
+      }
+    },
     created(){
-      // for(let i in this.$STATE1){
-      //   let op = {};
-      //       op.value = this.$STATE1[i].value;
-      //       op.label = this.$STATE1[i].label;
-      //       op.children = [];
-      //       for(let j in this.$STATE1[i].children){
-      //         let tt={};
-      //         tt.value = this.$STATE1[i].value[j];
-      //         tt.label = this.$STATE1[i].label[j];
-      //         op.children.push(tt);
-      //       }
-      //      this.options.push(op);
-      // }
       this.options = this.$STATE1;
-      this.getstate();
+      //this.getstate();
     },
     methods: {
+      init(data){
+        this.form.name = data.name;
+        let theArr = data.themes.split(',');
+        this.form.themes1 = theArr;
+        this.form.type1 = data.type1;
+        this.form.type2 = data.type2;
+        this.selectedOptions = [data.type1,data.type2];
+        this.form.location = data.location;
+        this.form.datades = data.datades;
+        this.form.filelist = data.filelist;
+        //this.filelist = [];
+        for(let i in data.filelist){
+          this.filelist[i]= {};
+          this.filelist[i]['name'] = data.filelist[i].filename;
+          this.filelist[i]['url'] = this.$URL+'/file/'+data.filelist[i].fileid;
+        }
+        this.$forceUpdate()
+        this.form.userid = this.$userId;
+        this.form.id = data.id;
+        this.dialogImageUrl = this.$URL+'/file/'+data.cover;
+        this.form.cover = data.cover;
+      },
       getstate(){
         this.$http.post('api/resshare/maintain/listDictionary',{typeid:1,pid:0,token:this.$token}).then(res => {
 
@@ -243,8 +234,6 @@
         op.contenttype = res.data.contenttype;
         op.size = res.data.size;
         this.form.filelist.push(op);
-        //this.form.filelist = res.data;
-        //this.fileList.push(op2);
       },
       handleAvatarSuccess(res, file) {
         //debugger;
@@ -299,6 +288,10 @@
               });
               console.log(res);
             }).catch(err => {
+              this.$message({
+                type: 'error',
+                message: '权限已经到期！请重新登录'
+              });
               console.log(err)
             })
           }

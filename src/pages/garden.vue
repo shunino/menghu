@@ -44,6 +44,7 @@
       $('.head-left').find('span').removeClass('cur');
       $('#garden').addClass('cur');
       this.getList();
+            $('#mysearch').hide();
     },
     methods:{
       getList() {

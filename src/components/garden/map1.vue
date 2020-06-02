@@ -81,6 +81,21 @@
       setTimeout(function () {
         self.addMaker1();
       },1000)
+      // var toolbar = new AMap.ToolBar();
+      // map.plugin(toolbar);
+      AMap.plugin('AMap.DistrictSearch', function () {
+        var districtSearch = new AMap.DistrictSearch({
+          // 关键字对应的行政区级别，country表示国家
+          level: 'country',
+          //  显示下级行政区级数，1表示返回下一级行政区
+          subdistrict: 1
+        })
+        
+        // 搜索所有省/直辖市信息
+        districtSearch.search('中国', function(status, result) {
+          // 查询成功时，result即为对应的行政区信息
+        })
+      })
 // 将创建的点标记添加到已有的地图实例：
     },
     methods:{
@@ -88,6 +103,9 @@
         let marlist = [];
         for(let i in this.mydata){
           let marker = new AMap.Marker({
+             size: new AMap.Size(30, 30),
+             imageSize: new AMap.Size(30,30),
+            icon: require("../../assets/vmap/s13.png"),  //图片ip
             position: new AMap.LngLat(this.mydata[i].lon,this.mydata[i].lat),   // 经纬度对象，也可以是经纬度构成的一维数组[116.39, 39.9]
             title: this.mydata[i].name,
             extData:this.mydata[i].id,

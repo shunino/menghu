@@ -3,7 +3,7 @@
         <ul class="list-ul" style="overflow:auto">
           <li v-for="i in mydata" class="list-li" @click="goto(i.id)">
             <span class="span1"></span>
-            <span class="span4">{{i.name}}</span>
+            <span class="span4" :title="i.name">{{i.name}}</span>
           </li>
           <li style="margin-top: 19px;"><span @click="$commonGo('/datas')" v-show="data" class="fr mr10 pointer mya">更多>></span></li>
         </ul>

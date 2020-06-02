@@ -1,9 +1,9 @@
 <template>
       <div class="list-content">
         <ul class="list-ul" style="overflow:auto">
-          <li v-for="i in mydata" class="list-li" @click="goto(i.id)">
+          <li v-for="i in mydata" class="list-li pointer" @click="goto(i.id)">
             <span class="span1"></span>
-            <span class="span4">{{i.name}}</span>
+            <span class="span4" :title="i.name">{{i.name}}</span>
           </li>
         </ul>
       </div>

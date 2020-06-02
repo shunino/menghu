@@ -146,6 +146,7 @@
     },
     props:['little'],
     mounted(){
+            $('#mysearch').hide();
       if(this.little){
         this.mylittle = true;
       }
