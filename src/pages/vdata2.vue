@@ -6,7 +6,7 @@
         <div class="d-left">
           <!--国家规划-->
           <div class="c-box" style="height: 35%;">
-            <div class="c-title" style="height: 22%">检查数量</div>
+            <div class="c-title" style="height: 22%">查处情况</div>
             <div class="c-content" style="height: 78%">
               <round :mydata="roundData"></round>
             </div>
@@ -15,10 +15,10 @@
           <div class="c-box" style="height: 57%;">
             <div class="c-title" style="height: 12%">监督计划</div>
             <div class="c-content" style="height: 88%">
-              <div style="display: flex;flex-direction: column;margin-left:2%;width: 98%;height: 100%;">
-                 
-              </div>
-             
+              <!-- <div style="display: flex;flex-direction: column;margin-left:2%;width: 98%;height: 100%;">
+                
+              </div> -->
+              <span>暂时无数据！</span>
             </div>
           </div>
         </div>
@@ -33,10 +33,11 @@
            <div class="c-box" style="height: 23%;">
               <div class="c-title" style="height: 23%">实时动态</div>
               <div class="c-content" style="height: 77%">
-                <div class="cflex" style="height: 100%;width: 95%; align-items: end;">
+                <!-- <div class="cflex" style="height: 100%;width: 95%; align-items: end;">
                   <div class="cflex" style="width: 3.5%;height: 80%;writing-mode: tb;background: #1E204E;margin-left: 1.5%; letter-spacing:0.4em;color: #04EFE3;">新增方案</div>
                   <div class="cflex" style="width: 94%;height: 100%;"><line2 :mydata="center2" myid="9445556687"></line2></div>
-                </div>
+                </div> -->
+                <span>暂时无数据！</span>
               </div>
             </div>
         </div>
@@ -56,7 +57,7 @@
             <div class="c-box" style="height: 33%;">
               <div class="c-title" style="height: 20%">信息化监管</div>
               <div class="c-content" style="height: 80%">
-                <div style="width: 90%;height: 100%;"><bar2 myid="k3d"></bar2></div>
+                <div style="width: 90%;height: 100%;"><bar2 :mydata="manage" myid="k3d"></bar2></div>
               </div>
             </div>
         </div>
@@ -89,12 +90,37 @@ export default {
     }
   },
   mounted () {
-    this.getRound();
-    this.getCenter();
-    this.getCheck();
+    // this.getRound();
+    // this.getCenter();
+    // this.getCheck();
     //this.getManage();
+    this.getType1();
   },
   methods: {
+    getType1(){
+      this.$http.post('http://222.85.224.95:8005/gzstbcapi/api/services/app/GZExternal/Statistics1',{token:this.$Ctoken}).then(res => {
+          let all = res.data.result;
+          this.roundData = [{name:'监督检查',value:all.checkProjectNum},{name:'检查整改中',value:all.rectifingNum},{name:'整改完成',value:all.rectifedNum}];
+          // this.roundData = [{name:'监督检查',value:18},{name:'检查整改中',value:6},{name:'检查整改后',value:13}];
+      }).catch(err => {
+        console.log(err)
+      })
+      this.$http.post('http://222.85.224.95:8005/gzstbcapi/api/services/app/GZExternal/Statistics2',{token:this.$Ctoken}).then(res => {
+          let all = res.data.result;
+          this.check1 =all;
+          this.check2 = all;
+          this.center11 = [{name:'国家级',count:all.yearSpNat,percentage:((all.yearAcceptNat/all.yearSpNat) * 100).toFixed(2)},{name:'省级',count:all.yearSpProv,percentage:((all.yearAcceptProv/all.yearSpProv) * 100).toFixed(2)},{name:'市级',count:all.yearSpCity,percentage:((all.yearAcceptCity/all.yearSpCity) * 100).toFixed(2)},{name:'县级',count:all.yearSpDistrict,percentage:((all.yearAcceptDistrict/all.yearSpDistrict) * 100).toFixed(2)}];
+          // this.center11 = [{name:'国家级',count:0,percentage:0},{name:'省级',count:0,percentage:0},{name:'市级',count:0,percentage:0},{name:'县级',count:0,percentage:0}];
+          this.center12 = all.approvalProgress;
+          //this.center12 = 0;
+          this.manage = {name:['合规','未批先建','建设地点变更','超出责任范围','待核查图斑','可不编包方案','已批项目']
+          ,value:[all.complProject1,all.wpxj,all.jsddbg,all.cczrfw,all.needCheckSpot,all.nONeedPlan,all.replyProject]};
+          // this.manage = {name:['合规','未批先建','建设地点变更','超出责任范围','待核查图斑','可不编包方案','已批项目']
+          // ,value:[0,0,0,0,0,0,0]};
+      }).catch(err => {
+        console.log(err)
+      })
+    },
     getRound(){
       this.$http.post('api/supervise/statistical/statisticCheckCount',{year:'0',areaCode:null,token:this.$Ctoken}).then(res => {
           let all = res.data.data;

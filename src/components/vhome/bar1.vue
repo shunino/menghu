@@ -22,15 +22,15 @@ export default {
     }
   },
   mounted () {
-    //if(this.mydata.length!=0){
+    if(this.mydata.checkProjectNum){
       this.loadChart();
-    //}
+    }
   },
   methods: {
     loadChart () {
       // 基于准备好的dom，初始化echarts实例
       var myChart = this.$echarts.init(document.getElementById(this.myid))
-      // let arr = this.mydata;
+      let arr = this.mydata;
       // let name = [];
       // let cdata = [];
       // for(let i in arr){
@@ -39,8 +39,8 @@ export default {
       //   cdata.push(arr[i].totalScore);
       // }
       // 指定图表的配置项和数据
-      let cname = ['监督检查', '检查整改中', '检查整改后'];
-      let cdata = [25,30,40];
+      let cname = ['监督检查', '检查整改中', '整改完成'];
+      let cdata = [arr.checkProjectNum,arr.rectifingNum,arr.rectifedNum];
       let option = {
         //  backgroundColor: '#00265f',
             tooltip: {

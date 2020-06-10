@@ -20,7 +20,7 @@
   clearable>
 </el-input> -->
 
-   <textarea rows="20" cols="20"></textarea>
+   <textarea class="textarea1" rows="20" cols="20"></textarea>
 <!--    <div class="ql-container ql-snow">-->
 <!--      <div class="ql-editor" id="contt" >-->
 <!--      </div>-->
@@ -52,7 +52,7 @@ export default {
   mounted() {
     let self = this;
     tinymce.init({
-    selector: 'textarea',
+    selector: '.textarea1',
     plugins: 'image',
     toolbar: 'image',
     language: "zh_CN",
@@ -97,6 +97,7 @@ export default {
       console.log('change0');
     }, // 内容改变事件
     clearContent(){
+        tinymce.activeEditor.setContent('');
         this.content='';
     },
     getContent(){

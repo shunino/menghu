@@ -25,7 +25,7 @@
           </ul>
         </div>
         <div>
-          <el-button size="small" type="primary">保存</el-button>
+         <!--  <el-button size="small" type="primary">保存</el-button> -->
         </div>
         <div style="">
           <el-table
@@ -67,7 +67,7 @@
           </ul>
         </div>
         <div>
-          <el-button size="small" type="primary">保存</el-button>
+         <!--  <el-button size="small" type="primary">保存</el-button> -->
         </div>
         <div>
           <el-form :rules="rules" ref="form" :model="form" label-width="80px">
@@ -118,23 +118,23 @@
               </el-tab-pane>
               <el-tab-pane label="园区功能" name="second">
                 <el-form-item label="园区功能">
-                  <richtxt ref="myrich2" @toClick="getContent2" ></richtxt>
+                  <richtxt  ref="myrich2" @toClick="getContent2" ></richtxt>
                 </el-form-item>
               </el-tab-pane>
               <el-tab-pane label="园区管理" name="third">
                 <el-form-item label="园区管理">
-                  <richtxt ref="myrich3" @toClick="getContent3" ></richtxt>
+                  <richtxt  ref="myrich3" @toClick="getContent3" ></richtxt>
                 </el-form-item>
               </el-tab-pane>
               <el-tab-pane label="园区互动" name="fourth">
                 <el-form-item label="园区互动">
-                  <richtxt ref="myrich4" @toClick="getContent4" ></richtxt>
+                  <richtxt  ref="myrich4" @toClick="getContent4" ></richtxt>
                 </el-form-item>
               </el-tab-pane>
             </el-tabs>
 
             <el-form-item>
-              <el-button type="primary" @click="onSubmit">新增</el-button>
+              <el-button type="primary" @click="onSubmit">确定</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -144,7 +144,7 @@
 </template>
 
 <script>
-  import Richtxt from '@/components/common/richtxt'
+  import Richtxt from '@/components/common/richtxt1'
   export default {
     data() {
       return {
@@ -191,6 +191,7 @@
         this.form = {};
         this.form.userid = this.$userId;
         this.form.token = this.$token;
+        this.dialogImageUrl='';
         this.form.id = null;
       },
       handleEdit(row){
@@ -213,7 +214,7 @@
           size:row.size,
           losssize:row.losssize
       };
-        //this.dialogImageUrl
+        this.dialogImageUrl = this.$URL+'/file/'+row.cover;
         //
         // this.$refs.myrich.init(row.pSurvey);
         //其他

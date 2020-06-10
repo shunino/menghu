@@ -1,7 +1,7 @@
 <template>
   <div class="num-div">
     <div class="num-box">
-      <div class="percentage"><span>62.26hm²</span></div>
+      <div class="percentage"><span>{{mydata.yearRespAreaAdd}}hm²</span></div>
       <!-- <div class="ptxt">报件数2000hm</div> -->
       <!-- <div class="progress">
         <div class="p-num"></div>
@@ -10,7 +10,7 @@
       <div class="ptxt">年</div>
     </div>
     <div class="num-box">
-      <div class="percentage"><span>62.26hm²</span></div>
+      <div class="percentage"><span>{{mydata.quarterRespAreaAdd}}hm²</span></div>
       <!-- <div class="ptxt">报件数2000</div>
       <div class="progress">
         <div class="p-num"></div>
@@ -19,7 +19,7 @@
       <div class="ptxt">季度</div>
     </div>
     <div class="num-box">
-      <div class="percentage" style="border: none;"><span>62.26hm²</span></div>
+      <div class="percentage" style="border: none;"><span>{{mydata.monthRespAreaAdd}}hm²</span></div>
       <!-- <div class="ptxt">报件数2000</div>
       <div class="progress">
         <div class="p-num"></div>
@@ -42,7 +42,7 @@ export default {
       
     }
   },
-  props: ['myid','mydata1','mydata2'],
+  props: ['myid','mydata'],
   mounted () {
   
   },

@@ -6,7 +6,7 @@
       <div class="scon">
         <div class="pro-box" v-for="i in mydata1">
           <div class="lab">{{i.name}}</div>
-          <div class="pro"><el-progress :text-inside="true" :stroke-width="22" :format="myformat" :percentage="i.percentage"></el-progress></div>
+          <div class="pro"><el-progress :text-inside="true" :stroke-width="22" :format="myformat" percentage="0"></el-progress></div>
           <div class="num">{{i.count}}</div>
         </div>
       </div> 

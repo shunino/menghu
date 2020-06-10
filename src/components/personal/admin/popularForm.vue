@@ -45,7 +45,7 @@
             <!--            </el-form-item>-->
 
             <el-form-item>
-              <el-button type="primary" @click="onSubmit">新增</el-button>
+              <el-button type="primary" @click="onSubmit">确定</el-button>
             </el-form-item>
           </el-form>
         </div>
@@ -79,7 +79,6 @@
               <el-button
                 size="mini"
                 type="primary"
-                style="display: none"
                 @click="handleEdit(scope.row)">修改</el-button>
             </template>
           </el-table-column>
@@ -144,6 +143,7 @@
       },
       onSubmit() {
         let self = this;
+        this.form.contents =  this.$refs.myrich.getContent();
         this.$refs['form'].validate((valid) => {
           if (valid) {
             self.$http.post('api/resshare/maintain/addOrUpdateTechnology',{ "technology":self.form,token:this.$token}).then(res => {
@@ -208,6 +208,7 @@
         this.form.title = row.title;
         this.form.author = row.author;
         this.form.sources = row.sources;
+        this.form.contents = row.contents;
         this.form.id = row.id;
         this.$refs.myrich.init(row.contents);
         this.activeName='first';

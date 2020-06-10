@@ -9,7 +9,7 @@ module.exports = {
 
     // Paths
     assetsSubDirectory: 'static',
-    assetsPublicPath: '/',
+    assetsPublicPath: './',
     proxyTable: {
       '/api': {
         target: 'http://222.85.224.95:9090',
@@ -20,7 +20,7 @@ module.exports = {
         }
       },
       '/ips': {
-        target: 'http://10.10.0.222:9092',
+        target: 'http://222.85.224.95:8005',
         changeOrigin: true,
         ws: true,
         pathRewrite: {
@@ -67,7 +67,7 @@ module.exports = {
     // Paths
     assetsRoot: path.resolve(__dirname, '../dist'),
     assetsSubDirectory: 'static',
-    assetsPublicPath: '/',
+    assetsPublicPath: './',
 
     /**
      * Source Maps

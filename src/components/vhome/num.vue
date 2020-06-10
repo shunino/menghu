@@ -11,29 +11,29 @@
 <template>
   <div class="num-div">
     <div class="num-box">
-      <div class="percentage"><span style="background: #E26B52;" class="picon"></span><span>62.26%</span></div>
-      <div class="ptxt">报件数2000</div>
+      <div class="percentage"><span style="background: #E26B52;" class="picon"></span><span>{{mydata.yearApprovalProgress}}%</span></div>
+      <div class="ptxt">报件数{{mydata.yearFAAdd}}</div>
       <div class="progress">
         <div class="p-num"></div>
-        <el-progress color="#E26B52" :stroke-width="18" :text-inside="true"  :format="myformat" :percentage="50"></el-progress>
+        <el-progress color="#E26B52" :stroke-width="18" :text-inside="true"  :format="myformat1" :percentage="50"></el-progress>
       </div>
       <div class="ptxt">年</div>
     </div>
     <div class="num-box">
-      <div class="percentage"><span style="background: #C63ED3;" class="picon"></span><span>62.26%</span></div>
-      <div class="ptxt">报件数2000</div>
+      <div class="percentage"><span style="background: #C63ED3;" class="picon"></span><span>{{mydata.quarterApprovalProgress}}%</span></div>
+      <div class="ptxt">报件数{{mydata.quarterFAAdd}}</div>
       <div class="progress">
         <div class="p-num"></div>
-        <el-progress color="#C63ED3" :stroke-width="18" :text-inside="true"  :format="myformat" :percentage="50"></el-progress>
+        <el-progress color="#C63ED3" :stroke-width="18" :text-inside="true"  :format="myformat2" :percentage="50"></el-progress>
       </div>
       <div class="ptxt">季度</div>
     </div>
     <div class="num-box">
-      <div class="percentage" style="border: none;"><span style="background: #45D7DA;" class="picon"></span><span>62.26%</span></div>
-      <div class="ptxt">报件数2000</div>
+      <div class="percentage" style="border: none;"><span style="background: #45D7DA;" class="picon"></span><span>{{mydata.monthApprovalProgress}}%</span></div>
+      <div class="ptxt">报件数{{mydata.monthFAAdd}}</div>
       <div class="progress">
         <div class="p-num"></div>
-        <el-progress color="#45D7DA" :stroke-width="18" :text-inside="true"  :format="myformat" :percentage="50"></el-progress>
+        <el-progress color="#45D7DA" :stroke-width="18" :text-inside="true"  :format="myformat3" :percentage="50"></el-progress>
       </div>
       <div class="ptxt">月</div>
     </div>
@@ -52,14 +52,20 @@ export default {
       
     }
   },
-  props: ['myid','mydata1','mydata2'],
+  props: ['myid','mydata'],
   mounted () {
   
   },
   methods: {
-    myformat(percentage) {
-         return '批复数1650';
-      }
+    myformat1(percentage) {
+         return '批复数'+this.mydata.yearAcceptAdd;
+    },
+    myformat2(percentage) {
+       return '批复数'+this.mydata.quarterAcceptAdd;
+    },
+    myformat3(percentage) {
+       return '批复数'+this.mydata.monthAcceptAdd;
+    }
   }
 }
 </script>

@@ -31,8 +31,8 @@ export default {
       // 基于准备好的dom，初始化echarts实例
       var myChart = this.$echarts.init(document.getElementById(this.myid))
       var data = [
-            {value: this.mydata.acceptanceCount,name: '已验收'},
-            {value: this.mydata.notAcceptanceCount,name: '未验收'},
+            {value: this.mydata.acceptProject,name: '已验收'},
+            {value: this.mydata.noAcceptProject,name: '未验收'},
         ];
 
         let option = {

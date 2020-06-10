@@ -62,7 +62,7 @@
       <div class="left">
         <div class="title" style="margin-top: 0px;">神木侵蚀与环境试验站气象观测数据集（2003-2018年）</div>
         <div class="attribute">数据贡献者：樊军(西北农林科技大学)</div>
-        <div>多重人格,麦田圈,穿越,金字塔,</div>
+        <div>多重人格,麦田圈,穿越,金字塔,Shazaam</div>
 <!--        <div>-->
 <!--          <img src="../assets/22.png">-->
 <!--        </div>-->

@@ -53,19 +53,20 @@
             <div class="c-box" style="height: 57%;">
               <div class="c-title" style="height: 11%">治理完成情况</div>
               <div class="c-content" style="height: 89%;">
-                <div style="width: 90%;height: 100%;">
-                  <div style="width: 100%;height: 49%;display: flex;align-items: center;justify-content: center;">
+                <div style="width: 95%;height: 100%;">
+                  <!-- <div style="width: 100%;height: 49%;display: flex;align-items: center;justify-content: center;">
                     <div style="width: 10%;color:#92A1B3;">国家水土保持重点工程</div>
                     <div style="width: 90%;height: 100%">
                       <bar2 myid="kd"></bar2>
                     </div>
-                  </div>
-                  <div style="width: 100%;height: 49%;margin-top:1%;display: flex;align-items: center;justify-content: center;">
+                  </div> -->
+                  <!-- <div style="width: 100%;height: 49%;margin-top:1%;display: flex;align-items: center;justify-content: center;">
                     <div style="width: 10%;color:#92A1B3;">坡耕地水土流失综合治理工程</div>
                     <div style="width: 90%;height: 100%">
                       <bar2 myid="k3d"></bar2>
                     </div>
-                  </div>
+                  </div> -->
+                  <bar2 myid="k3d" :mydata="bardata"></bar2>
                 </div>
               </div>
             </div>
@@ -80,7 +81,7 @@ import Round from '@/components/vdata/round'
 import Line1 from '@/components/vdata/line1'
 import Line2 from '@/components/vdata/line2'
 import Bar1 from '@/components/vdata/bar1'
-import Bar2 from '@/components/vdata/bar2'
+import Bar2 from '@/components/vdata/bar11'
 import Monitor from '@/components/vdata/monitor'
 export default {
   name: 'Home',
@@ -90,7 +91,8 @@ export default {
         planData:[],
         center1:[],
         center2:[],
-        verifyData:[]
+        verifyData:[],
+        bardata:[]
     }
   },
   mounted () {
@@ -98,7 +100,7 @@ export default {
     this.getPlan();
     this.getCenter();
     this.getVerify();
-    //this.getMounth();
+    this.getMounth();
   },
   methods: {
     getRound(){
@@ -154,13 +156,15 @@ export default {
       })
     },
     getMounth(){
-      this.$http.post('api/conserv/statistical/statisticMonthAreaRate',{year:null,month:null,token:this.$Ctoken}).then(res => {
-          debugger;
-          let all = res.data.data.data;
-          this.planData = all
-      }).catch(err => {
-        console.log(err)
-      })
+      this.bardata = {name:['重点工程','综合治理','坡改梯专项','老区项目','农发项目','小流域治理']
+          ,value:[0,0,16,14,12,16]};
+      // this.$http.post('api/conserv/statistical/statisticMonthAreaRate',{year:null,month:null,token:this.$Ctoken}).then(res => {
+      //     debugger;
+      //     let all = res.data.data.data;
+      //     this.planData = all
+      // }).catch(err => {
+      //   console.log(err)
+      // })
     },
   },
   components: {

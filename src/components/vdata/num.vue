@@ -5,12 +5,12 @@
           已补偿缴费
         </div>
         <div class="num-s">
-          {{mydata.paidFeeAmount}}
+          {{mydata.payAmount}}
         </div>
     </div>
     <div class="num-flex" style="margin-top: -5%;">
         <div class="num-all">
-          {{mydata.totalFeeAmount}}
+          {{all}}
         </div>
         <div class="num-all-txt">
           补偿总额（万元）
@@ -21,7 +21,7 @@
           未补偿缴费
         </div>
         <div class="num-s">
-          {{mydata.notPaidFeeAmount}}
+          {{mydata.noPayAmount}}
         </div>
     </div>
   </div>
@@ -32,12 +32,14 @@ export default {
   name: 'HelloWorld',
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App'
+      msg: 'Welcome to Your Vue.js App',
+      all:'',
     }
   },
   props: ['myid','mydata'],
   mounted () {
     this.numInit();
+    this.all = this.mydata.noPayAmount+this.mydata.payAmount;
   },
   methods: {
     numInit() {

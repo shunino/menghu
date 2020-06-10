@@ -187,17 +187,17 @@
           cover: [
             { required: true, message: '请上传图片', trigger: 'blur' },
           ],
-          imageparams: [
-            { required: true, message: '请上传工具栏图片', trigger: 'blur' },
-          ],
-          imageheight: [
-            { required: true, message: '请上传工具栏图片高度', trigger: 'blur' },
-            // { type: 'number', message: '必须为数字'}
-          ],
-          imagewidth: [
-            { required: true, message: '请上传工具栏图片宽度', trigger: 'blur' },
-            // { type: 'number', message: '必须为数字'}
-          ],
+          // imageparams: [
+          //   { required: true, message: '请上传工具栏图片', trigger: 'blur' },
+          // ],
+          // imageheight: [
+          //   { required: true, message: '请上传工具栏图片高度', trigger: 'blur' },
+          //   // { type: 'number', message: '必须为数字'}
+          // ],
+          // imagewidth: [
+          //   { required: true, message: '请上传工具栏图片宽度', trigger: 'blur' },
+          //   // { type: 'number', message: '必须为数字'}
+          // ],
         },
       };
     },

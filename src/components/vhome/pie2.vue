@@ -3,12 +3,12 @@
 <template>
   <div  style="width:100%;height: 100%;display: flex;flex-direction: column;align-items: center;justify-content: center;">
       <div class="proTop">
-        <div class="ptitle"><span class="pspan"></span>实收数：6.43</div>
+        <div class="ptitle"><span class="pspan"></span>实收数：{{mydata.payAmount}}</div>
           <el-progress color="#E16A51" width="150" stroke-width="15" type="dashboard" percentage="50" :format="format" ></el-progress>
       </div>
       <div class="proB">
         <!-- <div> -->
-          <div><span class="sicon"></span><span class="num">3</span><span>万元</span></div>
+          <div><span class="sicon"></span><span class="num">{{mydata.noPayAmount}}</span><span>万元</span></div>
           <div style="margin-top: 5%;color: gray;">欠款数</div>
       <!--   </div> -->
       </div>
@@ -41,7 +41,8 @@ export default {
   },
   methods: {
     format(percentage) {
-        return "应收数9.43";
+      let all = this.mydata.payAmount + this.mydata.noPayAmount;
+        return "应收数"+all;
     },
     loadChart () {
       // 基于准备好的dom，初始化echarts实例

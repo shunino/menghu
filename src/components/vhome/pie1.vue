@@ -36,6 +36,7 @@ export default {
         // 基于准备好的dom，初始化echarts实例
         var myChart = this.$echarts.init(document.getElementById(this.myid))
         let arr = this.mydata;
+        //if(arr[0].value==0) return;
         let data = arr;
         let name = [];
         let all = 0;

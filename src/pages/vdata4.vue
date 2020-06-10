@@ -38,7 +38,8 @@
             </span>
           </div>
           <div class="box-co">
-            <pie1 myid="trtrt" :mydata="pdata1"></pie1>
+            <span>暂时无数据！</span>
+            <!-- <pie1 myid="trtrt" :mydata="pdata1"></pie1> -->
           </div>
         </div>
         <div class="com-box" style="width: 32.6%;margin-left: 1%;">
@@ -95,7 +96,8 @@
             </span>
           </div>
           <div class="box-co">
-            <vTable :mydata="tdata"></vTable>
+            <span>暂时无数据！</span>
+            <!-- <vTable :mydata="tdata"></vTable> -->
           </div>
         </div>
          <div style="width: 49.5%;margin-left: 1%;height: 100%;">
@@ -115,7 +117,7 @@
                   </span>
               </div>
               <div class="box-co" style="height: 74%;">
-                <num></num>
+                <num :mydata="numdata"></num>
               </div>
             </div>
             <div class="com-box" style="width: 100%;height: 40%;margin-top: 2%;">
@@ -132,7 +134,7 @@
                   </span>
               </div>
               <div class="box-co" style="height: 56%;">
-                <num1></num1>
+                <num1 :mydata="numdata1"></num1>
               </div>
             </div>
          </div>
@@ -346,7 +348,7 @@ export default {
        mytype:1,
        pdata1:[],
        pdata2:[],
-       bdata:[],
+       bdata:{},
        bdata1:[],
        tdata:[],
        type21:[],
@@ -357,7 +359,9 @@ export default {
        type33:[],
        type34:[],
        mocd:16,
-       mysrc:''
+       mysrc:'',
+       numdata:{},
+       numdata1:{}
     }
   },
   mounted () {
@@ -368,6 +372,25 @@ export default {
   methods: {
     changeType(type){
       this.mytype = type;
+    },
+    getType1(){
+      this.$http.post('http://222.85.224.95:8005/gzstbcapi/api/services/app/GZExternal/Statistics1',{token:this.$Ctoken}).then(res => {
+          let all = res.data.result;
+          this.bdata = all;
+          //this.bdata = {checkProjectNum:0,rectifingNum:0,rectifedNum:0};
+      }).catch(err => {
+        console.log(err)
+      })
+      this.$http.post('http://222.85.224.95:8005/gzstbcapi/api/services/app/GZExternal/Statistics2',{token:this.$Ctoken}).then(res => {
+          let all = res.data.result;
+          this.numdata =all;
+          this.numdata1 = all;
+          this.pdata1 = [{name:'合规',value:all.complProject},{name:'违规',value:all.violationProject},{name:'已验收',value:all.acceptProject},{name:'未验收',value:all.noAcceptProject}];
+          this.pdata2 = {payAmount:all.payAmount,noPayAmount:all.noPayAmount};
+
+      }).catch(err => {
+        console.log(err)
+      })
     },
     getType2(){
       this.$http.post('api/conserv/statistical/statisticRealStatus',{year:'2019',areaCode:null,token:this.$Ctoken}).then(res => {
@@ -394,9 +417,6 @@ export default {
       }).catch(err => {
         console.log(err)
       })
-    },
-    getType1(){
-      
     },
     changeV(item){
       this.mysrc = item.url1;

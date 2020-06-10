@@ -1,6 +1,6 @@
 <style type="text/css">
 /* @import url(http://127.0.0.1:8080/static/arcgis4.9/arcgis_js_api/library/4.9/dijit/themes/claro/claro.css);*/
-  @import url('http://222.85.224.95:380/static/arcgis4.9/arcgis_js_api/library/4.9/esri/css/main.css');
+  @import url('http://58.42.237.169:8081/other/static/arcgis4.9/arcgis_js_api/library/4.9/esri/css/main.css');
   /*.ol-attribution,.ol-zoom { display: none;}*/
   .esri-ui{display: none;}
   .myback{
@@ -13,8 +13,8 @@
 <template>
   <div class="commondiv" style="min-height: 720px;position:relative;height:100%;">
      <el-button class="myback primary" @click="getback" type="primary"><span class="el-icon-back mr10"></span>返回专题展示</el-button>
-    <div v-show="myload" class="myload ">加载中......</div>
-    <div :style="'width:'+width+'px;height:'+height+'px'" class="img-box" ><img style="width:100%;height:100%;" :src="$URL+'/file/'+tool"></div>
+    <div v-show="myload" class="myload">加载中......</div>
+    <div :style="'width:'+width+'px;height:'+height+'px'" v-if="tool!=''" class="img-box" ><img style="width:100%;height:100%;" :src="$URL+'/file/'+tool"></div>
     <div id="viewDiv" style="width:1400px;height:720px;min-height: 720px;"></div>
     <!-- <div id="viewDiv" style="width:1400px;height:720px;min-height: 720px;"></div> -->
     <!-- <div id="map" ref="rootmap" style="width:100%;height:500px;"></div> -->
@@ -62,7 +62,7 @@ export default {
       let coverlayerflag = this.$route.query.coverlayerflag;
       let tileMapUrl = "http://map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetPurplishBlue/MapServer";
       let options = {
-        url:"http://222.85.224.95:380/static/arcgis4.9/arcgis_js_api/library/4.9/dojo/dojo.js"
+        url:"http://58.42.237.169:8081/other/static/arcgis4.9/arcgis_js_api/library/4.9/dojo/dojo.js"
       }
       this.tool = imageparams;
           esriLoader.loadModules ([

@@ -32,12 +32,12 @@ export default {
   methods: {
     loadChart () {
       // 基于准备好的dom，初始化echarts实例
-      let yname;
-      if(this.type==1){
-        yname='单位：mm'
-      } else {
-        yname='单位：t/hm²'
-      }
+      let yname ="";
+      // if(this.type==1){
+      //   yname='单位：mm'
+      // } else {
+      //   yname='单位：t/hm²'
+      // }
       var myChart = this.$echarts.init(document.getElementById(this.myid))
       let arr = this.mydata;
       // 指定图表的配置项和数据

@@ -6,7 +6,7 @@
       <span @click="changeC(3)" :class="type==3 ? 'cur' :'' ">2018及以前</span>
     </div>
     <div class="mychart">
-      <pie1 myid="trtf5rt" :mydata="data"></pie1>
+      <pie1 v-if="uiu" myid="trtf5rt" :mydata="data"></pie1>
     </div>
  </div>
 </template>
@@ -21,7 +21,8 @@ export default {
       type:3,
       data1:[],
       data2:[],
-      data3:[]
+      data3:[],
+      uiu:true
     }
   },
   mounted () {
@@ -30,6 +31,7 @@ export default {
   methods: {
       changeC(type){
         this.type=type;
+        this.uiu = false;
         if(type==1){
           this.data = this.data1;
         } else if(type==2){
@@ -37,6 +39,7 @@ export default {
         } else if(type==3){
           this.data = this.data3;
         }
+        this.uiu = true;
       },
       getData(){
         this.$http.post('api/conserv/statistical/statisticAllProjectByStatus',{token:this.$Ctoken}).then(res => {
@@ -86,7 +89,7 @@ export default {
               value:all3[2]
             }
           ];
-          this.data = this.data3;
+          this.data = this.data1;
         }).catch(err => {
           console.log(err)
         })
