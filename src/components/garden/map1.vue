@@ -78,9 +78,12 @@
         //center:[120.34294,23.992865]
       });
       let self = this;
-      setTimeout(function () {
-        self.addMaker1();
-      },1000)
+      this.map.on('complete', function() {
+          self.addMaker1();
+      });
+      // setTimeout(function () {
+      //   self.addMaker1();
+      // },2000)
       // var toolbar = new AMap.ToolBar();
       // map.plugin(toolbar);
       AMap.plugin('AMap.DistrictSearch', function () {

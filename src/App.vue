@@ -84,8 +84,6 @@ export default {
   .vdataDiv{
     min-height: 768px;
       min-width: 1729px;
-      max-height: 1080px;
-      max-width: 1920px;
       position: relative;
       width: 100%;
       height: 100%;

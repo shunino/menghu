@@ -58,8 +58,8 @@
                         </div>
                     </div>
                     <div style="width: 100%;height: 50%">
-                        <div style="width: 100%;height: 10%;display: flex;align-items: center;justify-content: center;">
-                          总径流深
+                        <div style="width: 100%;height: 10%;display: flex;align-items: center;justify-content: center;position: relative;">
+                          总径流深<div class="munit">单位：mm</div>
                         </div>
                          <div style="width: 100%;height: 90%;display: flex;align-items: center;justify-content: center;">
                           <div style="width: 92%;height: 90%;"><bar2 type="1" :mydata="right1" myid='44348'></bar2></div>
@@ -68,7 +68,7 @@
               </div>
             </div>
             <div class="c-box" style="height: 27%;">
-              <div class="c-title" style="height: 20%">累计土壤流失</div>
+              <div class="c-title" style="height: 20%;position: relative;">累计土壤流失<div class="munit">单位：t/hm²</div></div>
               <div class="c-content" style="height: 80%">
                 <div style="width: 92%;height: 100%;"><bar2 type="2" :mydata="right2" myid='3343'></bar2></div>
               </div>

@@ -12,6 +12,7 @@
   }
   .list-ul{
     padding-left: 12px;
+    min-height: 600px;
   }
   .list-ul .list-li{
     border-bottom: 1px solid #E4E4E4;
@@ -31,12 +32,19 @@
     justify-content: center;
     border: 1px solid #E4E4E4;
   }
+  .eflex{
+    height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100;
+  }
 </style>
 <template>
     <div class="list-box">
       <div class="list-title">数据列表</div>
       <div class="list-ul">
-        <div class="list-li" v-for="i in tableData" @click=goto(i.mapservice,i.id,i.imageparams,i.imageheight,i.imagewidth,i.coverlayerflag)>
+        <div v-if="tableData.length!=0" class="list-li" v-for="i in tableData" @click=goto(i.mapservice,i.id,i.imageparams,i.imageheight,i.imagewidth,i.coverlayerflag)>
           <div class="li-left">
               <div class="li-txt">数据名称：{{i.name}}</div>
               <div v-if="type<5" class="li-txt">数据摘要：{{i.summary}}</div>
@@ -48,6 +56,7 @@
             <img style="width:100%;height:100%;" :src="$URL+'/file/'+i.cover">
           </div>
         </div>
+        <div class="eflex" v-if="tableData.length==0">数据加载中......</div>
       </div>
       <div class="center" style="margin-top:10px;margin-bottom:10px;">
         <el-pagination
@@ -86,10 +95,12 @@
     watch:{
       type:{
           handler(newValue, oldValue) {
+            this.tableData = [];
             if(newValue<5) this.getList1(newValue);
             else {
               this.getGarden();
-              this.tableData = this.tableData5;
+              let self = this;
+              //self.tableData = self.tableData5;
             } 
   　　　　　
   　　　　},
@@ -98,8 +109,11 @@
     },
     mounted () {
       // this.getList();
-      this.getGarden();
-      this.getList1(this.type)
+      this.tableData = [];
+      if(this.type<5) this.getList1(this.type);
+      else {
+        this.getGarden();
+      } 
     },
     methods:{
       handleSizeChange(val) {
@@ -135,6 +149,7 @@
           for(let i in this.tableData5 ){
             this.tableData5[i].createtime = this.tableData5[i].createtime.split('T')[0];
           }
+          this.tableData = this.tableData5;
           console.log(res);
         }).catch(err => {
           console.log(err)

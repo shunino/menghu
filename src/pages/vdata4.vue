@@ -374,14 +374,14 @@ export default {
       this.mytype = type;
     },
     getType1(){
-      this.$http.post('http://222.85.224.95:8005/gzstbcapi/api/services/app/GZExternal/Statistics1',{token:this.$Ctoken}).then(res => {
+      this.$http.post(this.$other+'/gzstbcapi/api/services/app/GZExternal/Statistics1',{token:this.$Ctoken}).then(res => {
           let all = res.data.result;
           this.bdata = all;
           //this.bdata = {checkProjectNum:0,rectifingNum:0,rectifedNum:0};
       }).catch(err => {
         console.log(err)
       })
-      this.$http.post('http://222.85.224.95:8005/gzstbcapi/api/services/app/GZExternal/Statistics2',{token:this.$Ctoken}).then(res => {
+      this.$http.post(this.$other+'/gzstbcapi/api/services/app/GZExternal/Statistics2',{token:this.$Ctoken}).then(res => {
           let all = res.data.result;
           this.numdata =all;
           this.numdata1 = all;

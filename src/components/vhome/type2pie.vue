@@ -89,7 +89,7 @@ export default {
               value:all3[2]
             }
           ];
-          this.data = this.data1;
+          this.data = this.data3;
         }).catch(err => {
           console.log(err)
         })

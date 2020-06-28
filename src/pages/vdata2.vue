@@ -98,14 +98,14 @@ export default {
   },
   methods: {
     getType1(){
-      this.$http.post('http://222.85.224.95:8005/gzstbcapi/api/services/app/GZExternal/Statistics1',{token:this.$Ctoken}).then(res => {
+      this.$http.post(this.$other+'/gzstbcapi/api/services/app/GZExternal/Statistics1',{token:this.$Ctoken}).then(res => {
           let all = res.data.result;
           this.roundData = [{name:'监督检查',value:all.checkProjectNum},{name:'检查整改中',value:all.rectifingNum},{name:'整改完成',value:all.rectifedNum}];
           // this.roundData = [{name:'监督检查',value:18},{name:'检查整改中',value:6},{name:'检查整改后',value:13}];
       }).catch(err => {
         console.log(err)
       })
-      this.$http.post('http://222.85.224.95:8005/gzstbcapi/api/services/app/GZExternal/Statistics2',{token:this.$Ctoken}).then(res => {
+      this.$http.post(this.$other+'/gzstbcapi/api/services/app/GZExternal/Statistics2',{token:this.$Ctoken}).then(res => {
           let all = res.data.result;
           this.check1 =all;
           this.check2 = all;
