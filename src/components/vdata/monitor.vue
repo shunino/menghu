@@ -2,17 +2,19 @@
   <div style="width:100%;height: 100%;margin-top: 1%;">
     <div class="monitor-box" style="width:100%;" v-for="i in mydata">
         <div class="left">
-          <div class="title">{{i.programfileno || '无文件名号'}}</div>
+          <div class="title">{{i.programfileno || i.name || '无文件名号'}}</div>
           <div class="content left-c">
             <div class="img"><img src="../../assets/vdata/ic1.png"></div>
             <div class="txt">
-              <div>治理面积</div>
-              <div>{{i.governarea}}</div>
+              <div v-if="type==1">治理面积</div>
+              <div v-if="type==2">项目数量</div>
+              <div>{{i.governarea || i.checkPlanProjectNum}}</div>
             </div>
           </div>
         </div>
         <div class="left right">
-          <div class="title">总投资（万元）</div>
+          <div class="title" v-if="type==1">总投资（万元）</div>
+          <div class="title" v-if="type==2">检查情况</div>
           <div class="content">
             <pie2 :myid="i.id" :mydata="i.cData"></pie2>
           </div>
@@ -29,18 +31,27 @@ export default {
       cData: []
     }
   },
-  props: ['mydata'],
+  props: ['mydata','type'],
   watch:{
     mydata:{
         handler(newValue, oldValue) {
-　　　　　　this.getChart();
+          if(this.type==1){
+            this.getChart();
+          } else {
+            this.getChart1();
+          }
+　　　　　　
 　　　　},
 　　　　deep: true
     }
   },
   mounted () {
     if(this.mydata.length!=0){
-      this.getChart();
+       if(this.type==1){
+          this.getChart();
+        } else {
+          this.getChart1();
+        }
     }
   },
   methods: {
@@ -48,6 +59,12 @@ export default {
       for(let i in this.mydata){
         let all = this.mydata[i].provinceinvest + this.mydata[i].regioninvest +this.mydata[i].countyinvest + this.mydata[i].raiseinvest + this.mydata[i].otherinvest;
         this.mydata[i].cData = [{name:'地方投资',value:all},{name:'中央投资',value:this.mydata[i].centralinvest}];
+      }
+    },
+    getChart1(){
+      for(let i in this.mydata){
+        let all = this.mydata[i].checkPlanProjectNum - this.mydata[i].checkProjectNum;
+        this.mydata[i].cData = [{name:'已检查',value:this.mydata[i].checkProjectNum},{name:'未检查',value:all}];
       }
     }
   },

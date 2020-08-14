@@ -137,6 +137,7 @@
             if(user=='admin'&&this.tableData[i].status==1){
               this.check(this.tableData[i].id);
             }
+            if(this.tableData[i].createtime)
             this.tableData[i].createtime = this.tableData[i].createtime.split('T')[0];
           }
           console.log(res);

@@ -68,6 +68,7 @@
           this.tableData = res.data.data.data;
           this.pageno = res.data.data.pageno;
           this.total = res.data.data.total;
+          debugger;
           for(let i in this.tableData ){
             this.tableData[i].createtime = this.tableData[i].createtime.split('T')[0];
           }

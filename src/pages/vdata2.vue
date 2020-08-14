@@ -15,10 +15,10 @@
           <div class="c-box" style="height: 57%;">
             <div class="c-title" style="height: 12%">监督计划</div>
             <div class="c-content" style="height: 88%">
-              <!-- <div style="display: flex;flex-direction: column;margin-left:2%;width: 98%;height: 100%;">
-                
-              </div> -->
-              <span>暂时无数据！</span>
+              <div style="display: flex;flex-direction: column;margin-left:2%;width: 98%;height: 100%;">
+                <monitor type="2" :mydata="planData"></monitor>
+              </div>
+             <!--  <span>暂时无数据！</span> -->
             </div>
           </div>
         </div>
@@ -33,11 +33,11 @@
            <div class="c-box" style="height: 23%;">
               <div class="c-title" style="height: 23%">实时动态</div>
               <div class="c-content" style="height: 77%">
-                <!-- <div class="cflex" style="height: 100%;width: 95%; align-items: end;">
+                <div class="cflex" style="height: 100%;width: 95%; align-items: end;">
                   <div class="cflex" style="width: 3.5%;height: 80%;writing-mode: tb;background: #1E204E;margin-left: 1.5%; letter-spacing:0.4em;color: #04EFE3;">新增方案</div>
                   <div class="cflex" style="width: 94%;height: 100%;"><line2 :mydata="center2" myid="9445556687"></line2></div>
-                </div> -->
-                <span>暂时无数据！</span>
+                </div>
+                <!-- <span>暂时无数据！</span> -->
               </div>
             </div>
         </div>
@@ -86,7 +86,8 @@ export default {
       center2:[],
       check1:{},
       check2:{},
-      manage:[]
+      manage:[],
+      planData:[]
     }
   },
   mounted () {
@@ -95,17 +96,18 @@ export default {
     // this.getCheck();
     //this.getManage();
     this.getType1();
+    this.getType2();
   },
   methods: {
     getType1(){
-      this.$http.post(this.$other+'/gzstbcapi/api/services/app/GZExternal/Statistics1',{token:this.$Ctoken}).then(res => {
+      this.$http.get(this.$other+'/gzstbcapi/api/services/app/GZExternal/GetStatistics1',{token:this.$Ctoken}).then(res => {
           let all = res.data.result;
           this.roundData = [{name:'监督检查',value:all.checkProjectNum},{name:'检查整改中',value:all.rectifingNum},{name:'整改完成',value:all.rectifedNum}];
           // this.roundData = [{name:'监督检查',value:18},{name:'检查整改中',value:6},{name:'检查整改后',value:13}];
       }).catch(err => {
         console.log(err)
       })
-      this.$http.post(this.$other+'/gzstbcapi/api/services/app/GZExternal/Statistics2',{token:this.$Ctoken}).then(res => {
+      this.$http.get(this.$other+'/gzstbcapi/api/services/app/GZExternal/GetStatistics2',{token:this.$Ctoken}).then(res => {
           let all = res.data.result;
           this.check1 =all;
           this.check2 = all;
@@ -117,6 +119,19 @@ export default {
           ,value:[all.complProject1,all.wpxj,all.jsddbg,all.cczrfw,all.needCheckSpot,all.nONeedPlan,all.replyProject]};
           // this.manage = {name:['合规','未批先建','建设地点变更','超出责任范围','待核查图斑','可不编包方案','已批项目']
           // ,value:[0,0,0,0,0,0,0]};
+      }).catch(err => {
+        console.log(err)
+      })
+    },
+    getType2(){
+      this.$http.get(this.$other+'/gzstbcapi/api/services/app/GZExternal/GetFAAdd',{token:this.$Ctoken}).then(res => {
+          this.center2 = res.data.result;
+      }).catch(err => {
+        console.log(err)
+      })
+
+      this.$http.get(this.$other+'/gzstbcapi/api/services/app/GZExternal/GetSJCheckPlan',{token:this.$Ctoken}).then(res => {
+          this.planData = res.data.result.items;
       }).catch(err => {
         console.log(err)
       })

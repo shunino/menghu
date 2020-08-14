@@ -21,7 +21,7 @@ import Vdata1 from '@/pages/vdata1'
 import Vdata2 from '@/pages/vdata2'
 import Vdata3 from '@/pages/vdata3'
 import Vdata4 from '@/pages/vdata4'
-
+import Test from '@/pages/test'
 import Olmap from '@/pages/olmap'
 
 import Login from '@/pages/personal/login'
@@ -45,6 +45,14 @@ const router = new Router({
       path: '/Register',
       name: 'Register',
       component: Register,
+      meta:{
+          title: '注册'+HoTitle
+      }
+    },
+    {
+      path: '/test',
+      name: 'test',
+      component: Test,
       meta:{
           title: '注册'+HoTitle
       }

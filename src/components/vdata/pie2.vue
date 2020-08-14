@@ -32,6 +32,10 @@ export default {
       // 基于准备好的dom，初始化echarts实例
       var myChart = this.$echarts.init(document.getElementById(this.myid))
       let data = this.mydata
+      let name = [];
+      for(let i in this.mydata){
+        name.push(this.mydata[i].name);
+      }
       // 指定图表的配置项和数据
       let option = {
           tooltip: {
@@ -40,7 +44,7 @@ export default {
           },
           legend: {
               orient: 'vertical',
-              data: ['地方投资', '中央投资'],
+              data: name,
               x: '40%',
               y: '30',
               right:'5%',

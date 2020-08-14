@@ -17,12 +17,14 @@ import VideoPlayer from 'vue-video-player'
 import 'vue-video-player/src/custom-theme.css'
 import 'video.js/dist/video-js.css'
 import 'videojs-flash'; //引入才能播放rtmp视屏
+// import LkTimeline from 'lk-timeline'
+// Vue.use(LkTimeline)
 Vue.use(VideoPlayer)
 
 const hls = require('videojs-contrib-hls')
 Vue.use(hls)
 Vue.prototype.$host='http://127.0.0.1:8080';
-Vue.prototype.$other = 'http://58.42.237.169:8083';
+Vue.prototype.$other = 'http://58.42.237.169:8081';
 //Vue.prototype.$other = '/ips';
 /* 路由发生变化修改页面title */
 router.beforeEach((to, from, next) => {
@@ -40,7 +42,7 @@ router.beforeEach((to, from, next) => {
 //   uiVersion: '1.0'})
 
 //通用常量
-Vue.prototype.$URL='http://222.85.224.95:9090'
+Vue.prototype.$URL='http://58.42.237.169:8081' //http://222.85.224.95:9090
 Vue.prototype.$Ctoken ='FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
 Vue.prototype.$STATE1 = [
   {

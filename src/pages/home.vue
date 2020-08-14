@@ -138,6 +138,7 @@ export default {
       this.$http.post('api/resshare/datacenter/listBySort',this.mysearch1).then(res => {
         this.tableData1 = res.data.data;
         for(let i in this.tableData1 ){
+          if(this.tableData1[i].createtime)
           this.tableData1[i].createtime = this.tableData1[i].createtime.split('T')[0];
         }
         console.log(res);
@@ -150,6 +151,7 @@ export default {
         this.tableData2 = res.data.data;
         for(let i in this.tableData2 ){
           if(this.tableData2[i].name=="一个数据") this.tableData2[i].name = "贵州省水土保持规划（2012-2020年)";
+          if(this.tableData2[i].createtime)
           this.tableData2[i].createtime = this.tableData2[i].createtime.split('T')[0];
         }
         console.log(res);

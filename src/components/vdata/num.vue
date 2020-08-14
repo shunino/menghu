@@ -5,12 +5,12 @@
           已补偿缴费
         </div>
         <div class="num-s">
-          {{mydata.payAmount}}
+          {{(mydata.payAmount/10000).toFixed(0)}}万元
         </div>
     </div>
     <div class="num-flex" style="margin-top: -5%;">
         <div class="num-all">
-          {{all}}
+          {{(all/10000).toFixed(0)}}
         </div>
         <div class="num-all-txt">
           补偿总额（万元）
@@ -21,7 +21,7 @@
           未补偿缴费
         </div>
         <div class="num-s">
-          {{mydata.noPayAmount}}
+          {{(mydata.noPayAmount/10000).toFixed(0)}}万元
         </div>
     </div>
   </div>
@@ -34,12 +34,23 @@ export default {
     return {
       msg: 'Welcome to Your Vue.js App',
       all:'',
+      nopay:''
     }
   },
   props: ['myid','mydata'],
+  watch:{
+    mydata:{
+        handler:function(val,oldval){
+          this.all = this.mydata.noPayAmount+this.mydata.payAmount;
+          this.nopay = 0 - this.mydata.noPayAmount;
+        },
+        deep:true//对象内部的属性监听，也叫深度监听
+      },
+  },
   mounted () {
-    this.numInit();
+    //this.numInit();
     this.all = this.mydata.noPayAmount+this.mydata.payAmount;
+    //debugger;
   },
   methods: {
     numInit() {
@@ -50,7 +61,7 @@ export default {
           duration: 2500,
           easing: 'swing',
           step: function (now){
-            $(this).text(now.toFixed(2));
+            $(this).text((now/10000).toFixed(2));
           }
         });
       });

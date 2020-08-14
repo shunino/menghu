@@ -1,14 +1,17 @@
 <style type="text/css">
+.el-progress--circle .el-progress__text, .el-progress--dashboard .el-progress__text{
+  font-size: 16px !important;
+}
 </style>
 <template>
   <div  style="width:100%;height: 100%;display: flex;flex-direction: column;align-items: center;justify-content: center;">
       <div class="proTop">
-        <div class="ptitle"><span class="pspan"></span>实收数：{{mydata.payAmount}}</div>
-          <el-progress color="#E16A51" width="150" stroke-width="15" type="dashboard" percentage="50" :format="format" ></el-progress>
+        <div class="ptitle"><span class="pspan"></span>实收数：{{(mydata.payAmount/10000).toFixed(0)}}万元</div>
+          <el-progress color="#E16A51" width="200" stroke-width="15" type="dashboard" percentage="50" :format="format" ></el-progress>
       </div>
       <div class="proB">
         <!-- <div> -->
-          <div><span class="sicon"></span><span class="num">{{mydata.noPayAmount}}</span><span>万元</span></div>
+          <div><span class="sicon"></span><span class="num">{{0-(mydata.noPayAmount/10000).toFixed(0)}}</span><span>万元</span></div>
           <div style="margin-top: 5%;color: gray;">欠款数</div>
       <!--   </div> -->
       </div>
@@ -21,7 +24,8 @@ export default {
   name: 'HelloWorld',
   data () {
     return {
-      msg: 'Welcome to Your Vue.js App'
+      msg: 'Welcome to Your Vue.js App',
+      nopay:''
     }
   },
   props: ['myid','mydata'],
@@ -34,15 +38,17 @@ export default {
   watch:{
     mydata:{
         handler(newValue, oldValue) {
-　　　　　　this.loadChart();
+　　　　　 this.loadChart();
+          //debugger;
+          //this.nopay = 0 - this.mydata.noPayAmount;
 　　　　},
 　　　　deep: true
     }
   },
   methods: {
     format(percentage) {
-      let all = this.mydata.payAmount + this.mydata.noPayAmount;
-        return "应收数"+all;
+      let all = ((this.mydata.payAmount + this.mydata.noPayAmount)/10000).toFixed(0);
+        return '应收数：'+all+'万元';
     },
     loadChart () {
       // 基于准备好的dom，初始化echarts实例

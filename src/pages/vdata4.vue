@@ -38,8 +38,8 @@
             </span>
           </div>
           <div class="box-co">
-            <span>暂时无数据！</span>
-            <!-- <pie1 myid="trtrt" :mydata="pdata1"></pie1> -->
+           <!--  <span>暂时无数据！</span> -->
+            <pie1 myid="trtrt" :mydata="pdata1"></pie1>
           </div>
         </div>
         <div class="com-box" style="width: 32.6%;margin-left: 1%;">
@@ -96,8 +96,8 @@
             </span>
           </div>
           <div class="box-co">
-            <span>暂时无数据！</span>
-            <!-- <vTable :mydata="tdata"></vTable> -->
+            <!-- <span>暂时无数据！</span> -->
+            <vTable :mydata="tdata"></vTable>
           </div>
         </div>
          <div style="width: 49.5%;margin-left: 1%;height: 100%;">
@@ -374,14 +374,20 @@ export default {
       this.mytype = type;
     },
     getType1(){
-      this.$http.post(this.$other+'/gzstbcapi/api/services/app/GZExternal/Statistics1',{token:this.$Ctoken}).then(res => {
+      this.$http.get(this.$other+'/gzstbcapi/api/services/app/GZExternal/GetSJCheckPlan',{token:this.$Ctoken}).then(res => {
+          this.tdata = res.data.result.items;
+      }).catch(err => {
+        console.log(err)
+      })
+
+      this.$http.get(this.$other+'/gzstbcapi/api/services/app/GZExternal/GetStatistics1',{token:this.$Ctoken}).then(res => {
           let all = res.data.result;
           this.bdata = all;
           //this.bdata = {checkProjectNum:0,rectifingNum:0,rectifedNum:0};
       }).catch(err => {
         console.log(err)
       })
-      this.$http.post(this.$other+'/gzstbcapi/api/services/app/GZExternal/Statistics2',{token:this.$Ctoken}).then(res => {
+      this.$http.get(this.$other+'/gzstbcapi/api/services/app/GZExternal/GetStatistics2',{token:this.$Ctoken}).then(res => {
           let all = res.data.result;
           this.numdata =all;
           this.numdata1 = all;

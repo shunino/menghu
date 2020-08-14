@@ -50,7 +50,7 @@
             <li @click="changeTab('garden2')" :class="mytype=='garden2' ? 'cur' : ''"><span style="margin-right: 15px;" class="gico"></span><span>园区功能</span><span style="margin-left: 15px;" class="gico"></span></li>
             <li @click="changeTab('garden3')" :class="mytype=='garden3' ? 'cur' : ''"><span style="margin-right: 15px;" class="gico"></span><span>园区管理</span><span style="margin-left: 15px;" class="gico"></span></li>
             <li @click="changeTab('garden4')" :class="mytype=='garden4' ? 'cur' : ''"><span style="margin-right: 15px;" class="gico"></span><span>园区互动</span><span style="margin-left: 15px;" class="gico"></span></li>
-          </ul>
+          </ul >
         </div>
       <div class="in-content">
             <div id="pSurvey" v-show="mytype=='garden1'">
@@ -102,10 +102,10 @@
       let win =  window.innerHeight;
       let he = win - 260 +'px';
       this.myheight = he;
-     // $('.head-left').find('span').removeClass('cur');
+      //$('.head-left').find('span').removeClass('cur');
       //$('#intro').addClass('cur');
       this.getDetail(this.$route.query.id);
-            $('#mysearch').hide();
+      $('#mysearch').hide();
     },
     methods:{
       getDetail(id){

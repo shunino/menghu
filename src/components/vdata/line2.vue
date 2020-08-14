@@ -45,11 +45,8 @@ props: ['myid','mydata'],
           let name = [];
           let data = [];
           for(let i in arr){
-            let mm;
-            if(arr[i].month<10) mm='0'+arr[i].month;
-            else mm = arr[i].month;
-            name.push(arr[i].year+'-'+mm);
-            data.push(Math.ceil(Math.random()*10));
+            name.push(arr[i].name+'月');
+            data.push(arr[i].value);
             //data.push(arr[i].replyCount);
           }
       // 指定图表的配置项和数据

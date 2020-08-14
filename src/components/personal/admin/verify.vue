@@ -203,6 +203,7 @@
           this.pageno = res.data.data.pageno;
           this.total = res.data.data.total;
           for(let i in this.tableData ){
+            if(this.tableData[i].createtime)
             this.tableData[i].createtime = this.tableData[i].createtime.split('T')[0];
           }
           console.log(res);

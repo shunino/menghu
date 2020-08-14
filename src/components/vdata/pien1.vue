@@ -44,7 +44,8 @@ export default {
             if(arr[i].count!=0){
               ob.name = arr[i].typeName;
               ob.value = arr[i].count;
-              name.push(arr[i].typeName);
+              if(arr[i].itemtype==5) ob.name='重点工程';
+              name.push(ob.name);
               all = all + arr[i].count;
               arr1.push(ob);
             }  
@@ -58,9 +59,9 @@ export default {
              // color : [],
               legend: {
                   orient : 'vertical',
-                  x: '75%',
+                  x: '62%',
                   y: '5%',
-                  right:'5%',
+                  right:'0%',
                   icon:"circle",
                   textStyle : {
                       color : '#ffffff',
@@ -107,7 +108,7 @@ export default {
                       name:'',
                       type:'pie',
                       radius : ['80%', '60%'],
-                      center: ['40%', '50%'],
+                      center: ['32%', '50%'],
                       label: {
                           normal: {
                               show:true,

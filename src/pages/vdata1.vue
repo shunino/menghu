@@ -16,7 +16,7 @@
             <div class="c-title" style="height: 12%">省级计划</div>
             <div class="c-content" style="height: 88%">
               <div style="display: flex;flex-direction: column;margin-left:2%;width: 98%;height: 100%;">
-                 <monitor :mydata="planData"></monitor>
+                 <monitor type="1" :mydata="planData"></monitor>
               </div>
              
             </div>

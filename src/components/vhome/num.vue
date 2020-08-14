@@ -54,7 +54,7 @@ export default {
   },
   props: ['myid','mydata'],
   mounted () {
-  
+    
   },
   methods: {
     myformat1(percentage) {

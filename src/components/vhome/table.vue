@@ -25,18 +25,27 @@
       align="center"
       style="width: 100%;">
       <el-table-column
-        prop="date"
-        label="日期"
+        prop="name"
+        label="计划名称"
         width="180">
       </el-table-column>
       <el-table-column
-        prop="name"
-        label="姓名"
+        prop="checkPlanProjectNum"
+        label="计划检查数量"
         width="180">
+      </el-table-column>
+      <el-table-column
+        prop="planEndTime"
+        label="计划完成时间">
+      </el-table-column>
+      <el-table-column
+        prop="checkProjectNum"
+        label="完成检查数">
       </el-table-column>
       <el-table-column
         prop="address"
-        label="地址">
+        label="完成比例">
+        <template slot-scope="scope">{{ scope.row.checkPlanProjectNum==0 ? 0 : ((scope.row.checkProjectNum/scope.row.checkPlanProjectNum) * 100).toFixed(2)}}%</template>
       </el-table-column>
     </el-table>
  </div>
@@ -47,46 +56,18 @@ export default {
   name: 'HelloWorld',
   data () {
     return {
-      tableData: [{
-            date: '2016-05-02',
-            name: '王小虎',
-            address: '上海市普陀区金沙江路 1518 弄'
-          }, {
-            date: '2016-05-04',
-            name: '王小虎',
-            address: '上海市普陀区金沙江路 1517 弄'
-          }, {
-            date: '2016-05-01',
-            name: '王小虎',
-            address: '上海市普陀区金沙江路 1519 弄'
-          }, {
-            date: '2016-05-03',
-            name: '王小虎',
-            address: '上海市普陀区金沙江路 1516 弄'
-          }, {
-            date: '2016-05-03',
-            name: '王小虎',
-            address: '上海市普陀区金沙江路 1516 弄'
-          }, {
-            date: '2016-05-03',
-            name: '王小虎',
-            address: '上海市普陀区金沙江路 1516 弄'
-          }, {
-            date: '2016-05-03',
-            name: '王小虎',
-            address: '上海市普陀区金沙江路 1516 弄'
-          }, {
-            date: '2016-05-03',
-            name: '王小虎',
-            address: '上海市普陀区金沙江路 1516 弄'
-          }, {
-            date: '2016-05-03',
-            name: '王小虎',
-            address: '上海市普陀区金沙江路 1516 弄'
-          }]
+      tableData: []
     }
   },
-  props: ['myid'],
+  props: ['mydata'],
+  watch:{
+    mydata:{
+        handler(newValue, oldValue) {
+　　　　　this.tableData = newValue;
+　　　　},
+　　　　deep: true
+    }
+  },
   mounted () {
     //this.loadChart();
   },
