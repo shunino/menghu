@@ -43,7 +43,8 @@ router.beforeEach((to, from, next) => {
 
 //通用常量
 Vue.prototype.$URL='http://58.42.237.169:8081' //http://222.85.224.95:9090
-Vue.prototype.$Ctoken ='FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'
+let tokent = location.href.split('&')[1] ? location.href.split('&')[1].split('=')[1] : 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF';
+Vue.prototype.$Ctoken =tokent;
 Vue.prototype.$STATE1 = [
   {
     label:'水土流失',

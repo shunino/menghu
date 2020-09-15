@@ -117,7 +117,10 @@ export default {
                // barGap: 1, //柱子之间间距
                 itemStyle: {
                     normal: {
-                        color:'#45D7DA',
+                        color: function(params) {
+                          let colorList = ['#E26B52','#C53ED2','#45D7DA','#61A0A8'];
+                          return colorList[params.dataIndex]
+                        },
                         opacity: 1,
                         barBorderRadius: 5,
                     }

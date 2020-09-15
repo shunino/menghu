@@ -11,8 +11,8 @@
 <template>
   <div class="num-div">
     <div class="num-box">
-      <div class="percentage"><span style="background: #E26B52;" class="picon"></span><span>{{mydata.yearApprovalProgress}}%</span></div>
-      <div class="ptxt">报件数{{mydata.yearFAAdd}}</div>
+      <div class="percentage"><span style="background: #E26B52;" class="picon"></span><span>{{(mydata.yearApprovalProgress*100).toFixed(0)}}%</span></div>
+      <div class="ptxt">报件数{{mydata.yearAcceptAdd}}</div>
       <div class="progress">
         <div class="p-num"></div>
         <el-progress color="#E26B52" :stroke-width="18" :text-inside="true"  :format="myformat1" :percentage="50"></el-progress>
@@ -20,8 +20,8 @@
       <div class="ptxt">年</div>
     </div>
     <div class="num-box">
-      <div class="percentage"><span style="background: #C63ED3;" class="picon"></span><span>{{mydata.quarterApprovalProgress}}%</span></div>
-      <div class="ptxt">报件数{{mydata.quarterFAAdd}}</div>
+      <div class="percentage"><span style="background: #C63ED3;" class="picon"></span><span>{{(mydata.quarterApprovalProgress*100).toFixed(0)}}%</span></div>
+      <div class="ptxt">报件数{{mydata.quarterAcceptAdd}}</div>
       <div class="progress">
         <div class="p-num"></div>
         <el-progress color="#C63ED3" :stroke-width="18" :text-inside="true"  :format="myformat2" :percentage="50"></el-progress>
@@ -29,8 +29,8 @@
       <div class="ptxt">季度</div>
     </div>
     <div class="num-box">
-      <div class="percentage" style="border: none;"><span style="background: #45D7DA;" class="picon"></span><span>{{mydata.monthApprovalProgress}}%</span></div>
-      <div class="ptxt">报件数{{mydata.monthFAAdd}}</div>
+      <div class="percentage" style="border: none;"><span style="background: #45D7DA;" class="picon"></span><span>{{(mydata.monthApprovalProgress*100).toFixed(0)}}%</span></div>
+      <div class="ptxt">报件数{{mydata.monthAcceptAdd}}</div>
       <div class="progress">
         <div class="p-num"></div>
         <el-progress color="#45D7DA" :stroke-width="18" :text-inside="true"  :format="myformat3" :percentage="50"></el-progress>
@@ -58,13 +58,13 @@ export default {
   },
   methods: {
     myformat1(percentage) {
-         return '批复数'+this.mydata.yearAcceptAdd;
+         return '批复数'+this.mydata.yearFAAdd;
     },
     myformat2(percentage) {
-       return '批复数'+this.mydata.quarterAcceptAdd;
+       return '批复数'+this.mydata.quarterFAAdd;
     },
     myformat3(percentage) {
-       return '批复数'+this.mydata.monthAcceptAdd;
+       return '批复数'+this.mydata.monthFAAdd;
     }
   }
 }

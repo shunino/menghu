@@ -35,7 +35,7 @@ export default {
   
       var data1 = [{
               name: "进度",
-              value: this.mydata,
+              value: (this.mydata*100).toFixed(0),
         }];
 
       // 指定图表的配置项和数据

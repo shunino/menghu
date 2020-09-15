@@ -21,7 +21,7 @@
           未补偿缴费
         </div>
         <div class="num-s">
-          {{(mydata.noPayAmount/10000).toFixed(0)}}万元
+          {{(nopay/10000).toFixed(0)}}万元
         </div>
     </div>
   </div>

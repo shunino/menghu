@@ -112,7 +112,8 @@ export default {
       videoData:[],
       mysrc:'',
       left1id:'545t',
-      left2id:'898d'
+      left2id:'898d',
+      ustoken:'BCC227FE39DE96E21390024F05886ACA'
     }
   },
   mounted () {
@@ -121,6 +122,7 @@ export default {
     this.getLeft();
     this.getRight();
     this.getVideo();
+    this.ustoken = location.href.split('&')[1].split('=')[1];
   },
   methods: {
     timestampToTime(timestamp) {

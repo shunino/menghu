@@ -1,6 +1,6 @@
 <template>
   <div class="center2">
-    <div class="title">2019方案态势图</div>
+    <div class="title">方案态势图</div>
     <div class="box2">
       <div class="stitle">方案审批数</div>
       <div class="scon">
@@ -34,7 +34,7 @@ export default {
   },
   props: ['myid','mydata1','mydata2'],
   mounted () {
-  
+    debugger;
   },
   methods: {
     myformat(percentage) {

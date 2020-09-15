@@ -39,7 +39,8 @@
           </div>
           <div class="box-co">
            <!--  <span>暂时无数据！</span> -->
-            <pie1 myid="trtrt" :mydata="pdata1"></pie1>
+           <!--  <pie1 myid="trtrt" :mydata="pdata1"></pie1> -->
+           <bar11 myid="qqtrtrt43" :mydata="pdata1"></bar11>
           </div>
         </div>
         <div class="com-box" style="width: 32.6%;margin-left: 1%;">
@@ -331,6 +332,7 @@ import Num from '@/components/vhome/num'
 import Num1 from '@/components/vhome/num1'
 import Line1 from '@/components/vhome/line1'
 import Bar1 from '@/components/vhome/bar1'
+import Bar11 from '@/components/vhome/bar11'
 import Bar2 from '@/components/vhome/bar2'
 import Bar22 from '@/components/vhome/bar22'
 import Myprogress from '@/components/vhome/progress'
@@ -391,6 +393,7 @@ export default {
           let all = res.data.result;
           this.numdata =all;
           this.numdata1 = all;
+          //,{name:'未验收',value:all.noAcceptProject}
           this.pdata1 = [{name:'合规',value:all.complProject},{name:'违规',value:all.violationProject},{name:'已验收',value:all.acceptProject},{name:'未验收',value:all.noAcceptProject}];
           this.pdata2 = {payAmount:all.payAmount,noPayAmount:all.noPayAmount};
 
@@ -472,6 +475,7 @@ export default {
     'vTable': VTable,
     'line1': Line1,
     'bar1': Bar1,
+    'bar11': Bar11,
     'bar2': Bar2,
     'bar22': Bar22,
     'myprogress': Myprogress,
