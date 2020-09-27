@@ -15,7 +15,7 @@
             贵州水土保持监测站
           </a> -->
           <a
-            href="http://www.gzmwr.gov.cn/slxw/dfdt/201804/t20180404_3108351.html"
+            href="http://mwr.guizhou.gov.cn/"
             target="_blank"
           >
             贵州省水利厅

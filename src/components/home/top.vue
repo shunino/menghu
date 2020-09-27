@@ -7,8 +7,8 @@
     align-items: center;
   }
   .mytop .top-icon{
-      height: 53px;
-      width: 494px;
+      /*height: 53px;
+      width: 494px;*/
       display: flex;
       align-items: center;
   }
@@ -42,7 +42,7 @@
        <div class="mytop">
         <div class="mytopD">
           <div class="top-icon ml10">
-            <img class="pointer" @click="goto()" src="../../assets/vnew/logo.png">
+            <img class="pointer" @click="goto()" src="../../assets/vnew/logo2.png">
           </div>
            <div class="top-search mr10">
              <!-- <el-input

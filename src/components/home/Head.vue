@@ -37,15 +37,11 @@
     width: 50px;
     height: 38%;">退出</span>
                 </span>
-              </div>
-              <div class="head-right mr10" v-show="!hasLogin">
-                  <span @click="toLogin" class="login-span">
-                    登录
-                  </span>
-                  <span @click="toRegister">
-                    注册
-                  </span>
               </div> -->
+              <div class="head-right mr10 a-link" @click="toLink" >
+                  贵州水土保持大数据平台
+                  <img class="link-img" src="../../assets/llogo.png">
+              </div>
           <el-dialog
             title="登录"
             :visible.sync="dialogVisible"
@@ -164,6 +160,9 @@ export default {
     $('#personal').addClass('cur');
   },
   methods:{
+    toLink(){
+        window.open('http://58.42.237.169:8081/#/login','_blank');
+    },
     validatePass(rule, value, callback){
       console.log(rule,value,callback);
       if (!value || value === '') {
@@ -259,6 +258,15 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
+  .a-link{
+    display:flex;
+    align-items:center;
+  }
+  .link-img{
+    width:30px;
+    height:30px;
+    margin-left:15px;
+  }
   .myhead{
       display: flex;
       flex-direction: row;

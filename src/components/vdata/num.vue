@@ -41,7 +41,7 @@ export default {
   watch:{
     mydata:{
         handler:function(val,oldval){
-          this.all = this.mydata.noPayAmount+this.mydata.payAmount;
+          this.all = this.mydata.payAmount-this.mydata.noPayAmount;
           this.nopay = 0 - this.mydata.noPayAmount;
         },
         deep:true//对象内部的属性监听，也叫深度监听

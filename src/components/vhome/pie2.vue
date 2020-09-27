@@ -47,7 +47,7 @@ export default {
   },
   methods: {
     format(percentage) {
-      let all = ((this.mydata.payAmount + this.mydata.noPayAmount)/10000).toFixed(0);
+      let all = ((this.mydata.payAmount - this.mydata.noPayAmount)/10000).toFixed(0);
         return '应收数：'+all+'万元';
     },
     loadChart () {
