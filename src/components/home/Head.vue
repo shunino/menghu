@@ -161,7 +161,7 @@ export default {
   },
   methods:{
     toLink(){
-        window.open('http://58.42.237.169:8081/#/login','_blank');
+        window.open('http://stbc.mwr.guizhou.gov.cn:8081/#/login','_blank');
     },
     validatePass(rule, value, callback){
       console.log(rule,value,callback);

@@ -24,8 +24,8 @@ Vue.use(VideoPlayer)
 const hls = require('videojs-contrib-hls')
 Vue.use(hls)
 Vue.prototype.$host='http://127.0.0.1:8080';
-//Vue.prototype.$other = 'http://58.42.237.169:8081';
-Vue.prototype.$other = '/ips';
+Vue.prototype.$other = 'http://58.42.237.169:8081';
+//Vue.prototype.$other = '/ips';
 /* 路由发生变化修改页面title */
 router.beforeEach((to, from, next) => {
   if (to.meta.title) {

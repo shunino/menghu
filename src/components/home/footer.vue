@@ -20,15 +20,22 @@
           >
             贵州省水利厅
           </a>
+         
         </div>
         <div class="footer-right">
         <!--   <span>关于我们</span>
           <span>@贵州东方世纪科技股份有限公司</span>
           <span>黔公安网 00000000号</span> -->
+          <span>黔ICP备05001357号-7</span>
+          
+          <a href="//bszs.conac.cn/sitename?method=show&amp;id=AF7DD292662E736AE05310291AACB2A5" target="_blank"><img id="imgConac" vspace="0" hspace="0" border="0" src="../../assets/administrate.png" data-bd-imgshare-binded="1"></a>
         </div>
+        <!-- <div>
+          <img  src="../../assets/administrate.png">
+        </div> -->
     </div>
 </template>
-
+<script type="text/javascript">document.write(unescape("<span id='ideConac' ></span><script src='http://dcs.conac.cn/js/24/000/0000/40707124/CA240000000407071240007.js' type='text/javascript'></script>"));</script>
 <script>
   export default {
     name: 'Head',
@@ -54,7 +61,7 @@
     color:white;
     /*margin-top: 40px;*/
     font-size: 14px;
-    flex-direction: column;
+    
     justify-content: center;
     background:linear-gradient(90deg,rgba(4,68,155,1),rgba(16,92,196,1));
   }
@@ -64,7 +71,7 @@
     flex-direction: row;
     justify-content: center;
     color: #00A8FF;
-    width: 354px;
+    width: 414px;
     justify-content: space-around;
   }
   .footer-left span{
@@ -81,10 +88,10 @@
     align-items: center;
     flex-direction: row;
     justify-content: center;
-    color: #FF620C;
-    margin-top: 17px;
+    
+    margin-top:3px;
     width: 455px;
-    justify-content: space-around;
+    justify-content: flex-end;
   }
 
 </style>
